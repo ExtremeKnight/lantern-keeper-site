@@ -1,5 +1,5 @@
 // Lantern Keeper's service worker (made by tools/build-web.js): the game's own files, for starting offline.
-const CACHE = 'lk-0.27.0-78344b7f31', FILES = ["./","index.html","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png"];
+const CACHE = 'lk-0.28.0-e79beb526e', FILES = ["./","index.html","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('lk-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
