@@ -1,0 +1,107 @@
+{
+  "latest": "0.28.0",
+  "items": [
+    {
+      "version": "0.28",
+      "date": "2026-10-02",
+      "title": "Play anywhere, together",
+      "summary": "Online co-op is ready to be run by the game's own server: the fairest kind of co-op, where no player's device decides for the others. The game has a Downloads page for Windows, macOS, Linux and Android, an app file for iPhone and iPad, and is tested on Safari so iPhone players meet everyone else on equal terms."
+    },
+    {
+      "version": "0.27",
+      "date": "2026-10-02",
+      "title": "Collections, the Market and the Workbench",
+      "summary": "Four themed collections of looks, a Market to swap items with any keeper, materials found on the coast and crafted into boosts at the Workbench, festival tokens to trade for looks you missed, and music you unlock by playing."
+    },
+    {
+      "version": "0.26",
+      "date": "2026-10-02",
+      "title": "The Lantern Bazaar",
+      "summary": "A walkable 3D harbour where keepers meet between the nights, the Collection of everything you have found, a Satchel with search and filters, a controller map, and a web version you can install and play offline."
+    },
+    {
+      "version": "0.25",
+      "date": "2026-10-01",
+      "title": "Every screen",
+      "summary": "Graphics presets from Low to Ultra, a frame-rate limit, text size, high contrast, colour-vision palettes, captions for sounds, left-handed and resizable touch buttons, and a margin for TVs. Tested on eleven screen sizes, from a small phone to 4K."
+    },
+    {
+      "version": "0.24",
+      "date": "2026-10-01",
+      "title": "Every controller",
+      "summary": "Xbox, PlayStation, Nintendo-style and Steam Deck controllers, with buttons named for yours, remapping, an on-screen keyboard, and menus that work without a mouse."
+    },
+    {
+      "version": "0.23",
+      "date": "2026-10-01",
+      "title": "Trading",
+      "summary": "Trade boosts and keepsakes with your friends: put items in your Trade chest, make an offer, and both keepers confirm before anything moves."
+    },
+    {
+      "version": "0.22",
+      "date": "2026-09-26",
+      "title": "The Satchel",
+      "summary": "Boosts for a single PvE night and keepsakes found along the coast. Boosts never work in PvP."
+    },
+    {
+      "version": "0.21",
+      "date": "2026-09-26",
+      "title": "Everything has a face",
+      "summary": "Every weapon, keeper and charm drawn as itself, with lore for all of them, and a preview that compares an item with what you have."
+    },
+    {
+      "version": "0.18",
+      "date": "2026-09-26",
+      "title": "The wardrobe",
+      "summary": "Six skin tones and new hats, scarves and coats, with a Keeper screen to try them on before you save."
+    },
+    {
+      "version": "0.15",
+      "date": "2026-09-26",
+      "title": "PvP Battle",
+      "summary": "Ranked 1v1: build your lantern over three waves, then duel another keeper live. Ratings, tiers, a leaderboard, and practice against an AI keeper."
+    },
+    {
+      "version": "0.14",
+      "date": "2026-09-25",
+      "title": "Together, and the Living World",
+      "summary": "Online co-op for up to four keepers, friends, parties and chat, community goals, regions VIII to XXV with five acts and an ending, festivals, and over a thousand achievements and challenges."
+    },
+    {
+      "version": "0.13",
+      "date": "2026-09-25",
+      "title": "Accounts and cloud saves",
+      "summary": "A free account keeps your progress in the cloud and on every device. New route stops, events, hazards, guardians with phases, and the Ashen Shoals and Whispering Marsh."
+    },
+    {
+      "version": "0.12",
+      "date": "2026-09-25",
+      "title": "Deeper waters",
+      "summary": "Two new regions with longer routes, new creatures and guardians, and Ascension levels 1 to 10."
+    },
+    {
+      "version": "0.11",
+      "date": "2026-09-24",
+      "title": "Four keepers and music",
+      "summary": "Co-op for up to four keepers, co-op expeditions, reconnecting after a dropped connection, music, and the Android app."
+    },
+    {
+      "version": "0.10",
+      "date": "2026-09-23",
+      "title": "The Keeper update",
+      "summary": "Your profile with titles and records, five lighthouses, new weapons and keepers, weekly goals, the Boss Rush, and co-op over Wi-Fi or phone to phone."
+    },
+    {
+      "version": "0.9",
+      "date": "2026-09-23",
+      "title": "The first co-op",
+      "summary": "Two keepers on one lighthouse, relighting the lighthouse, relics and the daily challenge."
+    },
+    {
+      "version": "0.8",
+      "date": "2026-09-23",
+      "title": "The world and the arsenal",
+      "summary": "The world map with its first regions, weapons and keepers to choose, the Loadout, charms and the Codex."
+    }
+  ]
+}
