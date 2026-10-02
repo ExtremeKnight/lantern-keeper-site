@@ -1067,7 +1067,7 @@ body.os #app{height:calc(100% - 2 * var(--os));width:calc(100% - 2 * var(--os));
 .satOpen{display:flex;flex-direction:column;align-items:center;gap:.15rem;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:0;min-height:44px}
 .satItem.locked .satArt,.siArt.locked,.colArt.locked{filter:brightness(0) opacity(.45)}
 .satTags{display:flex;gap:.25rem;flex-wrap:wrap;justify-content:center}.satTag.tr{background:rgba(143,211,255,.15);color:#8fd3ff}
-.satTag.rar-rare{background:rgba(143,211,255,.15);color:#8fd3ff}.satTag.rar-epic{background:rgba(201,160,255,.18);color:#d5b3ff}.satTag.rar-premium{background:rgba(255,207,102,.15);color:var(--lamp)}
+.satTag.rar-rare{background:rgba(127,184,255,.15);color:var(--rar-rare)}.satTag.rar-epic{background:rgba(196,155,255,.18);color:var(--rar-epic)}.satTag.rar-common{color:var(--rar-common)}.satTag.rar-premium{background:rgba(255,207,102,.15);color:var(--lamp)}
 .satInfo{padding:.4rem 0}.siHead{display:flex;gap:.8rem;align-items:center;margin:.5rem 0}.siHead h3{margin:0 0 .2rem;font-weight:400;color:var(--lamp)}.siArt{width:84px;height:84px;flex:none}
 .siFacts{display:grid;grid-template-columns:auto 1fr;gap:.3rem .8rem;font-size:var(--fs-sm)}.siFacts dt{color:var(--fog)}.siFacts dd{margin:0}
 .siBtns{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem}.siBtns .btn{flex:1 1 9rem}
@@ -1097,6 +1097,25 @@ body.os #app{height:calc(100% - 2 * var(--os));width:calc(100% - 2 * var(--os));
 .bzPlaces{position:absolute;inset:auto .6rem .6rem;max-height:75%;overflow:auto;padding:.8rem;border-radius:16px;border:1px solid var(--line);background:var(--panel);z-index:3}
 .bzPlaces h3{margin:0 0 .4rem;color:var(--lamp);font-weight:400}.bzPlaces ul{list-style:none;padding:0;margin:0 0 .6rem}.bzPlaces li{padding:.4rem 0;border-top:1px solid rgba(255,255,255,.07)}
 .bzPlaces li b{font-weight:400}.bzPlaces li small{color:var(--fog)}.bzPlaces li div{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.3rem}.bzPlaces li .btn{width:auto}
+
+/* ============ 0.27 Lumen collections ============ */
+.colGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.6rem;margin:.4rem 0 .8rem}
+.colCard{display:flex;flex-direction:column;gap:.3rem;padding:.7rem;border-radius:14px;border:1px solid var(--line);background:linear-gradient(160deg,var(--c1),rgba(10,15,36,.9) 70%)}
+.colCard b{font-weight:400;color:var(--lamp);font-size:var(--fs-lg)}.colCard p{margin:0;font-size:var(--fs-sm)}.colCard .btn{margin-top:auto}
+.colPics{display:flex;gap:.3rem}.colPics img{width:48px;height:60px;object-fit:contain;border-radius:8px;background:rgba(0,0,0,.25)}
+.colHas{list-style:none;padding:0;margin:.2rem 0;font-size:var(--fs-xs);color:var(--mist);columns:2 7rem}.colCard.owned{opacity:.85}
+
+/* ============ 0.27 the Workbench and the Festival herald ============ */
+.wbMats{display:flex;flex-wrap:wrap;gap:.5rem;margin:.4rem 0 .6rem}.wbMat{display:flex;flex-direction:column;align-items:center;min-width:4.4rem;padding:.3rem;border-radius:12px;border:1px solid var(--line)}
+.wbMat b{color:var(--lamp);font-weight:400}.wbMat small{font-size:var(--fs-xs);color:var(--fog);text-align:center}.wbArt{width:40px;height:40px;flex:none}
+.wbRow{display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--ic,var(--line));margin:.35rem 0}
+.wbRow > div{flex:1;min-width:0}.wbRow b{font-weight:400}.wbRow small{display:block;font-size:var(--fs-xs);color:var(--fog)}.wbRow .btn{width:auto;flex:none}
+.wbNeed{margin:.2rem 0 0;font-size:var(--fs-xs)}.wbNeed .ok{color:#8fe0a2}.wbNeed .no{color:#ff9a8a}
+.wbTok{display:flex;gap:.6rem;align-items:center;margin:.4rem 0}.wbTok b{font-weight:400;color:var(--lamp)}.wbTok small{display:block;color:var(--fog);font-size:var(--fs-xs)}
+.wbLook{width:40px;height:50px;object-fit:contain}.wbSw{width:36px;height:36px;border-radius:50%;flex:none;border:2px solid var(--line)}
+
+.mkRow{display:flex;gap:.6rem;align-items:center;padding:.5rem;border-radius:12px;border:1px solid var(--line);margin:.35rem 0}.mkRow > div{flex:1;min-width:0}
+.mkRow b{font-weight:400}.mkRow small{display:block;font-size:var(--fs-xs);color:var(--fog)}.mkRow .btn{width:auto;flex:none}
 </style>
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAMTklEQVR4nOxayYttRxmv6Zw79u3bwxs0vCQvYowimJVLcdgJLkSErEXIQvAPENy4cW22+h/oRrMJgpBVEAmJCCq6UEOI5OUNeT3d4ZxTVf5+X51z+7zuvt19bzfEB6m+VH9d95yqb56q3WD8ktY6xviUznq49SX1NA+nFKhQMaqndHbaACSEoY0i3J7/79eTBHRULd0CbFrwiuvGGK2DMzaqADiGoJXxMeCcqgo47or7n1h3WgjBGSop07ow0HZWOWsBGG1xojaZ8MvivKhsCDFk1vvgg6p8xNvXcq6Tv03LrteBOzkQj5kj3s4ZoyL/riXAJ30A703lQ4yurECDLkrQokO40rmAkwQSTevMzurcaed05gjjY40SIeBbm1QW/I/RAvcQLEjIHCiJeLKsIj6A1z594YVEn1RLty4HQ2e6HYu5kxlwPM+gPzGzwJsS0CroZAPaQAJ4r+IvWgJswRYeNM9LX1Z6Xvj1cWi8kFgCZpGOwBesdzIFjHOn8pwzJWCUc6THGtJgaAPQdSM24MD7EAyxdw6UQAJFAQqhcKDQzotwyXNPrIsETEurjGnBS9czR95ntp47ORABJUBcuczQEqxV9EgWWOOEIG4I2IfMFCVsAAIKlNLc4xml8KUROVxw7un1Yxsw8rVEhws0D8zu5gaqD7w7mc4zmkGeGVCVzAAfGLLR6Q2cpKBAcD7eadF+AzvGcUVJHTBlkF3xiIVJXHg6fsM3JOt/IhJnGfwHDwaH8BH6UrTTbRi/gXdG7F3uCAslkEMUOegsScBx+xQHFL0QvJGq6H+wv1iI9oYIkPegDicEjKjom846F7DYG16ErMoS+8m6qymTqIaTodbDAfcvCn8wKWdFpRYykWcEV93pAG/CYH8tDUpA5zksARIw9EW1E7IiAWAWKwstAvbRFuA9vg5p0xgMXVQ0IHMWjs9K5/Z6bqOX4SxYTlGFQjSNllBHYj6VIpxJmkS5ONvrupu7Q4Sdg8PyweMpDA7PQEbO0Xah97TdTGhI9oAZEsB6RnsQVsWklsDHk72moAUr6AwR08DDga5EXkCUCB7SKz0Mhfh0O257s7O50cU+UK15USE2QmKweKVp8SkqNzaQfgjrZrakvpNvDrsv3BkfTcv7j6aP96cggF4/8TurLQFygASSPWQpJlACJm0NJQJ3of1WfL/YBvSeVh4i5EObBoXgC+Z+Nx+Puje2e4OeE2X2BY0kcd0L9s2s9CIS61h7qCQ1XcfqY+uJ25vd27v9Qc/uH0w+3pvtHUwzesyY15TYlj0wPiBaQcX/+h40MH75bgbsodvW0PuI3iOuUe+BsSdtHh5se9zd3R4MetmsULM54kMQfjd+k9gnfGq4yUZrvFXz3YKGk7AV9/LsZ0Yv3R0jbD38ePLg0RHMKVvIoeWXoGP/uef/+LcCL26P7PO33IL3kbyHRiE7CqATnN59frAz7kNKRzN/OPWIbidwFdg+IQfOqhWJae+20RwtGkZYQh5h8IzpmUmUmF6mvnB36ysvboF59x8ePnw8VdGniCaUqAd78fdvzyVjUwC+9zVzc0zdJe+hMkhWrX7+meHOuJt3OpNpNS3V4VHFTFZ5a6lX9E4iAcCCd9L7FlznQkaimkl2bRezSTP3kpUY6SOZpYESrid42DO3d3e6Th1MioePjvYO5/Cnk3n83VvTytdFE4DX35q98o1+v0cEb+30we+NYXdWBGjLdOYNvZ6X7KOSnUviU1XCL34LF6YTLLNgWCXMm2xUCgQmLJF5ryLv61lbwZ77wi5r2hhNLDlBOBK+sdW5c6sHLd8/nP/j3/s/f7W7NbSqGR8f+vc/ii8+Oxxv9qpKzSsNLZeUT7CPXqqIGnuT8APvqlIlCTByJZsh20NsvBDeuvncN9WSIUkl9mF2D0Uf9e1G3ww529EAvCew0cOKG/QMP13Tx6ejex3z3O68lyt15/vc6P1fTwv93v18WsTJLEzm4WgWjqbhcOIBHEx8+hxOwv6kwuI+/wwlM46I6CFpbFyGZNsGTsY/5o/YIkg9UoId1bwwhxO937WPcgVcu7kedG1X4B7nBax3v9rvwRT6d9Ix8MLv/H0f6M6EhkQJ9AdWi3nCWQtcr8OUUx7eeBt9ZmxOXqidaahlcJM/iUdiaDreMWU7Sh3DUWz3xAjyUHpS1XVJSGlMY6mL9bjwkhfi9mQ90J7b+XeqRMVaWFqJB6DNEFcj0oV2MlrJzIwtJpl/+EaDvUIckIxIi0TxpBdqUc5gH58yIrFDr5r8+Tx81HE9sMitJRq3s9HWeuJcEMugrasae4myxB7vQV8Rle4/ru4/Djc27a0dBMt3hevx3qPwzj/nN8bQMS2UhBTFmP+I05AFIxub5EPPx2exvqgHVK1bptV1eXJdUhScROPnDAy8ChlcHBIaXXqmGMgS3/8ovPnnyRt/mpzWoq+/3Lv72bz0qMgoJZEYk9WQfAvTIs1TaglcgM8iEre16ryZu3skyoI3M3vkC/Tx3sJlRwQJYA+v9cxN+8Pvfu5b3/nxCez/8PovZkf3kUvjFUTl1JsA+tyNvIg1JTwlXh6rthe6YOZ57CzElJlxBh7geqUsNLGk21Ul6mM73hx+5vaNEwRsjUcfHDxAliA06ALlfIDcQAnqG1QBxmOK9axUvCRWTV+IllDnbctgiI3cstJTcIZ4G8yRM7DHUyX5x+jY2TytPzYfFaVmQr+goYQusTpjrexTVhdTVXAZfBLsUhZ9bOPnwtRdppGWvLfkn2OWT82hVxArhHZlndFpAvLOaFpyB5QW7ERQAqiPPVeIvZZ6DXuGpt69GB99si+k9Pkw69pQ8x61mtS1+I74R+FK8pI2658mwLj+vIS1KNEimEGSgxF7YJ1AaYgELo+PerI7rZfVwW1YKlpVsDK0gCU9jSkyRGpwRNLhXO80AS7vz+bwV6iJYb7oCMWynkUOvqZBMs0V8GlH4ngZGG9R47VJPQVdMhqosuY9u24BNnAmAd0ZUaf2g9MQYyE0wBLK2qYZE1bFp6mJUzw/jnnnwdBaTd4b0XvJW5NHZ89QapTBGTYwGGwiyYGlSpYmNlChvxBKqZVL6lK4PA4L2KXcpunP6UvCrMtLKnaSCfaC5sCpO9KgBr9981+//M1JAm7uzkr6e3oCWgK1vwD2RSy8yHPhYVbBJ0XiVmy79IzQG0Wc7ClkuooKJSX9Engym51Of7E4naf+XJTuNONxkfxSGesouzomK0Ti0zOYHefoo/BsFPKIQCiaWYgdnpFHYHFeJj+ma0tAd9pzk6vgsEIkPnOG7YKvHt1p0X7gNLTSDz01WJUUesb+HH1lQa9vWvcDa87tOBDXhukBJU6jrn2m11VLxrg7eLR3hPq2Ykp9DecmLyTZcsqZxbqTeEjfiuvMbYKa9DdfeO2nZxIwefVn8weTRvzxWs6tvZAYdBPhVCq59HrrG8PeMglsDPtNXrX+/ifWpYtoUheo7isew2utD4eDZQQMB/2r739i3TT6JDeNLXjt9eHgHAkMrr7/iXXXQPVd0NXh3a3NZQRsj0fXexZTRN5BqOP87urwztZoGQG726OUuVzXWSKB1FVs2cQV4bsffvDf1351JgF3TW60ucazALu0o/wdJTu7Kjza25vdu3cmAaPbtxt+Xc9ZMWWjRryskZz+6nCOTG3JyMvSGHONZxlmo5ID8i5o4WsbmL3JOJfGZJDsQNo5vJhAUyX1roK0NnjXqOsrHmvLnWUEWFQSSp951qpwqHAPWQZcWcmpuqYJePnCV7OAyruaI7aqi4YElqjkzpAZaCiR4y/rxJr5vCoPUUKw/8xckt0xg1tA3OwbR9/Cso55VN2HVGyYyQoadiiaKraUAmoov9jTMTEujwLw9jPMYhtrjXR2DLs/eAV3hGc+UlV+9qOfMAmmxLS6juGODt5Taw2qFkQEmoVDCZ1Onm988fPnvNUx5bzgvVPgv8tomqLN63uWtYYLq7/IHLqaqqo4zUQQ8Pa7fznnXTyQCBCFpRUxvaY3yaPrabOyWPTNl7+tVh1VaQ8OrkkF6gFS/HBDuUytOJxaY7is2tg05QyVrI5BXW2wKM3zkHd5l7UGLmqtgQvX6Aa+R8Nk25o9ZbpandrWKqkHvQiHJGCpJa7S/T2iAdw5/yOE/6KjlFpbnGsS0NqAO8TGeV3Sha3r6c46Xz3l41MCPunxKQGf9HjqCfgfAAAA//8l8WE2AAAABklEQVQDAGtxtGzL21/EAAAAAElFTkSuQmCC">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1397,7 +1416,7 @@ body.os #app{height:calc(100% - 2 * var(--os));width:calc(100% - 2 * var(--os));
     <div class="tabs" id="satTabs" role="tablist" aria-label="Show"></div>
     <div id="satList" class="satGrid"></div>
     <p class="deal" id="satNote" aria-live="polite"></p>
-    <div class="satBtns"><button id="bSatCollect" class="btn">Collection</button><button id="bSatTrade" class="btn">Trading</button></div>
+    <div class="satBtns"><button id="bSatCollect" class="btn">Collection</button><button id="bSatCraft" class="btn">Workbench</button><button id="bSatTrade" class="btn">Trading</button></div>
     <button id="bSatClose" class="btn done">Done</button>
   </section>
 
@@ -1574,6 +1593,14 @@ body.os #app{height:calc(100% - 2 * var(--os));width:calc(100% - 2 * var(--os));
     <button id="bSetClose" class="btn done">Done</button>
   </section>
 
+  <section id="workbench" class="sheet" hidden aria-labelledby="wbT">
+    <h2 id="wbT">Workbench</h2>
+    <div class="tabs" id="wbTabs" role="tablist" aria-label="Workbench"></div>
+    <div id="wbList"></div>
+    <p class="deal" id="wbNote" aria-live="polite"></p>
+    <button id="bWbClose" class="btn done">Done</button>
+  </section>
+
   <section id="bazaar" hidden aria-labelledby="bzT">
     <div id="bzView"><p id="bzNo3d" class="bzNo3d" hidden>3D isn't available on this device: use Places to visit the stalls.</p></div>
     <div class="bzTop"><div><h2 id="bzT" class="bzTitle"><span id="bzWhere">Lantern Bazaar</span></h2><small id="bzWho"></small></div>
@@ -1622,7 +1649,7 @@ body.os #app{height:calc(100% - 2 * var(--os));width:calc(100% - 2 * var(--os));
 <script>
 (() => {
 'use strict';
-const LK_VERSION = "0.26.0";
+const LK_VERSION = "0.27.0";
 const LK_CLOUD = {"url":"https://odnjaegbkudwsfrwnjiy.supabase.co","key":"sb_publishable_IUdpT3MRtokyJD3SsNNF0Q_eZAovpor","privacyUrl":"https://extremeknight.github.io/lantern-keeper-site/privacy-policy.html","termsUrl":"https://extremeknight.github.io/lantern-keeper-site/terms.html","captcha":"40488912-dbd0-40ca-9726-be9e3f983e42"};
 /* ---- @supabase/supabase-js/dist/umd/supabase.js: supabase-js (MIT licence, Supabase Inc.), defines `supabase` ---- */
 var supabase=(function(e){function t(e,t){var n={};for(var r in e)Object.prototype.hasOwnProperty.call(e,r)&&t.indexOf(r)<0&&(n[r]=e[r]);if(e!=null&&typeof Object.getOwnPropertySymbols==`function`)for(var i=0,r=Object.getOwnPropertySymbols(e);i<r.length;i++)t.indexOf(r[i])<0&&Object.prototype.propertyIsEnumerable.call(e,r[i])&&(n[r[i]]=e[r[i]]);return n}function n(e,t,n,r){function i(e){return e instanceof n?e:new n(function(t){t(e)})}return new(n||=Promise)(function(n,a){function o(e){try{c(r.next(e))}catch(e){a(e)}}function s(e){try{c(r.throw(e))}catch(e){a(e)}}function c(e){e.done?n(e.value):i(e.value).then(o,s)}c((r=r.apply(e,t||[])).next())})}let r=e=>e?(...t)=>e(...t):(...e)=>fetch(...e);var i=class extends Error{constructor(e,t=`FunctionsError`,n){super(e),this.name=t,this.context=n}toJSON(){return{name:this.name,message:this.message,context:this.context}}},a=class extends i{constructor(e){super(`Failed to send a request to the Edge Function`,`FunctionsFetchError`,e)}},o=class extends i{constructor(e){super(`Relay Error invoking the Edge Function`,`FunctionsRelayError`,e)}},s=class extends i{constructor(e){super(`Edge Function returned a non-2xx status code`,`FunctionsHttpError`,e)}},c;(function(e){e.Any=`any`,e.ApNortheast1=`ap-northeast-1`,e.ApNortheast2=`ap-northeast-2`,e.ApSouth1=`ap-south-1`,e.ApSoutheast1=`ap-southeast-1`,e.ApSoutheast2=`ap-southeast-2`,e.CaCentral1=`ca-central-1`,e.EuCentral1=`eu-central-1`,e.EuWest1=`eu-west-1`,e.EuWest2=`eu-west-2`,e.EuWest3=`eu-west-3`,e.SaEast1=`sa-east-1`,e.UsEast1=`us-east-1`,e.UsWest1=`us-west-1`,e.UsWest2=`us-west-2`})(c||={});var l=class{constructor(e,{headers:t={},customFetch:n,region:i=c.Any}={}){this.url=e,this.headers=t,this.region=i,this.fetch=r(n)}setAuth(e){this.headers.Authorization=`Bearer ${e}`}invoke(e){return n(this,arguments,void 0,function*(e,t={}){var n;let r,i,c;try{let{headers:n,method:l,body:u,signal:d,timeout:f}=t,p={},{region:m}=t;m||=this.region;let h=new URL(`${this.url}/${e}`);m&&m!==`any`&&(p[`x-region`]=m,h.searchParams.set(`forceFunctionRegion`,m));let g,ee=!!n&&Object.keys(n).some(e=>e.toLowerCase()===`content-type`);u&&!ee?typeof Blob<`u`&&u instanceof Blob||u instanceof ArrayBuffer?(p[`Content-Type`]=`application/octet-stream`,g=u):typeof u==`string`?(p[`Content-Type`]=`text/plain`,g=u):typeof FormData<`u`&&u instanceof FormData?g=u:(p[`Content-Type`]=`application/json`,g=JSON.stringify(u)):g=u&&typeof u!=`string`&&!(typeof Blob<`u`&&u instanceof Blob)&&!(u instanceof ArrayBuffer)&&!(typeof FormData<`u`&&u instanceof FormData)?JSON.stringify(u):u;let te=d;f&&(i=new AbortController,r=setTimeout(()=>i.abort(),f),d?(te=i.signal,c=()=>i.abort(),d.addEventListener(`abort`,c)):te=i.signal);let _=yield this.fetch(h.toString(),{method:l||`POST`,headers:Object.assign(Object.assign(Object.assign({},p),this.headers),n),body:g,signal:te}).catch(e=>{throw new a(e)}),ne=_.headers.get(`x-relay-error`);if(ne&&ne===`true`)throw new o(_);if(!_.ok)throw new s(_);let re=(_.headers.get(`Content-Type`)??`text/plain`).split(`;`)[0].trim().toLowerCase(),ie;return ie=re===`application/json`?yield _.json():re===`application/octet-stream`||re===`application/pdf`?yield _.blob():re===`text/event-stream`?_:re===`multipart/form-data`?yield _.formData():yield _.text(),{data:ie,error:null,response:_}}catch(e){return{data:null,error:e,response:e instanceof s||e instanceof o?e.context:void 0}}finally{r&&clearTimeout(r),c&&((n=t.signal)==null||n.removeEventListener(`abort`,c))}})}},u=class extends Error{constructor(e){super(e.message),this.name=`PostgrestError`,this.details=e.details,this.hint=e.hint,this.code=e.code}toJSON(){return{name:this.name,message:this.message,details:this.details,hint:this.hint,code:this.code}}};let d=e=>Math.min(1e3*2**e,3e4),f=[520,503],p=[`GET`,`HEAD`,`OPTIONS`];function m(e){"@babel/helpers - typeof";return m=typeof Symbol==`function`&&typeof Symbol.iterator==`symbol`?function(e){return typeof e}:function(e){return e&&typeof Symbol==`function`&&e.constructor===Symbol&&e!==Symbol.prototype?`symbol`:typeof e},m(e)}function h(e,t){if(m(e)!=`object`||!e)return e;var n=e[Symbol.toPrimitive];if(n!==void 0){var r=n.call(e,t||`default`);if(m(r)!=`object`)return r;throw TypeError(`@@toPrimitive must return a primitive value.`)}return(t===`string`?String:Number)(e)}function g(e){var t=h(e,`string`);return m(t)==`symbol`?t:t+``}function ee(e,t,n){return(t=g(t))in e?Object.defineProperty(e,t,{value:n,enumerable:!0,configurable:!0,writable:!0}):e[t]=n,e}function te(e,t){var n=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);t&&(r=r.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),n.push.apply(n,r)}return n}function _(e){for(var t=1;t<arguments.length;t++){var n=arguments[t]==null?{}:arguments[t];t%2?te(Object(n),!0).forEach(function(t){ee(e,t,n[t])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(n)):te(Object(n)).forEach(function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(n,t))})}return e}function ne(e,t){return new Promise(n=>{if(t?.aborted){n();return}let r=setTimeout(()=>{t?.removeEventListener(`abort`,i),n()},e);function i(){clearTimeout(r),n()}t?.addEventListener(`abort`,i)})}function re(e,t,n,r){return!(!r||n>=3||!p.includes(e)||!f.includes(t))}async function ie(e,t,n,r){let i=0;for(;;){let a=_({},n.headers);i>0&&(a[`X-Retry-Count`]=String(i));let o;try{o=await e(t,{method:n.method,headers:a,body:n.body,signal:n.signal})}catch(e){if(e?.name===`AbortError`||e?.code===`ABORT_ERR`||!p.includes(n.method))throw e;if(r&&i<3){let e=d(i);i++,await ne(e,n.signal);continue}throw e}if(re(n.method,o.status,i,r)){let e=o.headers?.get(`Retry-After`)??null,t=e===null?d(i):Math.max(0,parseInt(e,10)||0)*1e3;await o.text(),i++,await ne(t,n.signal);continue}return o}}var ae=class{constructor(e){this.shouldThrowOnError=!1,this.retryEnabled=!0,this.method=e.method,this.url=e.url,this.headers=new Headers(e.headers),this.schema=e.schema,this.body=e.body,this.shouldThrowOnError=e.shouldThrowOnError??!1,this.signal=e.signal,this.isMaybeSingle=e.isMaybeSingle??!1,this.shouldStripNulls=e.shouldStripNulls??!1,this.urlLengthLimit=e.urlLengthLimit??8e3,this.retryEnabled=e.retry??!0,e.fetch?this.fetch=e.fetch:this.fetch=fetch}throwOnError(){return this.shouldThrowOnError=!0,this}stripNulls(){if(this.headers.get(`Accept`)===`text/csv`)throw Error(`stripNulls() cannot be used with csv()`);return this.shouldStripNulls=!0,this}setHeader(e,t){return this.headers=new Headers(this.headers),this.headers.set(e,t),this}retry(e){return this.retryEnabled=e,this}then(e,t){var n=this;if(this.schema===void 0||([`GET`,`HEAD`].includes(this.method)?this.headers.set(`Accept-Profile`,this.schema):this.headers.set(`Content-Profile`,this.schema)),this.method!==`GET`&&this.method!==`HEAD`&&this.headers.set(`Content-Type`,`application/json`),this.shouldStripNulls){let e=this.headers.get(`Accept`);e===`application/vnd.pgrst.object+json`?this.headers.set(`Accept`,`application/vnd.pgrst.object+json;nulls=stripped`):(!e||e===`application/json`)&&this.headers.set(`Accept`,`application/vnd.pgrst.array+json;nulls=stripped`)}let r=this.fetch,i=(async()=>{let e={};n.headers.forEach((t,n)=>{e[n]=t});let t=await ie(r,n.url.toString(),{method:n.method,headers:e,body:JSON.stringify(n.body,(e,t)=>typeof t==`bigint`?t.toString():t),signal:n.signal},n.retryEnabled);return await n.processResponse(t)})();return this.shouldThrowOnError||(i=i.catch(e=>{let t=``,n=``,r=``,i=e?.cause;if(i){let n=i?.message??``,r=i?.code??``;t=`${e?.name??`FetchError`}: ${e?.message}`,t+=`\n\nCaused by: ${i?.name??`Error`}: ${n}`,r&&(t+=` (${r})`),i?.stack&&(t+=`\n${i.stack}`)}else t=e?.stack??``;let a=this.url.toString().length;return e?.name===`AbortError`||e?.code===`ABORT_ERR`?(r=``,n=`Request was aborted (timeout or manual cancellation)`,a>this.urlLengthLimit&&(n+=`. Note: Your request URL is ${a} characters, which may exceed server limits. If selecting many fields, consider using views. If filtering with large arrays (e.g., .in('id', [many IDs])), consider using an RPC function to pass values server-side.`)):(i?.name===`HeadersOverflowError`||i?.code===`UND_ERR_HEADERS_OVERFLOW`)&&(r=``,n=`HTTP headers exceeded server limits (typically 16KB)`,a>this.urlLengthLimit&&(n+=`. Your request URL is ${a} characters. If selecting many fields, consider using views. If filtering with large arrays (e.g., .in('id', [200+ IDs])), consider using an RPC function instead.`)),{success:!1,error:{message:`${e?.name??`FetchError`}: ${e?.message}`,details:t,hint:n,code:r},data:null,count:null,status:0,statusText:``}})),i.then(e,t)}async processResponse(e){var t=this;let n=null,r=null,i=null,a=e.status,o=e.statusText;if(e.ok){if(t.method!==`HEAD`){let i=await e.text();if(i!==``)if(t.headers.get(`Accept`)===`text/csv`)r=i;else if(t.headers.get(`Accept`)&&t.headers.get(`Accept`)?.includes(`application/vnd.pgrst.plan+text`))r=i;else try{r=JSON.parse(i)}catch{if(n={message:i},r=null,t.shouldThrowOnError)throw new u({message:i,details:``,hint:``,code:``})}}let s=t.headers.get(`Prefer`)?.match(/count=(exact|planned|estimated)/),c=e.headers.get(`content-range`)?.split(`/`);if(s&&c&&c.length>1&&(i=parseInt(c[1])),t.isMaybeSingle&&Array.isArray(r))if(r.length>1){if(n={code:`PGRST116`,details:`Results contain ${r.length} rows, application/vnd.pgrst.object+json requires 1 row`,hint:null,message:`JSON object requested, multiple (or no) rows returned`},r=null,i=null,a=406,o=`Not Acceptable`,t.shouldThrowOnError)throw new u(_(_({},n),{},{hint:n.hint??``}))}else r=r.length===1?r[0]:null}else{let i=await e.text();try{n=JSON.parse(i),Array.isArray(n)&&e.status===404&&(r=[],n=null,a=200,o=`OK`)}catch{e.status===404&&i===``?(a=204,o=`No Content`):n={message:i}}if(n&&t.shouldThrowOnError)throw new u(n)}return{success:n===null,error:n,data:r,count:i,status:a,statusText:o}}returns(){return this}overrideTypes(){return this}},oe=class extends ae{throwOnError(){return super.throwOnError()}select(e){let t=!1,n=(e??`*`).split(``).map(e=>/\s/.test(e)&&!t?``:(e===`"`&&(t=!t),e)).join(``);return this.url.searchParams.set(`select`,n),this.headers.append(`Prefer`,`return=representation`),this}order(e,{ascending:t=!0,nullsFirst:n,foreignTable:r,referencedTable:i=r}={}){let a=i?`${i}.order`:`order`,o=this.url.searchParams.get(a);return this.url.searchParams.set(a,`${o?`${o},`:``}${e}.${t?`asc`:`desc`}${n===void 0?``:n?`.nullsfirst`:`.nullslast`}`),this}limit(e,{foreignTable:t,referencedTable:n=t}={}){let r=n===void 0?`limit`:`${n}.limit`;return this.url.searchParams.set(r,`${e}`),this}range(e,t,{foreignTable:n,referencedTable:r=n}={}){let i=r===void 0?`offset`:`${r}.offset`,a=r===void 0?`limit`:`${r}.limit`;return this.url.searchParams.set(i,`${e}`),this.url.searchParams.set(a,`${t-e+1}`),this}abortSignal(e){return this.signal=e,this}single(){return this.headers.set(`Accept`,`application/vnd.pgrst.object+json`),this}maybeSingle(){return this.isMaybeSingle=!0,this}csv(){return this.headers.set(`Accept`,`text/csv`),this}geojson(){return this.headers.set(`Accept`,`application/geo+json`),this}explain({analyze:e=!1,verbose:t=!1,settings:n=!1,buffers:r=!1,wal:i=!1,format:a=`text`}={}){let o=[e?`analyze`:null,t?`verbose`:null,n?`settings`:null,r?`buffers`:null,i?`wal`:null].filter(Boolean).join(`|`),s=this.headers.get(`Accept`)??`application/json`;return this.headers.set(`Accept`,`application/vnd.pgrst.plan+${a}; for="${s}"; options=${o};`),this}rollback(){return this.headers.append(`Prefer`,`tx=rollback`),this}returns(){return this}maxAffected(e){return this.headers.append(`Prefer`,`handling=strict`),this.headers.append(`Prefer`,`max-affected=${e}`),this}};let se=RegExp(`[,()]`);var ce=class extends oe{throwOnError(){return super.throwOnError()}eq(e,t){return this.url.searchParams.append(e,`eq.${t}`),this}neq(e,t){return this.url.searchParams.append(e,`neq.${t}`),this}gt(e,t){return this.url.searchParams.append(e,`gt.${t}`),this}gte(e,t){return this.url.searchParams.append(e,`gte.${t}`),this}lt(e,t){return this.url.searchParams.append(e,`lt.${t}`),this}lte(e,t){return this.url.searchParams.append(e,`lte.${t}`),this}like(e,t){return this.url.searchParams.append(e,`like.${t}`),this}likeAllOf(e,t){return this.url.searchParams.append(e,`like(all).{${t.join(`,`)}}`),this}likeAnyOf(e,t){return this.url.searchParams.append(e,`like(any).{${t.join(`,`)}}`),this}ilike(e,t){return this.url.searchParams.append(e,`ilike.${t}`),this}ilikeAllOf(e,t){return this.url.searchParams.append(e,`ilike(all).{${t.join(`,`)}}`),this}ilikeAnyOf(e,t){return this.url.searchParams.append(e,`ilike(any).{${t.join(`,`)}}`),this}regexMatch(e,t){return this.url.searchParams.append(e,`match.${t}`),this}regexIMatch(e,t){return this.url.searchParams.append(e,`imatch.${t}`),this}is(e,t){return this.url.searchParams.append(e,`is.${t}`),this}isDistinct(e,t){return this.url.searchParams.append(e,`isdistinct.${t}`),this}in(e,t){let n=Array.from(new Set(t)).map(e=>typeof e==`string`&&se.test(e)?`"${e}"`:`${e}`).join(`,`);return this.url.searchParams.append(e,`in.(${n})`),this}notIn(e,t){let n=Array.from(new Set(t)).map(e=>typeof e==`string`&&se.test(e)?`"${e}"`:`${e}`).join(`,`);return this.url.searchParams.append(e,`not.in.(${n})`),this}contains(e,t){return typeof t==`string`?this.url.searchParams.append(e,`cs.${t}`):Array.isArray(t)?this.url.searchParams.append(e,`cs.{${t.join(`,`)}}`):this.url.searchParams.append(e,`cs.${JSON.stringify(t)}`),this}containedBy(e,t){return typeof t==`string`?this.url.searchParams.append(e,`cd.${t}`):Array.isArray(t)?this.url.searchParams.append(e,`cd.{${t.join(`,`)}}`):this.url.searchParams.append(e,`cd.${JSON.stringify(t)}`),this}rangeGt(e,t){return this.url.searchParams.append(e,`sr.${t}`),this}rangeGte(e,t){return this.url.searchParams.append(e,`nxl.${t}`),this}rangeLt(e,t){return this.url.searchParams.append(e,`sl.${t}`),this}rangeLte(e,t){return this.url.searchParams.append(e,`nxr.${t}`),this}rangeAdjacent(e,t){return this.url.searchParams.append(e,`adj.${t}`),this}overlaps(e,t){return typeof t==`string`?this.url.searchParams.append(e,`ov.${t}`):this.url.searchParams.append(e,`ov.{${t.join(`,`)}}`),this}textSearch(e,t,{config:n,type:r}={}){let i=``;r===`plain`?i=`pl`:r===`phrase`?i=`ph`:r===`websearch`&&(i=`w`);let a=n===void 0?``:`(${n})`;return this.url.searchParams.append(e,`${i}fts${a}.${t}`),this}match(e){return Object.entries(e).filter(([e,t])=>t!==void 0).forEach(([e,t])=>{this.url.searchParams.append(e,`eq.${t}`)}),this}not(e,t,n){return this.url.searchParams.append(e,`not.${t}.${n}`),this}or(e,{foreignTable:t,referencedTable:n=t}={}){let r=n?`${n}.or`:`or`;return this.url.searchParams.append(r,`(${e})`),this}filter(e,t,n){return this.url.searchParams.append(e,`${t}.${n}`),this}},le=class{constructor(e,{headers:t={},schema:n,fetch:r,urlLengthLimit:i=8e3,retry:a}){this.url=e,this.headers=new Headers(t),this.schema=n,this.fetch=r,this.urlLengthLimit=i,this.retry=a}cloneRequestState(){return{url:new URL(this.url.toString()),headers:new Headers(this.headers)}}select(e,t){let{head:n=!1,count:r}=t??{},i=n?`HEAD`:`GET`,a=!1,o=(e??`*`).split(``).map(e=>/\s/.test(e)&&!a?``:(e===`"`&&(a=!a),e)).join(``),{url:s,headers:c}=this.cloneRequestState();return s.searchParams.set(`select`,o),r&&c.append(`Prefer`,`count=${r}`),new ce({method:i,url:s,headers:c,schema:this.schema,fetch:this.fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}insert(e,{count:t,defaultToNull:n=!0}={}){let{url:r,headers:i}=this.cloneRequestState();if(t&&i.append(`Prefer`,`count=${t}`),n||i.append(`Prefer`,`missing=default`),Array.isArray(e)){let t=e.reduce((e,t)=>e.concat(Object.keys(t)),[]);if(t.length>0){let e=[...new Set(t)].map(e=>`"${e}"`);r.searchParams.set(`columns`,e.join(`,`))}}return new ce({method:`POST`,url:r,headers:i,schema:this.schema,body:e,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}upsert(e,{onConflict:t,ignoreDuplicates:n=!1,count:r,defaultToNull:i=!0}={}){let{url:a,headers:o}=this.cloneRequestState();if(o.append(`Prefer`,`resolution=${n?`ignore`:`merge`}-duplicates`),t!==void 0&&a.searchParams.set(`on_conflict`,t),r&&o.append(`Prefer`,`count=${r}`),i||o.append(`Prefer`,`missing=default`),Array.isArray(e)){let t=e.reduce((e,t)=>e.concat(Object.keys(t)),[]);if(t.length>0){let e=[...new Set(t)].map(e=>`"${e}"`);a.searchParams.set(`columns`,e.join(`,`))}}return new ce({method:`POST`,url:a,headers:o,schema:this.schema,body:e,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}update(e,{count:t}={}){let{url:n,headers:r}=this.cloneRequestState();return t&&r.append(`Prefer`,`count=${t}`),new ce({method:`PATCH`,url:n,headers:r,schema:this.schema,body:e,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}delete({count:e}={}){let{url:t,headers:n}=this.cloneRequestState();return e&&n.append(`Prefer`,`count=${e}`),new ce({method:`DELETE`,url:t,headers:n,schema:this.schema,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}};function ue(e,t){try{let t=JSON.parse(e);if(t&&typeof t==`object`&&!Array.isArray(t))return new u({message:String(t.message??e),details:t.details??``,hint:t.hint??``,code:t.code??``})}catch{}return new u({message:e||t,details:``,hint:``,code:``})}function de(e,t,n){let r=e;return{success:!1,error:new u({message:`${r?.name??`FetchError`}: ${r?.message}`,details:``,hint:``,code:``}),data:null,count:null,status:t,statusText:n}}var fe=class e{constructor(e,{headers:t={},schema:n,fetch:r,timeout:i,urlLengthLimit:a=8e3,retry:o}={}){this.url=e,this.headers=new Headers(t),this.schemaName=n,this.urlLengthLimit=a;let s=r??globalThis.fetch;i!==void 0&&i>0?this.fetch=(e,t)=>{let n=new AbortController,r=setTimeout(()=>n.abort(),i),a=t?.signal;if(a){if(a.aborted)return clearTimeout(r),s(e,t);let i=()=>{clearTimeout(r),n.abort()};return a.addEventListener(`abort`,i,{once:!0}),s(e,_(_({},t),{},{signal:n.signal})).finally(()=>{clearTimeout(r),a.removeEventListener(`abort`,i)})}return s(e,_(_({},t),{},{signal:n.signal})).finally(()=>clearTimeout(r))}:this.fetch=s,this.retry=o}from(e){if(!e||typeof e!=`string`||e.trim()===``)throw Error(`Invalid relation name: relation must be a non-empty string.`);return new le(new URL(`${this.url}/${e}`),{headers:new Headers(this.headers),schema:this.schemaName,fetch:this.fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}schema(t){return new e(this.url,{headers:this.headers,schema:t,fetch:this.fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}async getOpenApiSpec(){var e=this;let t=new Headers(e.headers);t.set(`Accept`,`application/openapi+json`),e.schemaName&&t.set(`Accept-Profile`,e.schemaName);let n={};t.forEach((e,t)=>{n[t]=e});let r=e.fetch??globalThis.fetch,i;try{i=await ie(r,`${e.url}/`,{method:`GET`,headers:n},e.retry??!0)}catch(e){return de(e,0,``)}let a;try{a=await i.text()}catch(e){return de(e,i.status,i.statusText)}if(i.ok)try{return{success:!0,error:null,data:JSON.parse(a),count:null,status:i.status,statusText:i.statusText}}catch{}return{success:!1,error:ue(a,i.statusText),data:null,count:null,status:i.status,statusText:i.statusText}}rpc(e,t={},{head:n=!1,get:r=!1,count:i}={}){let a,o=new URL(`${this.url}/rpc/${e}`),s,c=e=>typeof e==`object`&&!!e&&(!Array.isArray(e)||e.some(c)),l=n&&Object.values(t).some(c);l?(a=`POST`,s=t):n||r?(a=n?`HEAD`:`GET`,Object.entries(t).filter(([e,t])=>t!==void 0).map(([e,t])=>[e,Array.isArray(t)?`{${t.join(`,`)}}`:`${t}`]).forEach(([e,t])=>{o.searchParams.append(e,t)})):(a=`POST`,s=t);let u=new Headers(this.headers);return l?u.set(`Prefer`,i?`count=${i},return=minimal`:`return=minimal`):i&&u.set(`Prefer`,`count=${i}`),new ce({method:a,url:o,headers:u,schema:this.schemaName,body:s,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}},pe=class{constructor(){}static detectEnvironment(){if(typeof WebSocket<`u`)return{type:`native`,wsConstructor:WebSocket};let e=globalThis;if(typeof globalThis<`u`&&e.WebSocket!==void 0)return{type:`native`,wsConstructor:e.WebSocket};let t=typeof global<`u`?global:void 0;if(t&&t.WebSocket!==void 0)return{type:`native`,wsConstructor:t.WebSocket};if(typeof globalThis<`u`&&e.WebSocketPair!==void 0&&globalThis.WebSocket===void 0)return{type:`cloudflare`,error:`Cloudflare Workers detected. WebSocket clients are not supported in Cloudflare Workers.`,workaround:`Use Cloudflare Workers WebSocket API for server-side WebSocket handling, or deploy to a different runtime.`};if(typeof globalThis<`u`&&e.EdgeRuntime||typeof navigator<`u`&&navigator.userAgent?.includes(`Vercel-Edge`))return{type:`unsupported`,error:`Edge runtime detected (Vercel Edge/Netlify Edge). WebSockets are not supported in edge functions.`,workaround:`Use serverless functions or a different deployment target for WebSocket functionality.`};let n=globalThis.process;if(n){let e=n.versions;if(e&&e.node)return{type:`unsupported`,error:`Node.js detected but native WebSocket not found.`,workaround:`Ensure you are running Node.js 22+ or provide a WebSocket implementation via the transport option.`}}return{type:`unsupported`,error:`Unknown JavaScript runtime without WebSocket support.`,workaround:`Ensure you're running in a supported environment (browser, Node.js, Deno) or provide a custom WebSocket implementation.`}}static getWebSocketConstructor(){let e=this.detectEnvironment();if(e.wsConstructor)return e.wsConstructor;let t=e.error||`WebSocket not supported in this environment.`;throw e.workaround&&(t+=`\n\nSuggested solution: ${e.workaround}`),Error(t)}static isWebSocketSupported(){try{return this.detectEnvironment().type===`native`}catch{return!1}}};let v={closed:`closed`,errored:`errored`,joined:`joined`,joining:`joining`,leaving:`leaving`},me={close:`phx_close`,error:`phx_error`,join:`phx_join`,reply:`phx_reply`,leave:`phx_leave`,access_token:`access_token`},he={connecting:`connecting`,open:`open`,closing:`closing`,closed:`closed`};var ge=class{constructor(e){this.HEADER_LENGTH=1,this.USER_BROADCAST_PUSH_META_LENGTH=6,this.KINDS={userBroadcastPush:3,userBroadcast:4},this.BINARY_ENCODING=0,this.JSON_ENCODING=1,this.BROADCAST_EVENT=`broadcast`,this.allowedMetadataKeys=[],this.allowedMetadataKeys=e??[]}encode(e,t){if(e.event===this.BROADCAST_EVENT&&!(e.payload instanceof ArrayBuffer)&&typeof e.payload.event==`string`)return t(this._binaryEncodeUserBroadcastPush(e));let n=[e.join_ref,e.ref,e.topic,e.event,e.payload];return t(JSON.stringify(n))}_binaryEncodeUserBroadcastPush(e){return this._isArrayBuffer(e.payload?.payload)?this._encodeBinaryUserBroadcastPush(e):this._encodeJsonUserBroadcastPush(e)}_encodeBinaryUserBroadcastPush(e){let t=e.payload?.payload??new ArrayBuffer(0);return this._encodeUserBroadcastPush(e,this.BINARY_ENCODING,t)}_encodeJsonUserBroadcastPush(e){let t=e.payload?.payload??{},n=new TextEncoder().encode(JSON.stringify(t)).buffer;return this._encodeUserBroadcastPush(e,this.JSON_ENCODING,n)}_encodeUserBroadcastPush(e,t,n){let r=new TextEncoder,i=r.encode(e.topic),a=r.encode(e.ref??``),o=r.encode(e.join_ref??``),s=r.encode(e.payload.event),c=this.allowedMetadataKeys?this._pick(e.payload,this.allowedMetadataKeys):{},l=r.encode(Object.keys(c).length===0?``:JSON.stringify(c));if(o.length>255)throw Error(`joinRef length ${o.length} exceeds maximum of 255`);if(a.length>255)throw Error(`ref length ${a.length} exceeds maximum of 255`);if(i.length>255)throw Error(`topic length ${i.length} exceeds maximum of 255`);if(s.length>255)throw Error(`userEvent length ${s.length} exceeds maximum of 255`);if(l.length>255)throw Error(`metadata length ${l.length} exceeds maximum of 255`);let u=this.USER_BROADCAST_PUSH_META_LENGTH+o.length+a.length+i.length+s.length+l.length,d=new ArrayBuffer(this.HEADER_LENGTH+u),f=new DataView(d),p=new Uint8Array(d),m=0;f.setUint8(m++,this.KINDS.userBroadcastPush),f.setUint8(m++,o.length),f.setUint8(m++,a.length),f.setUint8(m++,i.length),f.setUint8(m++,s.length),f.setUint8(m++,l.length),f.setUint8(m++,t),p.set(o,m),m+=o.length,p.set(a,m),m+=a.length,p.set(i,m),m+=i.length,p.set(s,m),m+=s.length,p.set(l,m),m+=l.length;var h=new Uint8Array(d.byteLength+n.byteLength);return h.set(new Uint8Array(d),0),h.set(new Uint8Array(n),d.byteLength),h.buffer}decode(e,t){if(this._isArrayBuffer(e))return t(this._binaryDecode(e));if(typeof e==`string`){let[n,r,i,a,o]=JSON.parse(e);return t({join_ref:n,ref:r,topic:i,event:a,payload:o})}return t({})}_binaryDecode(e){let t=new DataView(e),n=t.getUint8(0),r=new TextDecoder;switch(n){case this.KINDS.userBroadcast:return this._decodeUserBroadcast(e,t,r)}}_decodeUserBroadcast(e,t,n){let r=t.getUint8(1),i=t.getUint8(2),a=t.getUint8(3),o=t.getUint8(4),s=this.HEADER_LENGTH+4,c=n.decode(e.slice(s,s+r));s+=r;let l=n.decode(e.slice(s,s+i));s+=i;let u=n.decode(e.slice(s,s+a));s+=a;let d=e.slice(s,e.byteLength),f=o===this.JSON_ENCODING?JSON.parse(n.decode(d)):d,p={type:this.BROADCAST_EVENT,event:l,payload:f};return a>0&&(p.meta=JSON.parse(u)),{join_ref:null,ref:null,topic:c,event:this.BROADCAST_EVENT,payload:p}}_isArrayBuffer(e){return e instanceof ArrayBuffer||e?.constructor?.name===`ArrayBuffer`}_pick(e,t){return!e||typeof e!=`object`?{}:Object.fromEntries(Object.entries(e).filter(([e])=>t.includes(e)))}},y;(function(e){e.abstime=`abstime`,e.bool=`bool`,e.date=`date`,e.daterange=`daterange`,e.float4=`float4`,e.float8=`float8`,e.int2=`int2`,e.int4=`int4`,e.int4range=`int4range`,e.int8=`int8`,e.int8range=`int8range`,e.json=`json`,e.jsonb=`jsonb`,e.money=`money`,e.numeric=`numeric`,e.oid=`oid`,e.reltime=`reltime`,e.text=`text`,e.time=`time`,e.timestamp=`timestamp`,e.timestamptz=`timestamptz`,e.timetz=`timetz`,e.tsrange=`tsrange`,e.tstzrange=`tstzrange`})(y||={});let _e=(e,t,n={})=>{let r=n.skipTypes??[];return t?Object.keys(t).reduce((n,i)=>(n[i]=ve(i,e,t,r),n),{}):{}},ve=(e,t,n,r)=>{let i=t.find(t=>t.name===e)?.type,a=n[e];return i&&!r.includes(i)?ye(i,a):be(a)},ye=(e,t)=>{if(e.charAt(0)===`_`)return we(t,e.slice(1,e.length));switch(e){case y.bool:return xe(t);case y.float4:case y.float8:case y.int2:case y.int4:case y.int8:case y.numeric:case y.oid:return Se(t);case y.json:case y.jsonb:return Ce(t);case y.timestamp:return Te(t);case y.abstime:case y.date:case y.daterange:case y.int4range:case y.int8range:case y.money:case y.reltime:case y.text:case y.time:case y.timestamptz:case y.timetz:case y.tsrange:case y.tstzrange:return be(t);default:return be(t)}},be=e=>e,xe=e=>{switch(e){case`t`:return!0;case`f`:return!1;default:return e}},Se=e=>{if(typeof e==`string`){let t=parseFloat(e);if(!Number.isNaN(t))return t}return e},Ce=e=>{if(typeof e==`string`)try{return JSON.parse(e)}catch{return e}return e},we=(e,t)=>{if(typeof e!=`string`)return e;let n=e.length-1,r=e[n];if(e[0]===`{`&&r===`}`){let r,i=e.slice(1,n);try{r=JSON.parse(`[`+i+`]`)}catch{r=i?i.split(`,`):[]}return r.map(e=>ye(t,e))}return e},Te=e=>typeof e==`string`?e.replace(` `,`T`):e,Ee=e=>{let t=new URL(e);return t.protocol=t.protocol.replace(/^ws/i,`http`),t.pathname=t.pathname.replace(/\/+$/,``).replace(/\/socket\/websocket$/i,``).replace(/\/socket$/i,``).replace(/\/websocket$/i,``),t.pathname===``||t.pathname===`/`?t.pathname=`/api/broadcast`:t.pathname+=`/api/broadcast`,t.href};var b=e=>typeof e==`function`?e:function(){return e},De=typeof self<`u`?self:null,Oe=typeof window<`u`?window:null,x=De||Oe||globalThis,ke=`2.0.0`,Ae=1e4,je=1e3,Me=100,S={connecting:0,open:1,closing:2,closed:3},C={closed:`closed`,errored:`errored`,joined:`joined`,joining:`joining`,leaving:`leaving`},w={close:`phx_close`,error:`phx_error`,join:`phx_join`,reply:`phx_reply`,leave:`phx_leave`},Ne={longpoll:`longpoll`,websocket:`websocket`},Pe={complete:4},Fe=`base64url.bearer.phx.`,Ie=class{constructor(e,t,n,r){this.channel=e,this.event=t,this.payload=n||function(){return{}},this.receivedResp=null,this.timeout=r,this.timeoutTimer=null,this.recHooks=[],this.sent=!1,this.ref=void 0}resend(e){this.timeout=e,this.reset(),this.send()}send(){this.hasReceived(`timeout`)||(this.startTimeout(),this.sent=!0,this.channel.socket.push({topic:this.channel.topic,event:this.event,payload:this.payload(),ref:this.ref,join_ref:this.channel.joinRef()}))}receive(e,t){return this.hasReceived(e)&&t(this.receivedResp.response),this.recHooks.push({status:e,callback:t}),this}reset(){this.cancelRefEvent(),this.ref=null,this.refEvent=null,this.receivedResp=null,this.sent=!1}destroy(){this.cancelRefEvent(),this.cancelTimeout()}matchReceive({status:e,response:t,_ref:n}){this.recHooks.filter(t=>t.status===e).forEach(e=>e.callback(t))}cancelRefEvent(){this.refEvent&&this.channel.off(this.refEvent)}cancelTimeout(){clearTimeout(this.timeoutTimer),this.timeoutTimer=null}startTimeout(){this.timeoutTimer&&this.cancelTimeout(),this.ref=this.channel.socket.makeRef(),this.refEvent=this.channel.replyEventName(this.ref),this.channel.on(this.refEvent,e=>{this.cancelRefEvent(),this.cancelTimeout(),this.receivedResp=e,this.matchReceive(e)}),this.timeoutTimer=setTimeout(()=>{this.trigger(`timeout`,{})},this.timeout)}hasReceived(e){return this.receivedResp&&this.receivedResp.status===e}trigger(e,t){this.channel.trigger(this.refEvent,{status:e,response:t})}},Le=class{constructor(e,t){this.callback=e,this.timerCalc=t,this.timer=void 0,this.tries=0}reset(){this.tries=0,clearTimeout(this.timer)}scheduleTimeout(){clearTimeout(this.timer),this.timer=setTimeout(()=>{this.tries+=1,this.callback()},this.timerCalc(this.tries+1))}},Re=class{constructor(e,t,n){this.state=C.closed,this.topic=e,this.params=b(t||{}),this.socket=n,this.bindings=[],this.bindingRef=0,this.timeout=this.socket.timeout,this.joinedOnce=!1,this.joinPush=new Ie(this,w.join,this.params,this.timeout),this.pushBuffer=[],this.stateChangeRefs=[],this.rejoinTimer=new Le(()=>{this.socket.isConnected()&&this.rejoin()},this.socket.rejoinAfterMs),this.stateChangeRefs.push(this.socket.onError(()=>this.rejoinTimer.reset())),this.stateChangeRefs.push(this.socket.onOpen(()=>{this.rejoinTimer.reset(),this.isErrored()&&this.rejoin()})),this.joinPush.receive(`ok`,()=>{this.state=C.joined,this.rejoinTimer.reset(),this.pushBuffer.forEach(e=>e.send()),this.pushBuffer=[]}),this.joinPush.receive(`error`,e=>{this.state=C.errored,this.socket.hasLogger()&&this.socket.log(`channel`,`error ${this.topic}`,e),this.socket.isConnected()&&this.rejoinTimer.scheduleTimeout()}),this.onClose(()=>{this.rejoinTimer.reset(),this.socket.hasLogger()&&this.socket.log(`channel`,`close ${this.topic}`),this.state=C.closed,this.socket.remove(this)}),this.onError(e=>{this.socket.hasLogger()&&this.socket.log(`channel`,`error ${this.topic}`,e),this.isJoining()&&this.joinPush.reset(),this.state=C.errored,this.socket.isConnected()&&this.rejoinTimer.scheduleTimeout()}),this.joinPush.receive(`timeout`,()=>{this.socket.hasLogger()&&this.socket.log(`channel`,`timeout ${this.topic}`,this.joinPush.timeout),new Ie(this,w.leave,b({}),this.timeout).send(),this.state=C.errored,this.joinPush.reset(),this.socket.isConnected()&&this.rejoinTimer.scheduleTimeout()}),this.on(w.reply,(e,t)=>{this.trigger(this.replyEventName(t),e)})}join(e=this.timeout){if(this.joinedOnce)throw Error(`tried to join multiple times. 'join' can only be called a single time per channel instance`);return this.timeout=e,this.joinedOnce=!0,this.rejoin(),this.joinPush}teardown(){this.pushBuffer.forEach(e=>e.destroy()),this.pushBuffer=[],this.rejoinTimer.reset(),this.joinPush.destroy(),this.state=C.closed,this.bindings=[]}onClose(e){this.on(w.close,e)}onError(e){return this.on(w.error,t=>e(t))}on(e,t){let n=this.bindingRef++;return this.bindings.push({event:e,ref:n,callback:t}),n}off(e,t){this.bindings=this.bindings.filter(n=>!(n.event===e&&(t===void 0||t===n.ref)))}canPush(){return this.socket.isConnected()&&this.isJoined()}push(e,t,n=this.timeout){if(t||={},!this.joinedOnce)throw Error(`tried to push '${e}' to '${this.topic}' before joining. Use channel.join() before pushing events`);let r=new Ie(this,e,function(){return t},n);return this.canPush()?r.send():(r.startTimeout(),this.pushBuffer.push(r)),r}leave(e=this.timeout){this.rejoinTimer.reset(),this.joinPush.cancelTimeout(),this.state=C.leaving;let t=()=>{this.socket.hasLogger()&&this.socket.log(`channel`,`leave ${this.topic}`),this.trigger(w.close,`leave`)},n=new Ie(this,w.leave,b({}),e);return n.receive(`ok`,()=>t()).receive(`timeout`,()=>t()),n.send(),this.canPush()||n.trigger(`ok`,{}),n}onMessage(e,t,n){return t}filterBindings(e,t,n){return!0}isMember(e,t,n,r){return this.topic===e?r&&r!==this.joinRef()?(this.socket.hasLogger()&&this.socket.log(`channel`,`dropping outdated message`,{topic:e,event:t,payload:n,joinRef:r}),!1):!0:!1}joinRef(){return this.joinPush.ref}rejoin(e=this.timeout){this.isLeaving()||(this.socket.leaveOpenTopic(this.topic),this.state=C.joining,this.joinPush.resend(e))}trigger(e,t,n,r){let i=this.onMessage(e,t,n,r);if(t&&!i)throw Error(`channel onMessage callbacks must return the payload, modified or unmodified`);let a=this.bindings.filter(r=>r.event===e&&this.filterBindings(r,t,n));for(let e=0;e<a.length;e++)a[e].callback(i,n,r||this.joinRef())}replyEventName(e){return`chan_reply_${e}`}isClosed(){return this.state===C.closed}isErrored(){return this.state===C.errored}isJoined(){return this.state===C.joined}isJoining(){return this.state===C.joining}isLeaving(){return this.state===C.leaving}},ze=class{static request(e,t,n,r,i,a,o){if(x.XDomainRequest){let n=new x.XDomainRequest;return this.xdomainRequest(n,e,t,r,i,a,o)}else if(x.XMLHttpRequest){let s=new x.XMLHttpRequest;return this.xhrRequest(s,e,t,n,r,i,a,o)}else if(x.fetch&&x.AbortController)return this.fetchRequest(e,t,n,r,i,a,o);else throw Error(`No suitable XMLHttpRequest implementation found`)}static fetchRequest(e,t,n,r,i,a,o){let s={method:e,headers:n,body:r},c=null;return i&&(c=new AbortController,setTimeout(()=>c.abort(),i),s.signal=c.signal),x.fetch(t,s).then(e=>e.text()).then(e=>this.parseJSON(e)).then(e=>o&&o(e)).catch(e=>{e.name===`AbortError`&&a?a():o&&o(null)}),c}static xdomainRequest(e,t,n,r,i,a,o){return e.timeout=i,e.open(t,n),e.onload=()=>{let t=this.parseJSON(e.responseText);o&&o(t)},a&&(e.ontimeout=a),e.onprogress=()=>{},e.send(r),e}static xhrRequest(e,t,n,r,i,a,o,s){e.open(t,n,!0),e.timeout=a;for(let[t,n]of Object.entries(r))e.setRequestHeader(t,n);return e.onerror=()=>s&&s(null),e.onreadystatechange=()=>{e.readyState===Pe.complete&&s&&s(this.parseJSON(e.responseText))},o&&(e.ontimeout=o),e.send(i),e}static parseJSON(e){if(!e||e===``)return null;try{return JSON.parse(e)}catch{return console&&console.log(`failed to parse JSON response`,e),null}}static serialize(e,t){let n=[];for(var r in e){if(!Object.prototype.hasOwnProperty.call(e,r))continue;let i=t?`${t}[${r}]`:r,a=e[r];typeof a==`object`?n.push(this.serialize(a,i)):n.push(encodeURIComponent(i)+`=`+encodeURIComponent(a))}return n.join(`&`)}static appendParams(e,t){return Object.keys(t).length===0?e:`${e}${e.match(/\?/)?`&`:`?`}${this.serialize(t)}`}},Be=e=>{let t=``,n=new Uint8Array(e),r=n.byteLength;for(let e=0;e<r;e++)t+=String.fromCharCode(n[e]);return btoa(t)},Ve=class{constructor(e,t){t&&t.length===2&&t[1].startsWith(Fe)&&(this.authToken=atob(t[1].slice(Fe.length))),this.endPoint=null,this.token=null,this.skipHeartbeat=!0,this.reqs=new Set,this.awaitingBatchAck=!1,this.currentBatch=null,this.currentBatchTimer=null,this.batchBuffer=[],this.onopen=function(){},this.onerror=function(){},this.onmessage=function(){},this.onclose=function(){},this.pollEndpoint=this.normalizeEndpoint(e),this.readyState=S.connecting,setTimeout(()=>this.poll(),0)}normalizeEndpoint(e){return e.replace(`ws://`,`http://`).replace(`wss://`,`https://`).replace(RegExp(`(.*)/`+Ne.websocket),`$1/`+Ne.longpoll)}endpointURL(){return ze.appendParams(this.pollEndpoint,{token:this.token})}closeAndRetry(e,t,n){this.close(e,t,n),this.readyState=S.connecting}ontimeout(){this.onerror(`timeout`),this.closeAndRetry(1005,`timeout`,!1)}isActive(){return this.readyState===S.open||this.readyState===S.connecting}poll(){let e={Accept:`application/json`};this.authToken&&(e[`X-Phoenix-AuthToken`]=this.authToken),this.ajax(`GET`,e,null,()=>this.ontimeout(),e=>{if(e){var{status:t,token:n,messages:r}=e;if(t===410&&this.token!==null){this.onerror(410),this.closeAndRetry(3410,`session_gone`,!1);return}this.token=n}else t=0;switch(t){case 200:r.forEach(e=>{setTimeout(()=>this.onmessage({data:e}),0)}),this.poll();break;case 204:this.poll();break;case 410:this.readyState=S.open,this.onopen({}),this.poll();break;case 403:this.onerror(403),this.close(1008,`forbidden`,!1);break;case 0:case 500:this.onerror(500),this.closeAndRetry(1011,`internal server error`,500);break;default:throw Error(`unhandled poll status ${t}`)}})}send(e){typeof e!=`string`&&(e=Be(e)),this.currentBatch?this.currentBatch.push(e):this.awaitingBatchAck?this.batchBuffer.push(e):(this.currentBatch=[e],this.currentBatchTimer=setTimeout(()=>{this.batchSend(this.currentBatch),this.currentBatch=null},0))}batchSend(e,t=0){this.awaitingBatchAck=!0;let n=t+Me,r=e.slice(t,n);this.ajax(`POST`,{"Content-Type":`application/x-ndjson`},r.join(`
@@ -4007,7 +4034,28 @@ const Platform = (() => {
    Every load rebuilds the save from defaults and copies over only valid values, so any older version upgrades safely.
    Fields that depend on content tables (weapons, keepers, looks, regions) are checked later by sanitizeMeta().
    ===================================================================== */
-const KEY = 'lantern-keeper', OLD_KEY = 'lantern-keeper-v1', SAVE_VERSION = 4;
+const KEY = 'lantern-keeper', OLD_KEY = 'lantern-keeper-v1', SAVE_VERSION = 5;
+// Versioned migrations (0.27). A save says which version wrote it (v). Each step below upgrades a stored save from the
+// version before it, in order, so a save from any release still loads: nothing is wiped, progress is kept. Before the
+// first step runs, the save as it was is kept on the device (KEY + '-pre-v<version>'), once, in case anything ever
+// needs recovering. Fields every version may lack are filled in by load() below, which also checks every value.
+const SAVE_MIGRATIONS = [
+  [2, s => { /* 0.8: saves moved from 'lantern-keeper-v1' to 'lantern-keeper' (load() reads either) */ }],
+  [3, s => { if (s.settings && s.settings.quiet === undefined) s.settings.quiet = false; }], // 0.9: "low sound"
+  [4, s => { // 0.10: veterans of 0.7 don't have to replay regions they have clearly outgrown
+    s.world = s.world && typeof s.world === 'object' ? s.world : {}; s.world.unlocked = s.world.unlocked && typeof s.world.unlocked === 'object' ? s.world.unlocked : {};
+    if (+s.best >= 15) s.world.unlocked.drowned = 1; if (+s.best >= 30) s.world.unlocked.storm = 1; }],
+  [5, s => { // 0.27: renamed graphics presets, menu music by track, and the policy notice moved to the device
+    const st = s.settings && typeof s.settings === 'object' ? s.settings : null;
+    if (st) { if (st.gfx === 'perf') st.gfx = 'low'; else if (st.gfx === 'quality') st.gfx = 'high'; if (st.musicTrack === 'menu') st.musicTrack = 'home'; }
+    delete s.policySeen; }],
+];
+function migrateSave(s) {
+  const from = Math.max(1, Math.floor(+s.v || 1));
+  if (from < SAVE_VERSION) { try { if (!Platform.load(KEY + '-pre-v' + from)) Platform.save(KEY + '-pre-v' + from, JSON.stringify(s)); } catch (e) { /* storage full: carry on */ } }
+  let v = from; for (const [to, step] of SAVE_MIGRATIONS) if (v < to) { step(s); v = to; }
+  s.v = Math.max(v, SAVE_VERSION); return s;
+}
 const offlineCap = () => (8 + 2 * (meta.lv.cap || 0)) * 3600; // the Ember reservoir adds 2 hours a level
 const defMeta = () => ({ v: SAVE_VERSION, embers: 0, best: 0, runs: 0, bossKills: 0, last: Date.now(),
   lv: { dmg: 0, hp: 0, rate: 0, tap: 0, gain: 0, still: 0, start: 0, reroll: 0, cap: 0 },
@@ -4039,6 +4087,7 @@ function load() {
   const d = defMeta(); let s = null;
   try { s = JSON.parse(Platform.load(KEY) || Platform.load(OLD_KEY) || 'null'); } catch (e) { s = null; }
   if (!s || typeof s !== 'object') return d;
+  migrateSave(s); // 0.27: one version at a time, up to this one
   d.embers = num(s.embers, 0);
   d.best = Math.floor(num(s.best, 0, 0, 1e6));
   d.runs = Math.floor(num(s.runs, 0, 0, 1e9));
@@ -4065,7 +4114,7 @@ function load() {
       o.dead = num(si.dead, .2, .05, .45); o.sens = num(si.sens, 1, .4, 2); o.rumble = Math.round(num(si.rumble, 70, 0, 100)); o.assist = si.assist !== false;
       o.prompts = ['auto', 'xbox', 'ps', 'nintendo'].includes(si.prompts) ? si.prompts : 'auto'; o.mapOnConnect = si.mapOnConnect !== false; ds.input = o;
     }
-    ds.musicTrack = ['auto', 'menu', 'harbor', 'lantern', 'tide'].includes(st.musicTrack) ? st.musicTrack : 'auto';
+    ds.musicTrack = typeof st.musicTrack === 'string' && /^(auto|menu|(r:)?[a-z]{2,24})$/.test(st.musicTrack) ? st.musicTrack : 'auto'; // (0.27: any track; locked ones fall back when played)
   }
   if (s.inv && typeof s.inv === 'object') for (const k in s.inv) { const n = Math.floor(num(s.inv[k], 0, 0, 99)); if (n > 0 && /^[a-z]{2,16}$/.test(k)) d.inv[k] = n; } // known ids are checked once the items are loaded
   d.tseq = Math.floor(num(s.tseq, 0, 0, 1e12));
@@ -4123,8 +4172,7 @@ function load() {
   d.stats.earned = Math.max(d.stats.earned, d.embers);
   d.run = s.run && typeof s.run === 'object' ? s.run : null; // validated after the data tables exist (see below)
   for (const k of ['arsenal', 'keepers', 'look', 'world', 'charms', 'codex']) if (s[k] && typeof s[k] === 'object') d['raw_' + k] = s[k]; // checked by sanitizeMeta()
-  // v3 -> v4: veterans of 0.7 don't have to replay regions they have clearly outgrown
-  if ((+s.v || 0) < 4) { if (d.best >= 15) d.world.unlocked.drowned = 1; if (d.best >= 30) d.world.unlocked.storm = 1; }
+  // (v3 -> v4, regions for 0.7 veterans: SAVE_MIGRATIONS above)
   return d;
 }
 let meta = load();
@@ -4559,7 +4607,8 @@ function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = 
 /* ---------- Weapons: lantern-powered, each changes how the lantern fights ----------
    dmg / rate multiply the lantern's base damage and fire rate (damage per second stays close to 1.0 on all of them).
    Weapon level: +8% damage per level. */
-const RARITY = { Common: '#c9cde6', Uncommon: '#8fe0a2', Rare: '#7fb8ff', Epic: '#c49bff', Legendary: '#ffcf66' };
+const RARITY = { Common: '#c9cde6', Uncommon: '#8fe0a2', Rare: '#7fb8ff', Epic: '#c49bff', Legendary: '#ffcf66', Mythic: '#ff7a9a' }; // 0.27: the one rarity palette (weapons, looks, items, achievements)
+for (const [k, v] of Object.entries(RARITY)) document.documentElement.style.setProperty('--rar-' + k.toLowerCase(), v); // (and as CSS: --rar-common ... --rar-mythic)
 const WEAPONS = [
   { id: 'lantern', name: 'Keeper\'s Lantern', rarity: 'Common', dmg: 1, rate: 1, spd: 470, col: '#ffd98a', w: 3,
     desc: 'Steady bolts. Reliable anywhere.', trait: 'No special effect' },
@@ -4826,7 +4875,7 @@ function grantRegionReward(r, silent) {
    server's copy (node tools/gen-catalog.js) follow from it. Looks never touch the game's numbers.
    ===================================================================== */
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
-const LOOK_RARITY_COL = { common: '#b8c0d8', rare: '#7fb8ff', epic: '#c08aff', legendary: '#ffcf66' };
+const LOOK_RARITY_COL = { common: RARITY.Common, rare: RARITY.Rare, epic: RARITY.Epic, legendary: RARITY.Legendary }; // (0.27: the shared palette)
 // Skin tones: all free, all equal
 LOOKS.skin.length = 0;
 LOOKS.skin.push({ id: 'default', name: 'Fair', col: '#e8c6a8' }, { id: 'porcelain', name: 'Porcelain', col: '#f5dccb' }, { id: 'olive', name: 'Olive', col: '#c99a6b' },
@@ -4943,13 +4992,20 @@ const ITEMS = [
   { id: 'logpage', cat: 'collection', name: 'Log page', desc: 'A page from an old keeper\'s log. The rest is somewhere on the coast.', col: '#e8dcc0', rar: 'rare' },
   { id: 'emberstone', cat: 'collection', name: 'Emberstone', desc: 'Warm to the touch, even in winter.', col: '#ff6a3a', rar: 'epic' },
   { id: 'moonshell', cat: 'collection', name: 'Moonshell', desc: 'It glows faintly when the moon is full.', col: '#c8d4ff', rar: 'epic' },
+  // 0.27 materials: found on the coast, crafted into boosts at a Workbench (never used in play themselves)
+  { id: 'driftwood', cat: 'material', name: 'Driftwood', desc: 'Silver-grey wood from the tideline. For tar, shells and bread.', col: '#a89a80', rar: 'common' },
+  { id: 'tidesalt', cat: 'material', name: 'Tide salt', desc: 'Salt crystals scraped from the rocks at low tide.', col: '#e8eef0', rar: 'common' },
+  { id: 'lampglass', cat: 'material', name: 'Lamp glass', desc: 'Clear glass for lenses and tonic bottles.', col: '#a8e0f0', rar: 'common' },
+  { id: 'brass', cat: 'material', name: 'Brass fitting', desc: 'A fitting from an old lamp. Harder to find.', col: '#d4a84a', rar: 'rare' },
+  // 0.27 event items: festival tokens, given on festival nights, exchanged with the Festival herald
+  { id: 'festtoken', cat: 'event', name: 'Festival token', desc: 'Given on festival nights. The Festival herald trades them for festival looks.', col: '#ff9a4a', rar: 'rare' },
 ];
 // Every item says what it may do (0.23). Nothing here is ever usable in PvP, nothing comes from real money or Lumens.
 const PVP_ITEM_POLICY = 'disabled';
-for (const i of ITEMS) Object.assign(i, { category: i.cat, rarity: i.rar || 'common', source: i.cat === 'boost' ? 'Supplies in the Shop, and now and then the coast after a night' : `The coast, at the end of a night (${i.rar === 'epic' ? 'very rare: far out' : i.rar === 'rare' ? 'rare: further out' : 'common'})`, tradable: true, sellable: false, consumable: i.cat === 'boost',
+for (const i of ITEMS) Object.assign(i, { category: i.cat, rarity: i.rar || 'common', source: i.cat === 'boost' ? 'Supplies in the Shop, the Workbench, and now and then the coast after a night' : i.cat === 'material' ? (i.rar === 'rare' ? 'The coast after a night, further out' : 'The coast after almost every night') : i.cat === 'event' ? 'Festival nights (one or more each night, while a festival is on)' : `The coast, at the end of a night (${i.rar === 'epic' ? 'very rare: far out' : i.rar === 'rare' ? 'rare: further out' : 'common'})`, tradable: true, sellable: false, consumable: i.cat === 'boost' || i.cat === 'material',
   usableInPVE: i.cat === 'boost', usableInCOOP: i.cat === 'boost', usableInPVP: false, premiumOrigin: false, bindOnEquip: false });
 const ITK = Object.fromEntries(ITEMS.map(i => [i.id, i]));
-const ITEM_CATS = { boost: 'Boost', collection: 'Collection' };
+const ITEM_CATS = { boost: 'Boost', collection: 'Collection', material: 'Material', event: 'Event item' };
 // The rule: which items may be used in which mode. The only place this is decided.
 function canUseItem(item, mode) {
   if (!item) return { ok: false, why: 'Unknown item.' };
@@ -4991,6 +5047,10 @@ function nightFinds(r) {
     if (addItem(pick.id, 1)) got.push(pick.id);
   }
   if (R.next() < .15 && depth >= 2) { const b = ITEMS.filter(i => i.cat === 'boost'); const pick = b[Math.floor(R.next() * b.length)]; if (addItem(pick.id, 1)) got.push(pick.id); }
+  // 0.27: materials (one or more, more further out; brass is rarer), and festival tokens while a festival is on
+  if ((r.wave || 0) >= 3 || r.exp) { const mats = ITEMS.filter(i => i.cat === 'material');
+    for (let k = 0; k < 1 + Math.min(4, Math.floor(depth / 2)); k++) { const common = mats.filter(i => i.rar !== 'rare'), pick = R.next() < .15 ? ITK.brass : common[Math.floor(R.next() * common.length)]; if (addItem(pick.id, 1)) got.push(pick.id); } }
+  if (typeof activeFestival === 'function' && activeFestival() && ((r.wave || 0) >= 3 || r.exp)) for (let k = 0; k < 1 + Math.min(2, Math.floor(depth / 3)); k++) if (addItem('festtoken', 1)) got.push('festtoken');
   return got;
 }
 // An item's picture: a small SVG in its colour (the same everywhere)
@@ -5011,6 +5071,11 @@ function itemArt(it, cls = 'art') {
     starfish: `<path d="M24 6l5 12 13 1-10 8 4 13-12-7-12 7 4-13-10-8 13-1z" fill="${c}" stroke="${d}" stroke-width="1.2"/>`,
     logpage: `<path d="M12 8h20l6 6v26H12z" fill="${c}" stroke="#8a7a5a" stroke-width="1.2"/><path d="M16 18h16M16 23h16M16 28h12M16 33h14" stroke="#6a5a3a" stroke-width="1.2"/>`,
     emberstone: `<path d="M10 30q2-14 14-16t14 12q0 10-14 12T10 30z" fill="#3a2a2a"/><path d="M16 28q4-6 8-2 4-8 8 0" stroke="${c}" stroke-width="2.4" fill="none"/><circle cx="24" cy="26" r="12" fill="${c}" opacity=".18"/>`,
+    driftwood: `<path d="M8 30q8-8 18-6t14-4l2 4q-6 4-16 4T10 34z" fill="${c}" stroke="#6a5a40" stroke-width="1.2"/><path d="M14 30q8-3 18-4" stroke="#6a5a40" stroke-width="1" fill="none"/>`,
+    tidesalt: `<path d="M14 34l6-14 6 6 4-10 6 18z" fill="${c}" stroke="#a8b8c0" stroke-width="1.2"/><path d="M20 20l2 10M30 16l-2 14" stroke="#ffffff" stroke-width="1" opacity=".8"/>`,
+    lampglass: `<path d="M16 14h16l-2 24H18z" fill="${c}" opacity=".55" stroke="#ffffff" stroke-width="1.4"/><path d="M20 18l-1 14" stroke="#ffffff" stroke-width="1.2" opacity=".8"/>`,
+    brass: `<circle cx="24" cy="26" r="10" fill="none" stroke="${c}" stroke-width="5"/><path d="M24 12v6M24 34v6M10 26h6M32 26h6" stroke="${d}" stroke-width="3"/>`,
+    festtoken: `<circle cx="24" cy="26" r="13" fill="${c}" stroke="#ffcf66" stroke-width="2"/><path d="M24 17l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6-4.5-4 6-1z" fill="#ffcf66"/>`,
     moonshell: `<path d="M24 40q-14-4-14-18a14 14 0 0 1 28 0q0 14-14 18z" fill="${c}" stroke="#eef0fa" stroke-width="1.2"/><path d="M24 40V12M24 40l-8-24M24 40l8-24" stroke="#eef0fa" stroke-width="1" opacity=".7"/>`,
   };
   const g = 'ig' + (++artSeq);
@@ -5844,7 +5909,7 @@ const COMPAT = [
 const LICENCES = [ // what the game includes from others, and under which licence (docs/THIRD-PARTY.md has the full audit)
   ['Jersey 10 (font)', 'SIL Open Font License 1.1', 'Copyright 2023 The Soft Type Project Authors'], ['Pixelify Sans (font)', 'SIL Open Font License 1.1', 'Copyright 2021 The Pixelify Sans Project Authors'],
   ['QR Code Generator for JavaScript', 'MIT', 'Copyright (c) 2009 Kazuhiko Arase'], ['three.js (the Bazaar in 3D)', 'MIT', 'Copyright 2010-2026 three.js authors'],
-  ['Supabase JS client (accounts and online play)', 'MIT', 'Copyright (c) 2020 Supabase'], ['Capacitor (the Android app)', 'MIT', 'Copyright (c) 2017-present Drifty Co.'], ['Electron (the desktop app)', 'MIT', 'Copyright (c) Electron contributors; Chromium\'s own notices ship with the app']];
+  ['Supabase JS client (accounts and online play)', 'MIT', 'Copyright (c) 2020 Supabase'], ['Capacitor (the Android app)', 'MIT', 'Copyright (c) 2017-present Drifty Co.'], ['Google Play Billing Library (the Android app)', 'Android Software Development Kit License', 'Copyright (c) Google LLC'], ['Electron (the desktop app)', 'MIT', 'Copyright (c) Electron contributors; Chromium\'s own notices ship with the app']];
 const COMPAT_INPUT = ['Keyboard (remappable)', 'Mouse', 'Touch', 'Xbox controllers', 'PlayStation controllers', 'Nintendo-style controllers', 'Generic USB and Bluetooth controllers', 'Steam Input'];
 const COMPAT_ACCESS = ['Remappable keys and buttons', 'Text and interface size', 'High contrast', 'Colour-vision palettes (and shapes, not only colours)', 'Reduced motion, screen shake and flashes off',
   'Captions for important sounds', 'Vibration on or off, controller rumble strength', 'Left- or right-handed touch controls', 'Play without a mouse (keyboard or controller)'];
@@ -7775,6 +7840,32 @@ const MUSIC_TRACKS = {
   event:   { name: 'Festival night', root: 293.66, chords: [0, 5, 2, 6], wave: 'triangle', density: .6, bpm: 84 },
 };
 const MUSIC_STYLES = MUSIC_TRACKS; // (0.11 name)
+// 0.27: music to collect. Each track unlocks by playing (regions, bosses, achievements, challenges, PvP, festivals,
+// progression, looks); a track you have heard is yours too. Unlocked tracks play in the Collection, the Bazaar's
+// jukebox, and as the menu music (Settings). Music never changes how the game plays.
+const MUSIC_UNLOCK = {
+  home: [() => true, 'Yours from the start'],
+  harbor: [() => meta.bossKills >= 5, 'Defeat 5 bosses'],
+  lantern: [() => Object.keys(meta.ach || {}).length >= 25, 'Earn 25 achievements'],
+  tide: [() => Object.keys((meta.feats && meta.feats.chal) || {}).length >= 10, 'Complete 10 challenges'],
+  profile: [() => Object.keys(meta.look.owned || {}).length + (meta.entitlements || []).length * 4 >= 10, 'Own 10 looks'],
+  shop: [() => Object.keys(meta.look.owned || {}).length > 0 || Object.keys(meta.arsenal.owned || {}).length > 1, 'Buy something in the Shop'],
+  social: [() => false, 'Open Social (signed in)'],
+  map: [() => Object.keys(meta.world.unlocked || {}).length >= 3, 'Reach 3 regions'],
+  pvp: [() => (meta.pvpHist || []).length > 0, 'Play a PvP battle'],
+  final: [() => !!(meta.feats && meta.feats.n && meta.feats.n.pvpfinal), 'Reach the final duel of a PvP battle'],
+  victory: [() => !!(meta.feats && meta.feats.n && (meta.feats.n.pvpw || meta.feats.n.pvpai)), 'Win a PvP battle'],
+  defeat: [() => meta.runs >= 1, 'Finish your first night'],
+  event: [() => false, 'Play on a festival day'],
+};
+function trackUnlocked(key) {
+  if (meta.heard && meta.heard[key]) return true;
+  const u = MUSIC_UNLOCK[key]; if (u) return !!u[0]();
+  const reg = REGIONS.find(r => regionTrack(r.id) === key); return !!(reg && meta.world.unlocked[reg.id]);
+}
+function trackHow(key) { const u = MUSIC_UNLOCK[key]; if (u) return u[1]; const reg = REGIONS.find(r => regionTrack(r.id) === key); return reg ? 'Reach ' + reg.name : ''; }
+function trackName(key) { const t = MUSIC_TRACKS[key] || {}; if (t.name) return t.name; const reg = REGIONS.find(r => regionTrack(r.id) === key); return reg ? reg.name : key; }
+const allTracks = () => [...new Set(Object.keys(MUSIC_TRACKS).filter(k => MUSIC_TRACKS[k].name).concat(REGIONS.map(r => regionTrack(r.id))))];
 const MENU_PLAYLIST = ['home', 'harbor', 'lantern', 'tide'];
 // A region without a hand-made track gets one of its own, derived from its id (the same on every device)
 const REGION_ROOTS = [220, 196, 174.61, 164.81, 146.83, 185, 207.65, 233.08, 155.56, 138.59], REGION_PROGS = [[0, 5, 2, 6], [0, 5, 3, 4], [0, 5, 6, 4], [0, 3, 4, 0], [0, 6, 5, 4], [0, 4, 5, 3]];
@@ -7805,7 +7896,8 @@ function musicContext() {
   if (vis('world') || vis('route')) return { ctx: 'map', track: 'map' };
   if (Music.fest != null ? Music.fest : !!activeFestival()) return { ctx: 'event', track: 'event' }; // (Music.fest: the tests pin it) // a festival on the calendar: its own music on the menu
   const pick = meta.settings.musicTrack || 'auto';
-  return { ctx: 'menu', track: pick === 'menu' ? 'home' : pick !== 'auto' && MUSIC_TRACKS[pick] ? pick : MENU_PLAYLIST[Math.floor(Music.menuBars / 24) % MENU_PLAYLIST.length] };
+  const chosen = pick === 'menu' ? 'home' : pick; // (0.27: any unlocked track; a locked or unknown one falls back to taking turns)
+  return { ctx: 'menu', track: chosen !== 'auto' && (MUSIC_TRACKS[chosen] || /^r:/.test(chosen)) && trackUnlocked(chosen) ? chosen : MENU_PLAYLIST[Math.floor(Music.menuBars / 24) % MENU_PLAYLIST.length] };
 }
 const Music = {
   pin: null, // 0.26: the jukebox
@@ -9178,6 +9270,54 @@ Object.assign(AFF, {
 // Endless: the far regions' creatures (not the lamp-divers, which would crowd the lamp)
 const WORLD_ENDLESS = Object.keys(WORLD_CREATURES).filter(t => !WORLD_CREATURES[t].traits.includes('lamp'));
 
+/* ---- src\js\07l-collections.js ---- */
+/* =====================================================================
+   COLLECTIONS (0.27): themed sets of looks, bought with Lumens as one.
+   Each collection is a coat, a hat, a scarf, tower stripes, a profile banner, a frame and a badge, in the colours of a
+   part of the coast. Like every Lumen item it is cosmetic only: it changes how you look, never how you play, and PvP
+   reads it only as a look. What a collection contains is shown before buying ("Contains: ..."). The server sells it
+   (lumens_spend_collection: its own price, the balance checked, one entitlement 'lumen:col:<id>' granted in one step)
+   and the items inside are owned while the account holds that entitlement, on every device.
+   ===================================================================== */
+const LUMEN_COLLECTIONS = [
+  { id: 'stormwatch', name: 'Stormwatch Collection', price: 900, desc: 'For keepers who stay up through the gale.', mark: '⚡',
+    coat: { id: 'stormwatch', name: 'Stormwatch oilskin', design: 'long', col: '#2e4a5e', col2: '#c8d8e8' }, hat: { id: 'stormsou', name: 'Stormwatch sou\'wester', design: 'sou', col: '#e2b64a', col2: '#2e4a5e' },
+    scarf: { id: 'galewrap', name: 'Gale wrap', design: 'muffler', col: '#5a7a8e', col2: '#e8f0f8' }, stripe: { id: 'galebands', name: 'Gale bands', col: '#4a6a8a' },
+    banner: ['#0a1622', '#2e4a5e', '#8fb0c8'], frame: { border: '3px solid #8fb0c8', glow: 'rgba(143,176,200,.7)' } },
+  { id: 'drowned', name: 'Drowned Collection', price: 900, desc: 'Salt-stained finery from the kingdom under the waves.', mark: '≈',
+    coat: { id: 'tiderobe', name: 'Tide robe', design: 'robe', col: '#1f4a4a', col2: '#7fd3c0' }, hat: { id: 'kelpcrown', name: 'Kelp crown', design: 'crown', col: '#2e6a5a', col2: '#9fe0c8' },
+    scarf: { id: 'kelpscarf', name: 'Kelp scarf', design: 'fringed', col: '#2e5a3a', col2: '#9be3a4' }, stripe: { id: 'barnacle', name: 'Barnacle bands', col: '#3a7a6a' },
+    banner: ['#04161a', '#0f3a3a', '#3a8a7a'], frame: { border: '3px double #7fd3c0', glow: 'rgba(127,211,192,.7)' } },
+  { id: 'frostlight', name: 'Frostlight Collection', price: 900, desc: 'Warm wool and cold light from the Frozen Reach.', mark: '❄',
+    coat: { id: 'frostcoat', name: 'Frostlight greatcoat', design: 'great', col: '#c8d8f0', col2: '#5a7ab0' }, hat: { id: 'frostbeanie', name: 'Frostlight beanie', design: 'beanie', col: '#e8f0ff', col2: '#8fd3ff' },
+    scarf: { id: 'frostscarf', name: 'Icicle scarf', design: 'striped', col: '#8fd3ff', col2: '#ffffff' }, stripe: { id: 'icebands', name: 'Ice bands', col: '#a8d8ff' },
+    banner: ['#0a1430', '#3a5a8a', '#c8e0ff'], frame: { border: '3px solid #c8e0ff', glow: 'rgba(200,224,255,.8)' } },
+  { id: 'festival', name: 'Festival Collection', price: 900, desc: 'Lanterns, garlands and a coat for the long night of the festival.', mark: '✦',
+    coat: { id: 'festcoat', name: 'Festival knit', design: 'knit', col: '#8a2a2a', col2: '#ffcf66' }, hat: { id: 'festhat', name: 'Festival tricorn', design: 'tricorn', col: '#5a1a1a', col2: '#ffcf66' },
+    scarf: { id: 'garlandscarf', name: 'Garland scarf', design: 'garland', col: '#2a6a3a', col2: '#ffcf66' }, stripe: { id: 'lanternbands', name: 'Lantern bands', col: '#ff9a4a' },
+    banner: ['#1a0a18', '#5a1a3a', '#ff9a4a'], frame: { border: '3px solid #ff9a4a', glow: 'rgba(255,154,74,.75)' } },
+];
+const COLK = Object.fromEntries(LUMEN_COLLECTIONS.map(c => [c.id, c]));
+const colSku = id => 'lumen:col:' + id;
+for (const c of LUMEN_COLLECTIONS) {
+  const sku = colSku(c.id);
+  for (const slot of ['coat', 'hat', 'scarf', 'stripe']) LOOKS[slot].push(Object.assign({ rarity: 'epic', desc: `Part of the ${c.name}.` }, c[slot], { sku, collection: c.id }));
+  FRAMES.push({ id: 'col-' + c.id, name: c.name.replace(' Collection', ''), sku, css: c.frame });
+  BANNERS.push({ id: 'col-' + c.id, name: c.name.replace(' Collection', ''), sku, sky: c.banner });
+  BADGES.push({ id: 'col-' + c.id, name: c.name.replace(' Collection', ''), sku, mark: c.mark });
+}
+// Frames drawn from their colours (the other frames have their own CSS)
+{ const st = document.createElement('style'); st.textContent = LUMEN_COLLECTIONS.map(c => `.pfAv.fr-col-${c.id}{border:${c.frame.border};box-shadow:0 0 12px ${c.frame.glow}}`).join('\n'); document.head.appendChild(st); }
+// What a collection holds, for the shop's "Contains" list
+const collectionContents = c => [['Coat', c.coat.name], ['Hat', c.hat.name], ['Scarf', c.scarf.name], ['Tower stripes', c.stripe.name], ['Profile banner', c.name.replace(' Collection', '')], ['Profile frame', c.name.replace(' Collection', '')], ['Profile badge', c.mark + ' ' + c.name.replace(' Collection', '')]];
+// Where a paid item comes from, in words (the Supporter Pack, a Lumen look, or a collection)
+function skuSource(sku) {
+  if (sku === SKU.supporter) return 'Part of the Supporter Pack (Shop > Supporter).';
+  if (String(sku).startsWith('lumen:col:')) { const c = COLK[sku.slice(10)]; return c ? `Part of the ${c.name} (Shop > Lumens).` : 'A Lumen collection.'; }
+  if (String(sku).startsWith('lumen:')) return 'A premium look (Shop > Lumens).';
+  return 'A paid item.';
+}
+
 /* ---- src\js\08-picks.js ---- */
 /* =====================================================================
    UPGRADE PICKS (weighted toward your build, synergy upgrades need a partner)
@@ -9348,7 +9488,7 @@ function fitHome() {
 // true when it has asked (it calls go() itself once the player has chosen).
 const leaveGuards = {};
 function guardedLeave(go) { const open = SCREENS.find(id => { const e = $('#' + id); return e && !e.hidden; }); const g = open && leaveGuards[open]; if (g && g(go)) return; go(); }
-const SCREENS = ['bazaar', 'collection', 'compat', 'controls', 'trade', 'satchel', 'home', 'pick', 'pause', 'over', 'shop', 'away', 'settings', 'ach', 'world', 'route', 'event', 'victory', 'arsenal', 'keeper', 'store', 'coop', 'loadout', 'codex', 'relic', 'relight', 'profile', 'lhsheet', 'challenges', 'account', 'syncChoice', 'coopEnd', 'social', 'actCard', 'ending', 'pvp', 'pvpEnd'];
+const SCREENS = ['workbench', 'bazaar', 'collection', 'compat', 'controls', 'trade', 'satchel', 'home', 'pick', 'pause', 'over', 'shop', 'away', 'settings', 'ach', 'world', 'route', 'event', 'victory', 'arsenal', 'keeper', 'store', 'coop', 'loadout', 'codex', 'relic', 'relight', 'profile', 'lhsheet', 'challenges', 'account', 'syncChoice', 'coopEnd', 'social', 'actCard', 'ending', 'pvp', 'pvpEnd'];
 // Screens that edit a draft: closing one by any other way than its own buttons drops the unsaved preview
 const sheetDrafts = {};
 function show(id) {
@@ -9450,7 +9590,9 @@ function renderSettings() {
   for (const i of document.querySelectorAll('[data-rng]')) { const v = st[i.dataset.rng]; if (+i.value !== v) i.value = v; i.nextElementSibling.textContent = i.dataset.rng === 'overscan' ? (v ? v + '%' : 'None') : v + '%'; }
   for (const b of document.querySelectorAll('[data-set]')) { const on = !!st[b.dataset.set]; b.setAttribute('aria-checked', String(on)); b.textContent = on ? 'On' : 'Off'; }
   for (const i of document.querySelectorAll('[data-vol]')) { const v = st.vol[i.dataset.vol]; if (+i.value !== v) i.value = v; i.nextElementSibling.textContent = v ? v + '%' : 'Off'; i.setAttribute('aria-valuetext', v ? v + ' percent' : 'off'); i.disabled = !st.sound; }
-  $('#setTrack').value = st.musicTrack; $('#setMotion').value = st.motion;
+  { const sel = $('#setTrack'), key = allTracks().map(k => k + (trackUnlocked(k) ? 1 : 0)).join(); if (sel.dataset.k !== key) { sel.dataset.k = key; // 0.27: every track you have unlocked
+    sel.innerHTML = '<option value="auto">Take turns</option>' + allTracks().map(k => trackUnlocked(k) ? `<option value="${k}">${esc(trackName(k))}</option>` : `<option value="${k}" disabled>${esc(trackName(k))} (locked: ${esc(trackHow(k))})</option>`).join(''); } }
+  $('#setTrack').value = st.musicTrack === 'menu' ? 'home' : st.musicTrack; $('#setMotion').value = st.motion;
   renderSaveBar($('#setSave'), setDraft);
   $('#rowFull').hidden = Platform.kind === 'android' || Platform.kind === 'ios'; renderInstall(); // 0.26
   $('#verLine').textContent = `Lantern Keeper ${Platform.version()} (${{ web: 'web', desktop: 'desktop app', android: 'Android app', ios: 'iOS app' }[Platform.kind]})`;
@@ -9691,7 +9833,7 @@ const kdDirty = () => !!kd && JSON.stringify(kd) !== JSON.stringify(kdSaved());
 function openKeeper() { kd = kdSaved(); kdSel = null; kdState = 'saved'; kdMsg = ''; kdDialog = null; renderKeeper(); show('keeper'); }
 // the look a draft shows (whole items, as another screen would draw it)
 const kdLookItems = (look) => ({ coatIt: lookItem('coat', look.coat), hatIt: lookItem('hat', look.hat), scarfIt: lookItem('scarf', look.scarf), skinIt: lookItem('skin', look.skin), beam: (lookItem('beam', look.beam) || LOOKS.beam[0]).col });
-const lookHow = (slot, it) => it.lumens ? `Premium: ${fmt(Lumens.price(slot, it.id) || it.lumens)} Lumens in the Shop.` : it.sku ? 'Part of the Supporter Pack (Shop > Supporter).' : it.fest ? 'A festival gift: keep the light through a festival.' : it.ach ? ` Earn "${(ACH.find(a => a.id === it.ach) || { name: it.ach }).name}".` : it.price ? 'In the Shop.' : '';
+const lookHow = (slot, it) => it.lumens ? `Premium: ${fmt(Lumens.price(slot, it.id) || it.lumens)} Lumens in the Shop.` : it.sku ? skuSource(it.sku) : it.fest ? 'A festival gift: keep the light through a festival.' : it.ach ? ` Earn "${(ACH.find(a => a.id === it.ach) || { name: it.ach }).name}".` : it.price ? 'In the Shop.' : '';
 const thumbCache = new Map();
 function lookThumb(slot, it) { // this item on a keeper in plain clothes (and your skin tone), or on a small tower for stripes
   const key = slot + ':' + it.id + ':' + (kd ? kd.look.skin : ''); if (thumbCache.has(key)) return thumbCache.get(key);
@@ -10015,7 +10157,7 @@ function renderStyleBox() {
   $('#pfStyleTabs').innerHTML = tabs.map(([id, l]) => `<button role="tab" aria-selected="${pfTab === id}" data-t="${id}">${l}</button>`).join('');
   for (const b of document.querySelectorAll('#pfStyleTabs button')) b.onclick = () => { pfTab = b.dataset.t; $('#pfStyleNote').textContent = ''; renderStyleBox(); };
   const D = pfDraft.cur || pfDraft.load();
-  const how = it => it.sku ? 'Part of the Supporter Pack (Shop > Supporter).' : (it.how || '') + ' to unlock.';
+  const how = it => it.sku ? skuSource(it.sku) : (it.how || '') + ' to unlock.';
   if (pfTab === 'badges') {
     const pins = D.badges;
     $('#pfStyleNote').textContent = $('#pfStyleNote').textContent || 'Pin up to three badges. With none pinned, your three hardest show.';
@@ -10436,7 +10578,7 @@ window.addEventListener('resize', () => requestAnimationFrame(() => { if (mode =
    ===================================================================== */
 const TIER_NAMES = ['Foundation', 'Kindling', 'Ember', 'Flame', 'Beacon', 'Lighthouse', 'Guiding Star', 'The Last Watch'];
 const FEAT_RARITY = ['Common', 'Common', 'Uncommon', 'Rare', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-const RARITY_COL = { Common: '#b8c0d8', Uncommon: '#7fd08a', Rare: '#6ab0ff', Epic: '#c08aff', Legendary: '#ffc24a', Mythic: '#ff7a9a' };
+const RARITY_COL = RARITY; // (0.27: the shared palette, 04b-content.js)
 const TIER_PTS = [5, 10, 15, 25, 40, 60, 100, 150], TIER_EMB = [10, 25, 50, 100, 200, 400, 800, 1500];
 const ACH_CATS = ['Milestones', 'Combat', 'Bestiary', 'Guardians', 'Endless', 'Exploration', 'Collection', 'Mastery', 'Ascension', 'Together', 'PvP', 'Festivals', 'Secrets'];
 const CHAL_CATS = ['Regions', 'Arsenal', 'Keepers', 'Guardians', 'Endless', 'Ascension', 'The Last Watch'];
@@ -10897,7 +11039,7 @@ Platform.onBack(() => { if (pvKey) { closePreview(); return true; } return false
    ===================================================================== */
 let satTab = 'all', satMsg = '', satQ = '', satSort = 'rarity', satInfo = '';
 const RAR_ORDER = { epic: 0, rare: 1, common: 2 };
-const SAT_FILTERS = [['all', 'All'], ['boost', 'Boosts'], ['collection', 'Keepsakes'], ['trade', 'Tradeable'], ['fav', 'Favourites']];
+const SAT_FILTERS = [['all', 'All'], ['boost', 'Boosts'], ['material', 'Materials'], ['collection', 'Keepsakes'], ['event', 'Event items'], ['trade', 'Tradeable'], ['fav', 'Favourites']]; // (0.27: materials and event items)
 const isFav = id => (meta.favs || []).includes(id);
 function toggleFav(id) { const f = meta.favs || (meta.favs = []); const i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else if (f.length < 50) f.push(id); save(); }
 function openSatchel() { satMsg = ''; satInfo = ''; renderSatchel(); show('satchel'); }
@@ -10908,12 +11050,12 @@ function satItems() {
   const by = { rarity: (a, b) => (RAR_ORDER[a.rarity] ?? 3) - (RAR_ORDER[b.rarity] ?? 3), name: (a, b) => a.name.localeCompare(b.name), count: (a, b) => itemCount(b.id) - itemCount(a.id) }[satSort];
   return list.slice().sort((a, b) => (isFav(b.id) - isFav(a.id)) || (itemCount(b.id) > 0) - (itemCount(a.id) > 0) || by(a, b) || a.name.localeCompare(b.name));
 }
-function itemUseText(it) { return it.cat === 'boost' ? 'Your next PvE night, an expedition or a co-op night. Never PvP: matches are the same for everyone.' : 'A keepsake: it has no effect in play. Keep it, show it, or trade it.'; }
+function itemUseText(it) { return it.cat === 'boost' ? 'Your next PvE night, an expedition or a co-op night. Never PvP: matches are the same for everyone.' : it.cat === 'material' ? 'Crafting boosts at the Workbench. It has no effect in play by itself.' : it.cat === 'event' ? 'The Festival herald, for festival looks. It has no effect in play.' : 'A keepsake: it has no effect in play. Keep it, show it, or trade it.'; }
 function renderSatchel() {
   $('#satEmb').textContent = fmt(meta.embers);
   const ready = meta.boostNext.map(id => ITK[id]).filter(Boolean);
   $('#satReady').innerHTML = `<b>${ico('spark')} Ready for your next night</b>${ready.length ? `<div class="satChips">${ready.map(it => `<span class="satChip">${itemArt(it, 'art satMini')}${esc(it.name)}<button class="btn small ghost" data-unq="${it.id}" aria-label="Take back ${esc(it.name)}">Take back</button></span>`).join('')}</div>` : '<small>Nothing yet. Use a boost below: it works for your next PvE night (not in PvP).</small>'}`;
-  const counts = { all: ITEMS.reduce((a, i) => a + itemCount(i.id), 0), boost: 0, collection: 0, trade: 0, fav: (meta.favs || []).length };
+  const counts = { all: ITEMS.reduce((a, i) => a + itemCount(i.id), 0), boost: 0, collection: 0, material: 0, event: 0, trade: 0, fav: (meta.favs || []).length };
   for (const i of ITEMS) { counts[i.cat] += itemCount(i.id); if (i.tradable) counts.trade += itemCount(i.id); }
   $('#satTabs').innerHTML = SAT_FILTERS.map(([id, l]) => `<button role="tab" aria-selected="${satTab === id}" data-st="${id}">${l} <small>${counts[id]}</small></button>`).join('');
   if ($('#satQ').value !== satQ) $('#satQ').value = satQ; $('#satSort').value = satSort;
@@ -10929,7 +11071,7 @@ function renderSatchel() {
       <button class="satOpen" data-info="${it.id}" aria-label="${esc(it.name)}: details">${itemArt(it, 'art satArt')}<b>${locked ? esc(it.name) : esc(it.name)}</b></button>
       <small class="satN">${n ? '×' + n : locked ? '🔒 Not found yet' : 'None'}</small>
       <p>${esc(locked ? 'Found on the coast at the end of a night.' : it.desc)}</p>
-      <span class="satTags">${it.cat === 'boost' ? '<span class="satTag pve">PvE only</span>' : `<span class="satTag rar-${it.rarity}">${esc(it.rarity)}</span>`}${it.tradable && n ? '<span class="satTag tr">Tradeable</span>' : ''}</span>
+      <span class="satTags">${it.cat === 'boost' ? '<span class="satTag pve">PvE only</span>' : it.cat === 'material' ? '<span class="satTag">Material</span>' : it.cat === 'event' ? '<span class="satTag">Event</span>' : `<span class="satTag rar-${it.rarity}">${esc(it.rarity)}</span>`}${it.tradable && n ? '<span class="satTag tr">Tradeable</span>' : ''}</span>
       ${it.cat === 'boost' ? (n ? `<button class="btn small primary" data-use="${it.id}" ${rule.ok && !meta.boostNext.includes(it.id) ? '' : 'disabled'}>${meta.boostNext.includes(it.id) ? 'Ready' : 'Use next night'}</button>` : '<button class="btn small" data-supplies="1">Get in Supplies</button>') : ''}</div>`; };
   const found = ITEMS.filter(i => i.cat === 'collection' && itemCount(i.id)).length, all = ITEMS.filter(i => i.cat === 'collection').length;
   box.innerHTML = (satTab === 'collection' && !satQ ? `<p class="sub">${found} of ${all} keepsakes found. They turn up on the coast at the end of a night: the further out, the rarer.</p>` : '')
@@ -10941,13 +11083,13 @@ function renderSatInfo(box, it) {
   box.classList.remove('satGrid');
   box.innerHTML = `<div class="satInfo" style="--ic:${it.col}" role="region" aria-label="${esc(it.name)}">
     <button class="btn small ghost" id="satInfoBack">← All items</button>
-    <div class="siHead">${itemArt(it, 'art siArt' + (locked ? ' locked' : ''))}<div><h3>${esc(it.name)}</h3><span class="satTag rar-${it.rarity}">${esc(it.rarity)}</span> <span class="satTag">${it.cat === 'boost' ? 'Boost' : 'Keepsake'}</span></div></div>
+    <div class="siHead">${itemArt(it, 'art siArt' + (locked ? ' locked' : ''))}<div><h3>${esc(it.name)}</h3><span class="satTag rar-${it.rarity}">${esc(it.rarity)}</span> <span class="satTag">${ITEM_CATS[it.cat] || 'Item'}</span></div></div>
     <p>${esc(locked ? 'Not found yet.' : it.desc)}</p>
     <dl class="siFacts"><dt>You have</dt><dd>${n}${n >= ITEM_MAX ? ' (the most a satchel holds)' : ''}</dd><dt>Where from</dt><dd>${esc(it.source)}</dd>
       <dt>Used in</dt><dd>${esc(itemUseText(it))}</dd><dt>Tradeable</dt><dd>${it.tradable ? 'Yes: with friends, through your Trade chest' : 'No'}</dd>${it.price ? `<dt>Price</dt><dd>${fmt(it.price)} embers in Supplies</dd>` : ''}</dl>
     <div class="siBtns"><button class="btn" data-fav="${it.id}" aria-pressed="${fav}">${fav ? '★ Pinned' : '☆ Pin to the top'}</button>
       ${it.cat === 'boost' && n ? `<button class="btn primary" data-use="${it.id}" ${rule.ok && !meta.boostNext.includes(it.id) ? '' : 'disabled'}>${meta.boostNext.includes(it.id) ? 'Ready for your next night' : 'Use next night'}</button>` : ''}
-      ${it.cat === 'boost' ? '<button class="btn" data-supplies="1">Supplies</button>' : ''}${Cloud.on() && it.tradable ? '<button class="btn" id="siTrade">Trading</button>' : ''}</div></div>`;
+      ${it.cat === 'boost' ? '<button class="btn" data-supplies="1">Supplies</button>' : ''}${it.cat === 'material' || RECIPES[it.id] ? '<button class="btn" data-wb="craft">Workbench</button>' : ''}${it.cat === 'event' ? '<button class="btn" data-wb="tokens">Festival herald</button>' : ''}${Cloud.on() && it.tradable ? '<button class="btn" id="siTrade">Trading</button>' : ''}</div></div>`;
 }
 function wireSatchel() {
   for (const b of document.querySelectorAll('#satTabs button')) b.onclick = () => { satTab = b.dataset.st; satMsg = ''; satInfo = ''; renderSatchel(); };
@@ -10958,6 +11100,7 @@ function wireSatchel() {
   for (const b of document.querySelectorAll('#satchel [data-info]')) b.onclick = () => { satInfo = b.dataset.info; satMsg = ''; renderSatchel(); const back = $('#satInfoBack'); if (back) back.focus(); };
   const back = $('#satInfoBack'); if (back) back.onclick = () => { const id = satInfo; satInfo = ''; renderSatchel(); const again = $(`#satchel [data-info="${id}"]`); if (again) again.focus(); };
   const tr = $('#siTrade'); if (tr) tr.onclick = () => openTrade();
+  for (const b of document.querySelectorAll('#satchel [data-wb]')) b.onclick = () => openWorkbench(b.dataset.wb, 'satchel');
 }
 $('#satQ').oninput = e => { satQ = e.target.value.slice(0, 40); satInfo = ''; renderSatchel(); const q = $('#satQ'); q.focus(); };
 $('#satSort').onchange = e => { satSort = e.target.value; renderSatchel(); };
@@ -10973,6 +11116,7 @@ function renderSupplies() {
 $('#bSatClose').onclick = () => { if (satInfo) { satInfo = ''; renderSatchel(); return; } backSub(); };
 $('#bSatTrade').onclick = () => openTrade();
 $('#bSatCollect').onclick = () => openCollection('satchel');
+$('#bSatCraft').onclick = () => openWorkbench('craft', 'satchel');
 
 /* ---- src\js\09m-collection.js ---- */
 /* =====================================================================
@@ -10994,12 +11138,11 @@ function collectionEntries(tab) {
     id: it.id, got: itemCount(it.id) > 0 || !!(meta.seen && meta.seen[it.id]), art: itemArt(it, 'art colArt'), name: it.name, rarity: it.rarity, desc: it.desc, src: it.source, n: itemCount(it.id), trade: it.tradable ? 'Tradeable' : '' }));
   if (tab === 'look') { const out = []; for (const slot of ['coat', 'hat', 'scarf', 'beam', 'stripe', 'skin']) for (const it of LOOKS[slot] || []) {
       if (it.id === 'none') continue; const got = ownsItem(slot, it.id, meta, meta.entitlements || []);
-      out.push({ id: slot + ':' + it.id, got, look: [slot, it], name: it.name || it.id, rarity: it.sku || it.lumen ? 'premium' : it.ach ? 'rare' : it.price ? 'common' : 'starter', desc: LOOK_SLOT_NAME[slot],
-        src: it.sku ? 'A supporter item' : it.lumen ? 'Lumens in the Shop' : it.ach ? 'An achievement' : it.price ? `${fmt(it.price)} embers in the Shop` : 'Yours from the start', trade: '' }); }
+      out.push({ id: slot + ':' + it.id, got, look: [slot, it], name: it.name || it.id, rarity: it.sku || it.lumens ? 'premium' : it.ach ? 'rare' : it.price ? 'common' : 'starter', desc: LOOK_SLOT_NAME[slot],
+        src: it.sku ? skuSource(it.sku) : it.lumens ? 'Lumens in the Shop' : it.ach ? 'An achievement' : it.price ? `${fmt(it.price)} embers in the Shop` : 'Yours from the start', trade: '' }); }
     return out; }
-  if (tab === 'music') { const keys = Object.keys(MUSIC_TRACKS).filter(k => MUSIC_TRACKS[k].name); for (const r of REGIONS) if (meta.world.unlocked[r.id] && !keys.includes(r.id)) keys.push(regionTrack(r.id));
-    return [...new Set(keys)].map(k => { const t = MUSIC_TRACKS[k] || {}, reg = REGIONS.find(r => k === r.id || k === 'r:' + r.id);
-      return { id: k, got: !!(meta.heard && meta.heard[k]), music: k, name: t.name || (reg ? reg.name : k), rarity: 'track', desc: 'Music: ' + (t.bpm ? t.bpm + ' beats a minute' : 'calm'), src: reg ? `Plays in ${reg.name}` : musicWhere(k), trade: '' }; }); }
+  if (tab === 'music') return allTracks().map(k => { const t = MUSIC_TRACKS[k] || {}, reg = REGIONS.find(r => regionTrack(r.id) === k), got = trackUnlocked(k); // 0.27: unlocked by playing
+      return { id: k, got, music: k, name: trackName(k), rarity: 'track', desc: 'Music: ' + (t.bpm ? t.bpm + ' beats a minute' : 'calm'), src: got ? (reg ? `Plays in ${reg.name}` : musicWhere(k)) : 'To unlock: ' + trackHow(k), trade: '' }; });
   return allLandmarks().map(l => ({ id: l.id, got: !!(meta.codex.l && meta.codex.l[l.id]), name: l.name, rarity: 'landmark', desc: l.lore, src: `A Landmark stop in ${l.region.name}`, trade: '' }));
 }
 function openCollection(from) { colFrom = from || ''; renderCollection(); show('collection'); }
@@ -11038,16 +11181,18 @@ const BZ_LEN = 132, BZ_HALF = 7; // the street runs along x from -6 to 132; z fr
 const BZ_DISTRICTS = [
   { id: 'bazaar', name: 'Lantern Bazaar', x0: -6, open: () => true, why: '', stations: [
     { id: 'merchant', name: 'Merchant', what: 'Supplies: boosts for embers', x: 2, z: -5, col: '#ff9a4a', act: () => { storeCat = 'supplies'; openStore(); } },
+    { id: 'workbench', name: 'Workbench', what: 'Make boosts from materials', x: 7, z: -5, col: '#c8a878', act: () => openWorkbench('craft', 'home') },
     { id: 'board', name: 'Community board', what: 'Community goals, friends and chat', x: 12, z: -5, col: '#8fd3ff', need: () => Cloud.on() && Cloud.signedIn(), needWhy: 'The community board is for signed-in keepers: Settings > Account.', act: () => openSocial() }] },
   { id: 'pier', name: 'Trading Pier', x0: 22, open: () => meta.runs >= 5, why: 'Opens after 5 nights', stations: [
-    { id: 'trader', name: 'Trade station', what: 'Your Trade chest, and trades with friends', x: 30, z: -5, col: '#9be3a4', act: () => openTrade() }] },
+    { id: 'trader', name: 'Trade station', what: 'Your Trade chest, and trades with friends', x: 27, z: -5, col: '#9be3a4', act: () => openTrade() },
+    { id: 'market', name: 'Market board', what: 'Swap items with any keeper', x: 36, z: -5, col: '#ffb8d0', act: () => openTrade(undefined, 'market') }] },
   { id: 'hall', name: 'Collector\'s Hall', x0: 44, open: () => ITEMS.some(i => i.cat === 'collection' && meta.seen && meta.seen[i.id]) || Object.keys(meta.world.cleared).length >= 1, why: 'Opens when you find a keepsake or clear a region', stations: [
     { id: 'collector', name: 'Collector', what: 'Your Collection: keepsakes, looks, music, discoveries', x: 52, z: -5, col: '#d5b3ff', act: () => { colTab = 'keep'; openCollection('bazaar'); } },
     { id: 'satchel', name: 'Satchel stand', what: 'Your Satchel', x: 60, z: -5, col: '#e8c547', act: () => { openSatchel(); subFrom = 'bazaar'; } }] },
   { id: 'music', name: 'Music House', x0: 66, open: () => Object.keys(meta.world.unlocked).length >= 3, why: 'Opens when you reach 3 regions', stations: [
     { id: 'jukebox', name: 'Jukebox', what: 'Play the music you have heard', x: 75, z: -5, col: '#ff8fb0', act: () => { colTab = 'music'; openCollection('bazaar'); } }] },
   { id: 'square', name: 'Festival Square', x0: 88, open: () => Object.keys(meta.ach).length >= 25, why: 'Opens after 25 achievements', stations: [
-    { id: 'herald', name: 'Festival herald', what: () => activeFestival() ? `Today: ${activeFestival().name}. Challenges and goals` : 'Challenges, goals and festival days', x: 97, z: -5, col: '#ffcf66', act: () => openChallenges() }] },
+    { id: 'herald', name: 'Festival herald', what: () => activeFestival() ? `Today: ${activeFestival().name}. Festival tokens for looks` : 'Festival tokens for looks, challenges and goals', x: 97, z: -5, col: '#ffcf66', act: () => openWorkbench('tokens', 'home') }] },
   { id: 'market', name: 'Keeper\'s Market', x0: 110, open: () => Object.keys(meta.world.cleared).length >= 2, why: 'Opens when you clear 2 regions', stations: [
     { id: 'tailor', name: 'Tailor', what: 'Looks for your keeper and your lighthouse', x: 118, z: -5, col: '#ff7b3a', act: () => { storeCat = 'look'; openStore(); } }] },
 ];
@@ -11227,6 +11372,61 @@ $('#bBzClose').onclick = () => closeBazaar();
 $('#bBzPlaces').onclick = () => { $('#bzPlacesBox').hidden = false; renderBazaarUi(); const f = $('#bzPlaces button:not([disabled])'); if (f) navFocus(f); };
 $('#bBzPlacesClose').onclick = () => { $('#bzPlacesBox').hidden = true; $('#bBzPlaces').focus(); };
 $('#bBazaar').onclick = () => { audioInit(); openBazaar(); };
+
+/* ---- src\js\09o-workbench.js ---- */
+/* =====================================================================
+   THE WORKBENCH AND THE FESTIVAL HERALD (0.27)
+   - Workbench: materials from the coast become boosts. What a boost does is unchanged (PvE only, never PvP: the rule
+     is canUseItem in 04bc-items.js); crafting is just another way to get one besides Supplies and the coast.
+   - Festival herald: festival tokens (from festival nights) buy festival looks you missed, out of season. Looks only.
+   Both are in the Satchel (Workbench) and the Bazaar (the Workbench in the Lantern Bazaar, the herald in Festival Square).
+   ===================================================================== */
+const RECIPES = { tonic: { tidesalt: 2, lampglass: 1 }, tar: { driftwood: 3 }, oil: { brass: 1, tidesalt: 1 }, lens: { lampglass: 2 }, shell: { driftwood: 2, tidesalt: 1 }, bread: { driftwood: 2, brass: 1 } };
+const TOKEN_PRICE = 8;
+const canCraft = id => !!RECIPES[id] && Object.entries(RECIPES[id]).every(([m, n]) => itemCount(m) >= n) && itemCount(id) < ITEM_MAX;
+function craftItem(id) {
+  const r = RECIPES[id]; if (!r || !ITK[id]) return { ok: false, why: 'Nothing to make.' };
+  if (itemCount(id) >= ITEM_MAX) return { ok: false, why: 'Your satchel can\'t hold more of those.' };
+  for (const [m, n] of Object.entries(r)) if (itemCount(m) < n) return { ok: false, why: `You need ${n} ${ITK[m].name.toLowerCase()} (you have ${itemCount(m)}).` };
+  for (const [m, n] of Object.entries(r)) { meta.inv[m] -= n; if (!meta.inv[m]) delete meta.inv[m]; }
+  addItem(id, 1); save(); return { ok: true, why: `${ITK[id].name} made. It works for one PvE night.` };
+}
+const festLooks = () => FESTIVALS.filter(f => f.look).map(f => { const [slot, id] = f.look, it = (LOOKS[slot] || []).find(l => l.id === id); return it ? { fest: f, slot, it, own: !!meta.look.owned[slot + ':' + id] } : null; }).filter(Boolean);
+function tokenExchange(festId) {
+  const x = festLooks().find(l => l.fest.id === festId); if (!x) return { ok: false, why: 'Not here.' };
+  if (x.own) return { ok: false, why: 'It\'s already yours.' };
+  if (itemCount('festtoken') < TOKEN_PRICE) return { ok: false, why: `${TOKEN_PRICE} festival tokens needed (you have ${itemCount('festtoken')}).` };
+  meta.inv.festtoken -= TOKEN_PRICE; if (!meta.inv.festtoken) delete meta.inv.festtoken;
+  meta.look.owned[x.slot + ':' + x.it.id] = 1; save(); thumbCache.clear(); return { ok: true, why: `${x.it.name} is yours. Wear it on the Keeper screen.` };
+}
+let wbTab = 'craft', wbMsg = '', wbFrom = '';
+function openWorkbench(tab = 'craft', from = '') { wbTab = tab; wbMsg = ''; wbFrom = from || SCREENS.find(id => id !== 'workbench' && $('#' + id) && !$('#' + id).hidden) || ''; renderWorkbench(); show('workbench'); }
+function renderWorkbench() {
+  $('#wbTabs').innerHTML = [['craft', 'Workbench'], ['tokens', 'Festival herald']].map(([id, l]) => `<button role="tab" aria-selected="${wbTab === id}" data-wb="${id}">${l}</button>`).join('');
+  const box = $('#wbList');
+  if (wbTab === 'craft') {
+    const mats = ITEMS.filter(i => i.cat === 'material');
+    box.innerHTML = `<p class="sub">Materials from the coast make boosts here. Boosts work for one PvE night, never in PvP.</p>
+      <div class="wbMats">${mats.map(m => `<span class="wbMat">${itemArt(m, 'art wbArt')}<b>${itemCount(m.id)}</b><small>${esc(m.name)}</small></span>`).join('')}</div>`
+      + Object.keys(RECIPES).map(id => { const it = ITK[id], ok = canCraft(id);
+        return `<div class="wbRow" style="--ic:${it.col}">${itemArt(it, 'art wbArt')}<div><b>${esc(it.name)}</b><small>${esc(it.desc)} You have ${itemCount(id)}.</small>
+          <p class="wbNeed">${Object.entries(RECIPES[id]).map(([m, n]) => `<span class="${itemCount(m) >= n ? 'ok' : 'no'}">${n} × ${esc(ITK[m].name)} (${itemCount(m)})</span>`).join(' + ')}</p></div>
+          <button class="btn small primary" data-craft="${id}" ${ok ? '' : 'disabled'} aria-label="Make ${esc(it.name)}">Make</button></div>`; }).join('');
+  } else {
+    const t = itemCount('festtoken'), now = typeof activeFestival === 'function' ? activeFestival() : null;
+    box.innerHTML = `<div class="wbTok">${itemArt(ITK.festtoken, 'art wbArt')}<div><b>${t} festival token${t === 1 ? '' : 's'}</b><small>${now ? `${esc(now.name)} is on now: every night gives tokens.` : 'Tokens come from nights played during a festival.'}</small></div></div>
+      <p class="sub">Missed a festival? Its look costs ${TOKEN_PRICE} tokens here, any time of year. Looks only.</p>`
+      + festLooks().map(x => `<div class="wbRow">${x.slot === 'beam' || x.slot === 'stripe' ? `<span class="wbSw" style="background:${x.it.col}"></span>` : `<img class="wbLook" src="${lookThumb(x.slot, x.it)}" alt="">`}<div><b>${esc(x.it.name)}</b><small>${esc(x.fest.name)}</small></div>
+        ${x.own ? '<span class="own">Yours</span>' : `<button class="btn small" data-tok="${x.fest.id}" ${t >= TOKEN_PRICE ? '' : 'disabled'} aria-label="Exchange ${TOKEN_PRICE} tokens for ${esc(x.it.name)}">${TOKEN_PRICE} tokens</button>`}</div>`).join('')
+      + '<button class="btn" id="wbChal">Challenges and goals</button>';
+  }
+  $('#wbNote').textContent = wbMsg;
+  for (const b of document.querySelectorAll('#wbTabs [data-wb]')) b.onclick = () => { wbTab = b.dataset.wb; wbMsg = ''; renderWorkbench(); };
+  for (const b of box.querySelectorAll('[data-craft]')) b.onclick = () => { const r = craftItem(b.dataset.craft); wbMsg = r.why; if (r.ok) sfx('buy'); renderWorkbench(); const again = box.querySelector(`[data-craft="${b.dataset.craft}"]`); if (again && !again.disabled) again.focus(); };
+  for (const b of box.querySelectorAll('[data-tok]')) b.onclick = () => { const r = tokenExchange(b.dataset.tok); wbMsg = r.why; if (r.ok) sfx('buy'); renderWorkbench(); };
+  const ch = $('#wbChal'); if (ch) ch.onclick = () => openChallenges();
+}
+$('#bWbClose').onclick = () => { const f = wbFrom; if (f === 'satchel') { renderSatchel(); show('satchel'); } else back(); };
 
 /* ---- src\js\10-render.js ---- */
 /* =====================================================================
@@ -11776,7 +11976,7 @@ function drawKeeperFig(c, x, y, s, alt) {
   if (hd === 'cap') { R(-4, -28.6, 8, 2.8); R(-1, -26.4, 6.4, 1.2); }
   else if (hd === 'hood') { c.fillStyle = col; c.beginPath(); c.arc(0, -24 * s, 4.9 * s, Math.PI, 0); c.lineTo(4.9 * s, -20.6 * s); c.lineTo(-4.9 * s, -20.6 * s); c.closePath(); c.fill(); c.fillStyle = skin; c.beginPath(); c.arc(0, -23.2 * s, 3 * s, 0, 7); c.fill(); }
   else if (hd === 'sou') { c.fillStyle = hc; c.beginPath(); c.ellipse(0, -26.4 * s, 6.6 * s, 1.8 * s, 0, 0, 7); c.fill(); c.beginPath(); c.arc(0, -26.8 * s, 3.7 * s, Math.PI, 0); c.fill(); }
-  else if (hd === 'tricorn') { poly([[-6.4, -26], [0, -31.5], [6.4, -26], [0, -27.8]]); }
+  else if (hd === 'tricorn') { if (H.col) c.fillStyle = hc; poly([[-6.4, -26], [0, -31.5], [6.4, -26], [0, -27.8]]); if (H.col2) { c.fillStyle = H.col2; poly([[-6.4, -26], [0, -27.8], [6.4, -26], [0, -27]]); c.beginPath(); c.arc(0, -29.6 * s, .9 * s, 0, 7); c.fill(); } }
   else if (hd === 'beanie') { c.fillStyle = hc; c.beginPath(); c.arc(0, -25.4 * s, 3.9 * s, Math.PI, 0); c.fill(); c.fillStyle = shade(hc, .75); R(-4, -26, 8, 1.3); c.fillStyle = H.col2 || '#fff'; c.beginPath(); c.arc(0, -29.8 * s, 1.3 * s, 0, 7); c.fill(); }
   else if (hd === 'straw') { c.fillStyle = hc; c.beginPath(); c.ellipse(0, -26.4 * s, 7.6 * s, 1.6 * s, 0, 0, 7); c.fill(); c.beginPath(); c.arc(0, -26.6 * s, 3.4 * s, Math.PI, 0); c.fill(); c.fillStyle = H.col2 || '#8a5a2a'; R(-3.4, -27.4, 6.8, .9); }
   else if (hd === 'bucket') { c.fillStyle = hc; poly([[-3.2, -30], [3.2, -30], [4, -26.8], [-4, -26.8]]); poly([[-4, -27.2], [4, -27.2], [5.6, -25.4], [-5.6, -25.4]]); }
@@ -12835,13 +13035,16 @@ if (location.hash.includes('debug')) window.LK = { get meta() { return meta; }, 
   reset() { run = null; meta = defMeta(); sanitizeMeta(); save(); goHome(); },
   cmdLog: () => Cmd.log(), Platform,
   region(id) { goHome(); meta.world.unlocked[id] = 1; startExpedition(id); }, regionIds: () => REGIONS.map(r => r.id), startAsc: n => startAscension(n), ascOpen: () => ascOpen(), spawn: (type, x, y) => spawn(type, x, y), targets: () => nearestTargets(), cloud: () => Cloud, social: () => Social, pvp: () => ({ PVP, D, pvpBuild, pvpCleanLoadout, duelSide, duelStart, duelResume, duelRebuild, duelStep, duelTap, duelAbility, duelHpScale, pvpTier, pvpAiPicks, pvpAiPick, pvpAiLoadout, pvpSimMatch, TOWER, DUEL_AB, PVP_LV, DUEL_CAL, PVP_CFG, AI_STYLES, PVP_REACTS, PVP_ARCH, pvpResolveFall, pvpProgress, SURV, PVP_UI, PVP_OVERLAYS, PVP_INPUT, PVP_NEXT, PVP_HUD, pvpAllows, pvpView, reactOf, duelSync, duelApplySync }), icons: () => ({ ICONS, EMO_ID, ico, iconize }), settings: () => ({ setDraft, volOf, applyMotion }), profile: () => pfDraft, musicMgr: () => ({ Music, musicContext, MUSIC_TRACKS, regionTrack, MENU_PLAYLIST }),
-  wardrobe: () => ({ lookClashes, clashWhy, resolveClashes, lookItem, draft: () => kd }), hookSave(fn) { if (fn) { if (!save._orig) { const o = save; save = function () { if (save._spy) save._spy(); return o.apply(this, arguments); }; save._orig = o; } save._spy = fn; } else if (save._orig) { save = save._orig; } },
+  wardrobe: () => ({ lookClashes, clashWhy, resolveClashes, lookItem, kdLookItems, draft: () => kd }), hookSave(fn) { if (fn) { if (!save._orig) { const o = save; save = function () { if (save._spy) save._spy(); return o.apply(this, arguments); }; save._orig = o; } save._spy = fn; } else if (save._orig) { save = save._orig; } },
   lumens: () => Lumens,
   items: () => ({ ITEMS, ITK, canUseItem, useItem, unqueueItem, applyBoosts, addItem, nightFinds, itemCount, PVP_ITEM_POLICY }),
   pwa: () => ({ renderInstall, isStandalone, fire: e => { installEvt = e; renderInstall(); } }),
   policyNotice: () => policyNotice(), policyNews: () => POLICY_NEWS, policyKey: () => policyKey(),
   coopServer: () => ({ CoopServer, Coop, relayRunsNights }),
   bazaar: () => ({ Bazaar, openBazaar, closeBazaar, bzStations, BZ_DISTRICTS, bzUse, bzPresence, bzOpen, three: () => THREE, loadThree }),
+  market: () => Market,
+  workbench: () => ({ RECIPES, craftItem, tokenExchange, festLooks, openWorkbench, canCraft, TOKEN_PRICE }),
+  musicUnlocks: () => ({ trackUnlocked, trackHow, allTracks, MUSIC_UNLOCK }),
   collection: () => ({ collectionEntries, openCollection, renderCollection, Music, satItems, toggleFav, isFav }),
   trade: () => Trade, renderTrade: () => renderTrade(), openTrade: id => openTrade(id),
   applyGfxForTest: () => applyGfx(),
@@ -13170,10 +13373,10 @@ const v = id => ($('#' + id) ? $('#' + id).value.trim() : '');
 // 0.26: consent at sign-up. The age question asks for the month and year of birth, works out the age here and sends
 // only the answer (13 or over; 13 to 15), never the date. The server checks the same answers (supabase migration
 // 20261004000000_consent.sql), so an account can't be made without them.
-const TERMS_VERSION = '1.4', PRIVACY_VERSION = '2.6', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
+const TERMS_VERSION = '1.5', PRIVACY_VERSION = '2.7', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
 const POLICY_KEY = 'lantern-keeper-policy', policyKey = () => 'p' + PRIVACY_VERSION + '/t' + TERMS_VERSION; // the versions this device has shown
 // When the policies change, account holders are told once, in the game, with what changed (Terms, section 10)
-const POLICY_NEWS = 'Privacy Policy 2.6 and Terms of Service 1.4: trading records are kept for one year to keep items honest; sign-up now asks for the age (13 or over, with a parent\'s agreement at 13 to 15) and keeps only the answer; every email has a one-click unsubscribe from news; refunds for Lumens and the Supporter Pack go through Google Play.';
+const POLICY_NEWS = 'Privacy Policy 2.7 and Terms of Service 1.5: the new Market shows your keeper name on your open listings to other signed-in players (never to players you blocked), and listings are kept for one year to keep items honest; when Google Play refunds a purchase, what it gave is taken back. Still true from 2.6: sign-up asks for the age (13 or over, with a parent\'s agreement at 13 to 15) and every email has a one-click unsubscribe from news.';
 function policyNotice() {
   if (Platform.load(POLICY_KEY) === policyKey() || !Cloud.signedIn() || mode !== 'home' || !$('#syncChoice').hidden) return; // told once on each device (never over the sync choice)
   const done = () => Platform.save(POLICY_KEY, policyKey());
@@ -13634,9 +13837,9 @@ const Lumens = {
   },
   async loadCatalog() { // packs and prices: the server's, so new packs and price changes need no new app
     if (!Cloud.on()) return;
-    const [p, i] = await Promise.all([Cloud.sb.from('lumen_packs').select('sku, lumens, bonus, label, price_hint, sort').eq('active', true).order('sort'), Cloud.sb.from('lumen_items').select('slot, id, price').eq('active', true)]);
-    if (p.error || i.error) throw new Error('The Lumen shop could not be loaded.');
-    this.packs = p.data || []; this.items = i.data || []; this.loaded = true;
+    const [p, i, c] = await Promise.all([Cloud.sb.from('lumen_packs').select('sku, lumens, bonus, label, price_hint, sort').eq('active', true).order('sort'), Cloud.sb.from('lumen_items').select('slot, id, price').eq('active', true), Cloud.sb.from('lumen_collections').select('id, price, sort').eq('active', true).order('sort')]);
+    if (p.error || i.error || c.error) throw new Error('The Lumen shop could not be loaded.');
+    this.packs = p.data || []; this.items = i.data || []; this.cols = c.data || []; this.loaded = true;
   },
   price(slot, id) { const x = this.items.find(i => i.slot === slot && i.id === id); return x ? x.price : null; }, // null: not for sale (or not loaded)
   owns: (slot, id) => entitled('lumen:' + slot + ':' + id),
@@ -13649,6 +13852,15 @@ const Lumens = {
     return data;
   },
   async buyPack(sku) { const r = await Billing.buy(sku); await this.load(); return r; },
+  // 0.27: a collection (several looks and profile items) as one purchase
+  cols: [], colPrice(id) { const x = this.cols.find(c => c.id === id); return x ? x.price : null; }, ownsCol: id => entitled(colSku(id)),
+  async spendCollection(id) {
+    const key = 'col:' + id, rid = this.pending[key] || (this.pending[key] = newRequestId());
+    const { data, error } = await Cloud.sb.rpc('lumens_spend_collection', { col_id: id, request_id: rid });
+    if (error) { if (!/fetch|network|timeout/i.test(error.message || '')) delete this.pending[key]; throw new Error(acErrText(error)); }
+    delete this.pending[key]; this.balance = data.balance;
+    await Billing.refresh(); await this.load(); thumbCache.clear(); return data;
+  },
 };
 function openLumens() { storeCat = 'lumens'; openStore(); }
 function lumenAct(fn) { return async () => { if (Lumens.busy) return; Lumens.busy = true; Lumens.msg = ''; renderStore(); try { Lumens.msg = (await fn()) || ''; } catch (e) { Lumens.msg = e.message || String(e); } Lumens.busy = false; renderStore(); }; }
@@ -13668,6 +13880,7 @@ function renderLumens() {
   box.innerHTML = `<div class="lumenBar"><span class="lumenGem">${ico('lumen', 'big')}</span><div><b>${signed ? (bal == null ? '...' : fmt(bal) + ' Lumens') : 'Lumens'}</b><small>${signed ? 'Kept in your account, on every device.' : 'Lumens live in your account. Sign in to get and spend them.'}</small></div>
       ${signed ? '' : '<button class="btn primary" id="bLumenSignIn">Sign in</button>'}</div>
     ${Lumens.err ? `<p class="acMsg">${esc(Lumens.err)}</p>` : ''}${Lumens.msg ? `<p class="acMsg" role="status">${esc(Lumens.msg)}</p>` : ''}
+    <h3 class="sec">Collections</h3><p class="sub">Each one dresses your keeper, your tower and your profile in the same colours. Looks only: never an advantage.</p><div class="colGrid">${LUMEN_COLLECTIONS.map(colCard).join('')}</div>
     <h3 class="sec">Premium looks</h3><div class="lumenGrid">${looks.map(card).join('')}</div>
     <h3 class="sec">Get Lumens</h3><div class="lumenGrid">${packs || '<p class="sub">Loading...</p>'}</div>
     ${signed ? `<h3 class="sec">History</h3>${Lumens.history.length ? `<ul class="lumenHist">${Lumens.history.map(h => `<li><span>${LUMEN_WHY[h.reason] || h.reason}${h.reason === 'spend' ? ': ' + esc(lumenRefName(h.ref)) : ''}</span><b class="${h.delta < 0 ? 'neg' : 'pos'}">${h.delta > 0 ? '+' : ''}${fmt(h.delta)}</b><small>${new Date(h.at).toLocaleDateString()}</small></li>`).join('')}</ul>` : '<p class="sub">Nothing yet.</p>'}` : ''}`;
@@ -13677,10 +13890,21 @@ function renderLumens() {
     if (Lumens.balance != null && Lumens.balance < pr) { Lumens.msg = `${it.name} costs ${fmt(pr)} Lumens; you have ${fmt(Lumens.balance)}. Get more below.`; return renderStore(); }
     appDialog({ title: `Buy ${it.name}?`, text: `${fmt(pr)} Lumens. It's a look: wear it from the Keeper screen. It never changes how you play.`,
       buttons: [{ label: `Buy for ${fmt(pr)} Lumens`, primary: true, act: lumenAct(async () => { await Lumens.spend(sl, id); sfx('buy'); return `${it.name} is yours. Wear it from the Keeper screen.`; }) }, { label: 'Cancel', ghost: true }] }); };
+  for (const b of box.querySelectorAll('[data-col]')) b.onclick = () => { const c = COLK[b.dataset.col], pr = Lumens.colPrice(c.id);
+    if (Lumens.balance != null && Lumens.balance < pr) { Lumens.msg = `The ${c.name} costs ${fmt(pr)} Lumens; you have ${fmt(Lumens.balance)}. Get more below.`; return renderStore(); }
+    appDialog({ title: `Buy the ${c.name}?`, text: `${fmt(pr)} Lumens for all of it: ${collectionContents(c).map(([k, v]) => k.toLowerCase() + ' (' + v + ')').join(', ')}. Looks only: they never change how you play.`,
+      buttons: [{ label: `Buy for ${fmt(pr)} Lumens`, primary: true, act: lumenAct(async () => { await Lumens.spendCollection(c.id); sfx('buy'); return `The ${c.name} is yours: wear it from the Keeper screen and your Profile.`; }) }, { label: 'Cancel', ghost: true }] }); };
   for (const b of box.querySelectorAll('[data-pack]')) b.onclick = lumenAct(async () => { const p = Lumens.packs.find(x => x.sku === b.dataset.pack); const r = await Lumens.buyPack(p.sku);
     return r === 'pending' ? 'Your purchase is pending. The Lumens are added once Google Play confirms it.' : `${fmt(p.lumens + p.bonus)} Lumens added.`; });
 }
-const lumenRefName = ref => { const [, sl, id] = String(ref || '').split(':'); const it = lookItem(sl, id); return it ? it.name : ref; };
+const lumenRefName = ref => { const [, sl, id] = String(ref || '').split(':'); if (sl === 'col') return (COLK[id] || {}).name || ref; const it = lookItem(sl, id); return it ? it.name : ref; };
+// A collection's card: its four looks drawn, what it contains, the price (0.27)
+function colCard(c) {
+  const own = Lumens.ownsCol(c.id), pr = Lumens.colPrice(c.id), signed = Lumens.on();
+  return `<div class="colCard${own ? ' owned' : ''}" style="--c1:${c.banner[1]};--c2:${c.banner[2]}"><div class="colPics">${['coat', 'hat', 'scarf', 'stripe'].map(sl => `<img class="lkArt" src="${lookThumb(sl, lookItem(sl, c[sl].id))}" alt="">`).join('')}</div>
+    <b>${esc(c.name)}</b><p>${esc(c.desc)}</p><ul class="colHas" aria-label="Contains">${collectionContents(c).map(([k, v]) => `<li>✓ ${esc(k)}: ${esc(v)}</li>`).join('')}</ul>
+    ${own ? '<span class="own">Yours</span>' : pr == null ? '<span class="how">Not for sale right now</span>' : `<button class="btn primary" data-col="${c.id}" ${!signed || Lumens.busy ? 'disabled' : ''} aria-label="Buy the ${esc(c.name)} for ${pr} Lumens">${ico('lumen')} ${fmt(pr)}</button>`}</div>`;
+}
 
 /* ---- src\js\13e-trade.js ---- */
 /* =====================================================================
@@ -13768,22 +13992,23 @@ const Trade = {
   },
 };
 let tradeTab = 'chest';
-function openTrade(withId) {
-  Trade.err = ''; Trade.note = ''; tradeTab = withId || Trade.cur ? 'trade' : 'chest';
+function openTrade(withId, tab) {
+  Trade.err = ''; Trade.note = ''; tradeTab = tab || (withId || Trade.cur ? 'trade' : 'chest');
   Trade.from = SCREENS.find(id => id !== 'trade' && $('#' + id) && !$('#' + id).hidden) || ''; // Done goes back there
   show('trade'); renderTrade();
   if (!Trade.ok()) return;
-  Trade.load().then(() => { if (withId && !Trade.cur) Trade.invite(withId); }).catch(e => { Trade.err = e.message; renderTrade(); });
+  Trade.load().then(() => { if (withId && !Trade.cur) Trade.invite(withId); if (tradeTab === 'market') return Market.load().then(renderTrade); }).catch(e => { Trade.err = e.message; renderTrade(); });
 }
 const offerText = o => { const e = Object.entries(o || {}); return e.length ? e.map(([k, n]) => `${n} × ${(ITK[k] || { name: k }).name}`).join(', ') : 'nothing yet'; };
 function tradeItemRow(it, right) { return `<div class="trRow" style="--ic:${it.col}">${itemArt(it, 'art trArt')}<div><b>${esc(it.name)}</b><small>${it.cat === 'boost' ? 'Boost · PvE only' : 'Keepsake'}</small></div><div class="trAct">${right}</div></div>`; }
 function renderTrade() {
   const box = $('#trList'); if (!box || $('#trade').hidden) return;
-  $('#trTabs').innerHTML = [['chest', 'Trade chest'], ['trade', Trade.cur ? 'Trade ●' : 'Trade']].map(([id, l]) => `<button role="tab" aria-selected="${tradeTab === id}" data-tt="${id}">${l}</button>`).join('');
-  for (const b of document.querySelectorAll('#trTabs button')) b.onclick = () => { tradeTab = b.dataset.tt; renderTrade(); };
+  $('#trTabs').innerHTML = [['chest', 'Trade chest'], ['trade', Trade.cur ? 'Trade ●' : 'Trade'], ['market', 'Market']].map(([id, l]) => `<button role="tab" aria-selected="${tradeTab === id}" data-tt="${id}">${l}</button>`).join('');
+  for (const b of document.querySelectorAll('#trTabs button')) b.onclick = () => { tradeTab = b.dataset.tt; if (tradeTab === 'market' && Trade.ok()) Market.load().then(renderTrade).catch(e => { Trade.err = e.message; renderTrade(); }); renderTrade(); };
   $('#trNote').textContent = Trade.err || Trade.note; $('#trNote').classList.toggle('bad', !!Trade.err);
   if (!Trade.ok()) { box.innerHTML = `<p class="sub">Trading happens between accounts: sign in (Settings > Account) to open your Trade chest and trade with friends.</p>`; return; }
   const dis = Trade.busy ? 'disabled' : '', T = Trade.cur;
+  if (tradeTab === 'market') return renderMarket(box); // 0.27
   if (tradeTab === 'chest') {
     const rows = ITEMS.filter(it => it.tradable && (itemCount(it.id) || Trade.chest[it.id])).map(it => {
       const inC = Trade.chest[it.id] || 0, inS = itemCount(it.id), offered = T ? (T.mine[it.id] || 0) : 0;
@@ -13833,6 +14058,46 @@ leaveGuards.trade = go => {
 };
 $('#bTrClose').onclick = () => guardedLeave(() => { const f = Trade.from; clearInterval(Trade.pingT);
   if (f === 'satchel') { renderSatchel(); show('satchel'); } else if (f === 'social') { show('social'); renderSocial(); } else goHome(); });
+
+/* ---------- The Market (0.27): item-for-item listings anyone signed in can take ----------
+   Post "I give these, I want those": what you give leaves your Trade chest and is held by the listing (the server's
+   market_list), so it can't be spent twice. Anyone with what you want can take it (market_fill: everything moves in
+   one step, or nothing does). Cancel, or 7 days passing, gives the held items back. Items only, never embers or looks. */
+const Market = {
+  list: [], mine: [], filter: '', give: {}, want: {}, busy: false,
+  async load() { const [b, m] = await Promise.all([Trade.rpc('market_browse', { p_item: this.filter || null }), Trade.rpc('market_mine')]); this.list = b || []; this.mine = m || []; },
+  async act(fn, args, ok) {
+    if (this.busy) return; this.busy = true; Trade.err = ''; Trade.note = ''; renderTrade();
+    try { await Trade.rpc(fn, args); Trade.note = ok; await Trade.load(); await this.load(); sfx('buy'); } catch (e) { Trade.err = e.message; try { await this.load(); } catch (e2) { /* shown above */ } }
+    finally { this.busy = false; renderTrade(); }
+  },
+};
+const mkt = o => Object.entries(o || {}).map(([k, n]) => ITK[k] ? `${n} × ${ITK[k].name}` : '').filter(Boolean).join(', ');
+function renderMarket(box) {
+  const M = Market, dis = M.busy ? 'disabled' : '', tradeable = ITEMS.filter(i => i.tradable);
+  const can = l => Object.entries(l.want).every(([k, n]) => (Trade.chest[k] || 0) >= n);
+  const stepper = (side, it, max) => { const n = M[side][it.id] || 0; return `<div class="trRow" style="--ic:${it.col}">${itemArt(it, 'art trArt')}<div><b>${esc(it.name)}</b><small>${side === 'give' ? 'In your chest: ' + (Trade.chest[it.id] || 0) : esc(ITEM_CATS[it.cat] || '')}</small></div>
+    <div class="trAct"><small>${n}</small><button class="btn small ghost" data-mk="${side}:${it.id}:-1" ${n > 0 ? '' : 'disabled'} aria-label="One less ${esc(it.name)}">−</button><button class="btn small" data-mk="${side}:${it.id}:1" ${n < max ? '' : 'disabled'} aria-label="One more ${esc(it.name)}">+</button></div></div>`; };
+  box.innerHTML = `<p class="sub">Swap items with any keeper: post what you give and what you want, or take someone's listing. What you give is held safely until the listing is taken, cancelled or ends (7 days). Items only: never embers, looks or Lumens.</p>
+    <div class="setRow"><label for="mkFilter"><b>Show listings with</b></label><select id="mkFilter" class="sel"><option value="">Any item</option>${tradeable.map(i => `<option value="${i.id}"${M.filter === i.id ? ' selected' : ''}>${esc(i.name)}</option>`).join('')}</select></div>
+    ${M.list.length ? M.list.map(l => `<div class="mkRow"><div><b>Gives ${esc(mkt(l.give))}</b><small>Wants ${esc(mkt(l.want))} · from ${esc(l.seller)}</small></div>
+      <button class="btn small primary" data-take="${l.id}" ${can(l) ? '' : 'disabled'} ${dis} aria-label="Take: get ${esc(mkt(l.give))} for ${esc(mkt(l.want))}">${can(l) ? 'Take' : 'Not in your chest'}</button></div>`).join('') : '<p class="sub">No listings right now.</p>'}
+    <h3 class="sec">Post a listing</h3><p class="sub">You give (from your Trade chest):</p>
+    ${tradeable.filter(i => Trade.chest[i.id]).map(i => stepper('give', i, Math.min(99, Trade.chest[i.id] || 0))).join('') || '<p class="sub">Your Trade chest is empty: put items in from the Trade chest tab.</p>'}
+    <p class="sub">You want:</p>${tradeable.map(i => stepper('want', i, 99)).join('')}
+    <div class="trBtns"><button class="btn primary" id="mkPost" ${Object.keys(M.give).length && Object.keys(M.want).length ? '' : 'disabled'} ${dis}>Post: give ${esc(mkt(M.give) || '...')} for ${esc(mkt(M.want) || '...')}</button></div>
+    ${M.mine.length ? '<h3 class="sec">Your listings</h3>' + M.mine.slice(0, 12).map(l => `<div class="mkRow"><div><b>${l.buyer && l.status === 'filled' && l.seller !== (Cloud.user || {}).id ? 'You took: ' : ''}${esc(mkt(l.give))} for ${esc(mkt(l.want))}</b><small>${{ open: 'Open', filled: 'Taken', cancelled: 'Cancelled', expired: 'Ended (items back in your chest)' }[l.status]}</small></div>
+      ${l.status === 'open' && l.seller === (Cloud.user || {}).id ? `<button class="btn small ghost" data-unlist="${l.id}" ${dis}>Cancel</button>` : ''}</div>`).join('') : ''}`;
+  $('#mkFilter').onchange = e => { M.filter = e.target.value; M.load().then(renderTrade).catch(er => { Trade.err = er.message; renderTrade(); }); };
+  for (const b of box.querySelectorAll('[data-mk]')) b.onclick = () => { const [side, id, d] = b.dataset.mk.split(':'), o = M[side]; o[id] = (o[id] || 0) + +d; if (o[id] <= 0) delete o[id];
+    const other = side === 'give' ? M.want : M.give; delete other[id]; // the same item can't be on both sides
+    if (Object.keys(o).length > 4) { delete o[id]; Trade.err = 'Up to 4 kinds of item on each side.'; } renderTrade(); const again = box.querySelector(`[data-mk="${b.dataset.mk}"]`); if (again && !again.disabled) again.focus(); };
+  for (const b of box.querySelectorAll('[data-take]')) b.onclick = () => { const l = M.list.find(x => x.id === b.dataset.take); if (!l) return;
+    appDialog({ title: 'Take this listing?', text: `You give ${mkt(l.want)} from your Trade chest and get ${mkt(l.give)}, at once.`, buttons: [
+      { label: 'Take it', primary: true, act: () => M.act('market_fill', { p_id: l.id }, `Done: ${mkt(l.give)} is in your Trade chest.`) }, { label: 'Cancel', ghost: true }] }); };
+  const post = $('#mkPost'); if (post) post.onclick = () => { const give = Object.assign({}, M.give), want = Object.assign({}, M.want); M.give = {}; M.want = {}; M.act('market_list', { p_give: give, p_want: want }, `Posted: ${mkt(give)} for ${mkt(want)}. It's held until someone takes it.`); };
+  for (const b of box.querySelectorAll('[data-unlist]')) b.onclick = () => M.act('market_cancel', { p_id: b.dataset.unlist }, 'Cancelled: the items are back in your Trade chest.');
+}
 
 /* ---- src\js\14-social.js ---- */
 /* =====================================================================
