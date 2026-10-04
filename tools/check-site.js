@@ -61,7 +61,9 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
     // links inside the site (and their #anchors)
     const internal = [...links].filter(l => l.startsWith(BASE)), dead = [];
     for (const l of internal) { const [u, hash] = l.split('#'); const res = await fetch(u); if (!res.ok) { dead.push(res.status + ' ' + l); continue; }
-      if (hash && /\.html$|\/$/.test(u) && !/^(features|gallery|platforms|windows|macos|linux|android|iphone-and-ipad|main|top)$/.test(hash)) { const t = await res.text(); if (!t.includes(`id="${hash}"`)) dead.push('no #' + hash + ' in ' + u); } }
+      if (hash && /\.html$|\/$/.test(u) && !/^(features|gallery|platforms|windows|macos|linux|android|iphone-and-ipad|main|top)$/.test(hash)) { const t = await res.text(); let ok = t.includes(`id="${hash}"`);
+        if (!ok && /news\.html$/.test(u) && /^v\d/.test(hash)) { const nj = await (await fetch(u.replace(/news\.html$/, 'news.json'))).json(); ok = nj.items.some(it => 'v' + it.version.replace(/\./g, '-') === hash); } // (a version's entry is drawn from news.json)
+        if (!ok) dead.push('no #' + hash + ' in ' + u); } }
     report(`every link inside the site works (${internal.length} links)`, !dead.length, dead);
 
     // the menu on a phone, and Escape closes it
