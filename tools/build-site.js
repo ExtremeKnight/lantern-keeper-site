@@ -7,7 +7,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..'), PAGES = path.join(__dirname, 'pages');
-const SITE = 'https://extremeknight.github.io/lantern-keeper-site/';
+const SITE = 'https://lk.exenova.is-local.host/'; // (0.30: the site's own address; extremeknight.github.io/lantern-keeper-site/ redirects here)
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
 // Icons: one inline sprite per page (works without scripts); use as <svg><use href="#i-name"/></svg>
