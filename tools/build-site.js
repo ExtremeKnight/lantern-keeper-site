@@ -58,7 +58,7 @@ function layout(meta, body) {
   const url = SITE + (meta.path === 'index.html' ? '' : meta.path), img = SITE + (meta.image || 'assets/img/og.png');
   const title = meta.path === 'index.html' ? meta.title : `${meta.title} · Lantern Keeper`;
   const nav = NAV.map(([href, label, id]) => `<a href="${href}"${meta.nav === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
-  const ld = meta.path === 'index.html' ? `\n<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoGame', name: 'Lantern Keeper', url: SITE, image: SITE + 'assets/img/og.png', description: meta.description, genre: ['Roguelite', 'Tower defense', 'Idle'], gamePlatform: ['Web browser', 'Windows', 'macOS', 'Linux', 'Android', 'iOS'], applicationCategory: 'Game', operatingSystem: 'Windows, macOS, Linux, Android, iOS, Web', playMode: ['SinglePlayer', 'CoOp', 'MultiPlayer'], author: { '@type': 'Organization', name: 'Exenova', email: 'exenovaph@gmail.com' }, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } })}</script>` : '';
+  const ld = meta.path === 'index.html' ? `\n<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoGame', name: 'Lantern Keeper', url: SITE, image: SITE + 'assets/img/og.png', description: meta.description, genre: ['Roguelite', 'Tower defense', 'Idle'], gamePlatform: ['Web browser', 'Windows', 'macOS', 'Linux', 'Android', 'iOS'], applicationCategory: 'Game', operatingSystem: 'Windows, macOS, Linux, Android, iOS, Web', playMode: ['SinglePlayer', 'CoOp', 'MultiPlayer'], author: { '@type': 'Organization', name: 'Exenova', email: 'l4nternkeeper@gmail.com' }, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } })}</script>` : '';
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -108,7 +108,7 @@ ${body.trim()}
       </div>
       <div><h2>Play</h2><ul><li><a href="play/">In your browser</a></li><li><a href="downloads.html">Downloads</a></li><li><a href="index.html#platforms">Platforms</a></li></ul></div>
       <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li></ul></div>
-      <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:exenovaph@gmail.com">exenovaph@gmail.com</a></li></ul></div>
+      <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a></li></ul></div>
     </div>
     <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site.</span></div>
   </div>
