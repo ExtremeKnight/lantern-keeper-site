@@ -91,7 +91,7 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
       const r = await p.evaluate(() => ({ rec: document.querySelector('.rec a').getAttribute('href'), title: document.querySelector('.rec h2').textContent, groups: [...document.querySelectorAll('.dl-group[id]')].map(g => g.id).join(), compat: document.querySelectorAll('.compat tbody tr').length, badges: document.querySelectorAll('.dl .status').length, facts: document.querySelectorAll('.dl .dl-facts').length, all: !!document.querySelector('.rec a[href$="#all-downloads"]'), prev: !!document.querySelector('[data-previous] p, [data-previous] li'), files: document.querySelectorAll('.dl').length, sums: document.querySelectorAll('[data-copy]').length }));
       const home = await (async () => { await p.goto(BASE); return p.evaluate(() => { const a = document.querySelector('[data-download-cta]'); return a.textContent.trim() + ' -> ' + a.getAttribute('href'); }); })();
       report(`downloads for ${dev}: recommends ${want[dev]}, lists every platform with checksums, and the home page's button says so (${home})`,
-        r.rec.endsWith(want[dev]) && r.groups === 'windows,macos,linux,android,iphone-and-ipad,compatibility,previous-versions' && r.compat >= 10 && r.badges === 9 && r.facts === 9 && r.all && r.prev && r.files === 9 && r.sums === 9 && /downloads\.html#/.test(home), Object.assign({ home }, r));
+        r.rec.endsWith(want[dev]) && r.groups === 'windows,macos,linux,android,iphone-and-ipad,older-systems,compatibility,previous-versions' && r.compat >= 10 && r.badges === 9 && r.facts === 9 && r.all && r.prev && r.files === 9 && r.sums === 9 && /downloads\.html#/.test(home), Object.assign({ home }, r));
       await ctx.close();
     }
     // news, the 404 page

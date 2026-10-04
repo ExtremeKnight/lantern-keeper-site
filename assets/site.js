@@ -35,6 +35,14 @@
     return 'other';
   }
   const DEV = device();
+  // a system the apps can't run on (shown before anyone downloads an installer that won't open; old Macs can't be told
+  // apart: browsers report every Mac as 10.15)
+  const OLD = (() => { const ua = navigator.userAgent || '';
+    if (/Windows NT (5\.|6\.[0-3])/.test(ua)) return 'Windows 7, 8 or 8.1';
+    if (/Windows NT 10/.test(ua) && !/Win64|WOW64|x64|amd64|ARM/i.test(ua)) return '32-bit Windows';
+    const a = ua.match(/Android (\d+)/); if (a && +a[1] < 7) return 'Android ' + a[1];
+    const i = ua.match(/OS (\d+)_\d+[^)]*like Mac OS X/); if (i && +i[1] < 15) return 'iOS ' + i[1];
+    return ''; })();
   const LABEL = { windows: 'Download for Windows', 'windows-arm': 'Download for Windows', mac: 'Download for Mac', linux: 'Download for Linux', android: 'Download for Android', ios: 'Get it on iPhone' };
   const ANCHOR = { windows: 'windows', 'windows-arm': 'windows', mac: 'macos', linux: 'linux', android: 'android', ios: 'iphone-and-ipad' };
   $$('[data-download-cta]').forEach(a => { if (LABEL[DEV]) { a.querySelector('span').textContent = LABEL[DEV]; a.href = 'downloads.html#' + ANCHOR[DEV]; } });
@@ -82,7 +90,8 @@
     const day = t => t ? new Date(t + 'T12:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
     const recBox = $('[data-recommended]'), all = `<a class="btn btn-ghost" href="downloads.html#all-downloads">${icon('download')}View all downloads</a>`;
     if (recBox) {
-      if (rec) { const r = rowOf(c, rec.name); recBox.innerHTML = `<div class="rec">${icon(rec.icon || 'download', 'big')}<div><h2>${esc(rec.label)}</h2><p>Lantern Keeper ${esc(d.version)} for ${esc(rec.platformName)} · ${size(rec.size)}${DEV === 'mac' ? ' · on an Intel Mac, choose the Intel download below' : ''} ${r ? badge(c, r.status) : ''}</p></div><div class="rec-act"><a class="btn btn-primary" href="${esc(rec.url)}">${icon('download')}Download</a>${all}</div></div>`; }
+      if (OLD) recBox.innerHTML = `<div class="rec">${icon('globe', 'big')}<div><h2>On ${esc(OLD)}, play the web version</h2><p>The apps need a newer system, but the web version is the same game, keeps your progress with a free account, and installs like an app from your browser.</p><p><a class="btn btn-primary" href="play/">${icon('play')}Play now</a> <a class="btn btn-ghost" href="downloads.html#older-systems">How to install it</a></p></div></div>`;
+      else       if (rec) { const r = rowOf(c, rec.name); recBox.innerHTML = `<div class="rec">${icon(rec.icon || 'download', 'big')}<div><h2>${esc(rec.label)}</h2><p>Lantern Keeper ${esc(d.version)} for ${esc(rec.platformName)} · ${size(rec.size)}${DEV === 'mac' ? ' · on an Intel Mac, choose the Intel download below' : ''} ${r ? badge(c, r.status) : ''}</p></div><div class="rec-act"><a class="btn btn-primary" href="${esc(rec.url)}">${icon('download')}Download</a>${all}</div></div>`; }
       else if (DEV === 'ios') recBox.innerHTML = `<div class="rec">${icon('phone', 'big')}<div><h2>On iPhone and iPad, play in Safari</h2><p>Open the web version, tap Share, then Add to Home Screen. It plays full screen and offline, with the same account and save.</p></div><div class="rec-act"><a class="btn btn-primary" href="play/">${icon('play')}Play now</a>${all}</div></div>`;
       else recBox.innerHTML = `<div class="rec">${icon('globe', 'big')}<div><h2>Play in your browser</h2><p>Nothing to install. Add it to your home screen or desktop from the browser's menu to play offline.</p></div><div class="rec-act"><a class="btn btn-primary" href="play/">${icon('play')}Play now</a>${all}</div></div>`;
     }
