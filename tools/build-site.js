@@ -14,6 +14,7 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(
 const ICONS = {
   check: '<path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
   play: '<path d="M7 4.5v15l13-7.5z" fill="currentColor"/>',
+  pause: '<g fill="currentColor"><rect x="6" y="4.5" width="4.2" height="15" rx="1"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1"/></g>',
   download: '<g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6.5 10l5.5 5.5 5.5-5.5M4 20h16"/></g>',
   menu: '<g stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g>',
   close: '<g stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></g>',
@@ -51,7 +52,7 @@ const ICONS = {
 };
 const sprite = () => `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</defs></svg>`;
 
-const NAV = [['index.html#features', 'Features', 'features'], ['index.html#gallery', 'Gallery', 'gallery'], ['downloads.html', 'Downloads', 'downloads'], ['news.html', 'News', 'news'], ['support.html', 'Support', 'support']];
+const NAV = [['index.html#features', 'Features', 'features'], ['index.html#gallery', 'Gallery', 'gallery'], ['downloads.html', 'Downloads', 'downloads'], ['news.html', 'News', 'news'], ['community.html', 'Community', 'community'], ['support.html', 'Support', 'support']];
 
 function layout(meta, body) {
   const url = SITE + (meta.path === 'index.html' ? '' : meta.path), img = SITE + (meta.image || 'assets/img/og.png');
@@ -72,6 +73,8 @@ function layout(meta, body) {
 <link rel="apple-touch-icon" href="assets/img/icon-192.png">
 <link rel="preload" href="assets/fonts/Jersey10.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" type="application/rss+xml" title="Lantern Keeper news (RSS)" href="feed.xml">
+<link rel="alternate" type="application/atom+xml" title="Lantern Keeper news (Atom)" href="atom.xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Lantern Keeper">
 <meta property="og:title" content="${esc(title)}">
@@ -104,8 +107,8 @@ ${body.trim()}
         <p>An idle roguelite lighthouse defense game by Exenova. Free to play, no ads, nothing that changes how you play is ever sold.</p>
       </div>
       <div><h2>Play</h2><ul><li><a href="play/">In your browser</a></li><li><a href="downloads.html">Downloads</a></li><li><a href="index.html#platforms">Platforms</a></li></ul></div>
-      <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li></ul></div>
-      <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:exenovaph@gmail.com">exenovaph@gmail.com</a></li></ul></div>
+      <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li></ul></div>
+      <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:exenovaph@gmail.com">exenovaph@gmail.com</a></li></ul></div>
     </div>
     <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site.</span></div>
   </div>
@@ -127,5 +130,22 @@ for (const f of fs.readdirSync(PAGES).filter(f => f.endsWith('.html'))) {
 // the sitemap (every page except the 404)
 const today = new Date().toISOString().slice(0, 10);
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${built.filter(b => b.path !== '404.html').map(b => `  <url><loc>${SITE}${b.path === 'index.html' ? '' : b.path}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n  <url><loc>${SITE}play/</loc><lastmod>${today}</lastmod></url>\n</urlset>\n`);
+// 0.29: news feeds (RSS 2.0 and Atom) from news.json, for feed readers
+const xml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const news = JSON.parse(fs.readFileSync(path.join(ROOT, 'news.json'), 'utf8')).items.slice(0, 30);
+const link = it => `${SITE}news.html#v${it.version.replace(/\./g, '-')}`, when = it => new Date((it.date || today) + 'T12:00:00Z');
+fs.writeFileSync(path.join(ROOT, 'feed.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel>
+<title>Lantern Keeper news</title><link>${SITE}news.html</link><description>Every Lantern Keeper update, newest first.</description><language>en</language>
+<atom:link href="${SITE}feed.xml" rel="self" type="application/rss+xml"/>
+${news.map(it => `<item><title>${xml(it.version + ': ' + it.title)}</title><link>${link(it)}</link><guid isPermaLink="true">${link(it)}</guid><pubDate>${when(it).toUTCString()}</pubDate><description>${xml(it.summary)}</description></item>`).join('\n')}
+</channel></rss>
+`);
+fs.writeFileSync(path.join(ROOT, 'atom.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Lantern Keeper news</title><id>${SITE}news.html</id><link href="${SITE}news.html"/><link rel="self" href="${SITE}atom.xml"/>
+<updated>${news.length ? when(news[0]).toISOString() : new Date().toISOString()}</updated><author><name>Exenova</name></author>
+${news.map(it => `<entry><title>${xml(it.version + ': ' + it.title)}</title><id>${link(it)}</id><link href="${link(it)}"/><updated>${when(it).toISOString()}</updated><summary>${xml(it.summary)}</summary></entry>`).join('\n')}
+</feed>
+`);
 fs.writeFileSync(path.join(ROOT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE}sitemap.xml\n`);
-console.log('built ' + built.map(b => b.path).join(', ') + ', sitemap.xml, robots.txt');
+console.log('built ' + built.map(b => b.path).join(', ') + ', sitemap.xml, robots.txt, feed.xml, atom.xml');

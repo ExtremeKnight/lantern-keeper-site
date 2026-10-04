@@ -18,8 +18,11 @@
       </ul>
     </div>
     <div class="hero-art">
-      <div class="screen-desktop"><div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
-        <img src="assets/img/hero-desktop.webp" width="1440" height="900" alt="The Lantern Keeper home screen on a computer: a red and white lighthouse sweeps its beam across a starry night sky, with buttons to set out, play an endless night, a PvP battle or the daily challenge." fetchpriority="high"></div>
+      <div class="screen-desktop hero-video"><div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
+        <video id="heroVideo" width="1280" height="720" muted loop playsinline preload="none" poster="assets/video/hero-poster.webp" aria-label="A night in Lantern Keeper: fog creatures close in on the lighthouse while its lantern fires at them and the keeper strikes the nearest ones.">
+          <source src="assets/video/hero.webm" type="video/webm"><source src="assets/video/hero.mp4" type="video/mp4">
+        </video>
+        <button class="vid-toggle" type="button" aria-pressed="false" hidden><svg aria-hidden="true"><use href="#i-pause"/></svg><span>Pause the video</span></button></div>
       <div class="phone"><img src="assets/img/hero-phone.webp" width="640" height="1385" alt="The same home screen on a phone." loading="lazy"></div>
     </div>
   </div>
@@ -110,7 +113,7 @@
     </div>
 
     <div class="feature flip reveal">
-      <div class="feature-media"><div class="shot"><img src="assets/img/bazaar.webp" width="1440" height="900" alt="The Lantern Bazaar: a keeper with a lantern walks a 3D harbour pier at night, past lit stalls for the merchant, the Workbench and the community board." loading="lazy"></div></div>
+      <div class="feature-media"><div class="shot"><img src="assets/img/bazaar.webp" width="1440" height="900" alt="The Lantern Bazaar: a night market on the harbour seen from above, with striped stalls for the merchant, the Workbench and the community board, strings of lanterns and lit houses behind." loading="lazy"></div></div>
       <div>
         <span class="tag violet">Between the nights</span>
         <h3>Meet other keepers in the Lantern Bazaar</h3>

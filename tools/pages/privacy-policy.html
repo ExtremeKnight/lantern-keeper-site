@@ -3,7 +3,7 @@
   <div class="wrap">
     <span class="kicker">Legal</span>
     <h1>Privacy Policy</h1>
-    <p>Version 2.8 · Effective 2 October 2026 · Applies to Lantern Keeper for Android, the desktop app and the web version, from game version 0.28.</p>
+    <p>Version 2.9 · Effective 2 October 2026 · Applies to Lantern Keeper for Android, the desktop app and the web version, from game version 0.29.</p>
   </div>
 </div>
 <div class="page">
@@ -21,7 +21,7 @@
       <li>You can play the whole game <strong>without an account</strong>. Then your progress stays on your device and we receive nothing.</li>
       <li>If you create an account, we keep your email address, your keeper name and a copy of your save so you can play on more than one device.</li>
       <li>No ads, no advertising ID, no analytics or tracking tools, and we never sell your data.</li>
-      <li>If you use the social features, we keep your friends list and parties, and chat messages for 30 days. You can block, mute and report other players.</li>
+      <li>If you use the social features, we keep your friends list and parties. Community and region chat is a daily conversation, deleted at the end of each day (UTC); party chat and whispers are kept for 30 days. You can block, mute and report other players, and choose who may challenge you to a duel.</li>
       <li>If you trade with a friend or post on the Market, we keep a record of the trade or listing (who, what and when) for one year, to keep everyone's items honest. Other signed-in players see your keeper name on your open Market listings.</li>
       <li>You can switch cloud saves off, hide your profile, turn news emails off with one click, or delete your account and its data from inside the game at any time.</li>
     </ul>
@@ -58,13 +58,16 @@
         <td data-label="How long">Friends and blocks: until you remove them or delete the account. Party invites: 7 days. Recent players: 90 days</td></tr>
     <tr><td data-label="What"><strong>Chat messages:</strong> what you write in party, community, region and private (whisper) chat, and the emotes you send, with the time and who sent them</td>
         <td data-label="Why">To deliver messages, show recent conversation, and look into reports of abuse</td>
-        <td data-label="How long">30 days, then deleted automatically</td></tr>
-    <tr><td data-label="What"><strong>Reports and moderation:</strong> reports you make or that are made about you (the reason, any details written, and the reported message), and any chat mute a moderator applies</td>
+        <td data-label="How long">Community and region chat: until the end of the day (midnight UTC), then deleted automatically. Party chat and whispers: 30 days, then deleted automatically</td></tr>
+    <tr><td data-label="What"><strong>Reports and moderation:</strong> reports you make or that are made about you (the reason, any details written, and a copy of the reported message, its sender and time, kept with the report so it can still be checked after the chat itself is deleted), and any chat mute a moderator applies</td>
         <td data-label="Why">To keep chat safe and deal with abuse, spam and cheating</td>
         <td data-label="How long">Open reports: until handled. Handled reports: 1 year. Mutes: 30 days after they end</td></tr>
     <tr><td data-label="What"><strong>PvP Battle (ranked):</strong> your rating, wins, losses and streak; while you search, a place in the matchmaking queue; for each ranked match, the two players, the result each reported, a few numbers from the duel (such as damage dealt), the items each player had equipped (keeper, weapon, charms, lighthouse and looks, checked against what the account owns) and when it was played</td>
         <td data-label="Why">To find you a fair opponent, keep ranked results honest (a result counts only when both players report the same one), and show your rank and the leaderboard</td>
         <td data-label="How long">Queue place: while you search (at most a few minutes). Match records: 1 year. Rating: until you delete the account</td></tr>
+    <tr><td data-label="What"><strong>Duel requests</strong> (friendly PvP challenges, from game version 0.29): who challenged whom, when, and the answer (accepted, declined, busy, withdrawn or expired); and your choice of who may challenge you (everyone, friends or nobody; friends unless you change it). An accepted duel is played as an unranked match: it is kept like a match record (above) but never changes a rating</td>
+        <td data-label="Why">To deliver a challenge, show its answer, and stop unwanted or repeated challenges (limits per player and per hour)</td>
+        <td data-label="How long">Requests: 1 day, then deleted automatically. Your choice: until you change it or delete the account</td></tr>
     <tr><td data-label="What"><strong>Trading and the Market:</strong> the items in your Trade chest (boosts, keepsakes, materials and event items); for each Market listing, what you give and want, when it was posted, when it ends, who took it and how it ended (your keeper name and the listing are shown to other signed-in players while it is open, never to players you have blocked); for each trade, the two accounts, what each offered and exchanged, the time of each step (asked, accepted, ready, confirmed) and how it ended; and a log of each item put into or taken out of your chest</td>
         <td data-label="Why">To carry out trades safely on our server, keep inventories correct (so no item is copied or lost, even when an older copy of a save is uploaded), prevent cheating and duplication, and look into problems you report. Never for marketing</td>
         <td data-label="How long">Your chest and open listings: until you delete the account. Trade records, finished Market listings and the chest log: 1 year, then deleted automatically</td></tr>
@@ -121,6 +124,10 @@
   <p><strong>The Lantern Bazaar</strong> (the walkable meeting place): while you are in it and signed in, the game shares your keeper
   name, your keeper's look and where you walk with the other signed-in players in the Bazaar, live over our online
   service. It is not stored. Players you have blocked don't see you, and you don't see them.</p>
+  <p>In the <strong>co-op lobby</strong> (from game version 0.29), the players in your room also see whether you are ready, the
+  quality of your connection to the room (worked out from how long messages take), and which kind of controls and device you
+  play with (for example "controller" or "touch", and "Android" or "desktop"), so everyone can tell who is set. This travels
+  with the other co-op messages and is not stored.</p>
   <p>Local and phone-to-phone co-op do not use your account. No kind of co-op ever shows your email address to anyone.
   Signed-in players you play co-op with are added to each other's recent players list (see above).</p>
 
@@ -149,10 +156,13 @@
   <p>While you are signed in, the game records when you were last active (checked every few minutes). If your profile is shown,
   friends and other players see only a rough status next to your name: <em>online</em> (active in the last 10 minutes),
   <em>today</em> or <em>away</em>. Never the exact time. Hiding your profile hides this status too.</p>
+  <p>From game version 0.29 the game also records what you are doing in broad terms (at home, in a night, in co-op, in PvP or in
+  the Bazaar), updated at most twice a minute while you are signed in. Only your <strong>friends</strong> see it, only while you are
+  online, and only if your profile is shown. It replaces the previous value; no history is kept.</p>
   <p>If your profile is shown, the <strong>ranked leaderboard</strong> lists your keeper name, rating and wins and losses once you
   have played a ranked match. Hiding your profile takes you off the leaderboard.</p>
-  <p><strong>Chat</strong> is seen by the people in that channel: your party, everyone in community or region chat, or the one
-  player you whisper. Messages pass an automatic filter for slurs and spam before they are sent. Moderators (people we choose
+  <p><strong>Chat</strong> is seen by the people in that channel: your party, everyone in community or region chat (that day's
+  conversation only), or the one player you whisper. Messages pass an automatic filter for slurs and spam before they are sent. Moderators (people we choose
   to help keep chat safe) can read reported messages and recent chat to handle reports, and can remove messages and mute players.</p>
   <p>We may also disclose information if the law requires it, or to protect players and the game from fraud or abuse.</p>
 
@@ -163,7 +173,8 @@
     <li><strong>hide your profile</strong> from other signed-in players;</li>
     <li>in <strong>Social</strong>, <strong>block</strong> a player (they can no longer message, befriend or invite you, and you don't see their messages),
     <strong>mute</strong> a player on your device, <strong>report</strong> a message or player, remove friends and recent players, leave a party, and choose
-    whether your new achievements are announced in chat (off unless you turn it on);</li>
+    whether your new achievements are announced in chat (off unless you turn it on), and who may challenge you to a duel
+    (everyone, friends or nobody);</li>
     <li>turn <strong>news emails</strong> on or off (off unless you choose them; otherwise the game only emails you account codes).
     Every email we send also has a one-click link that turns news emails off without signing in;</li>
     <li><strong>change your email address or password</strong>, and <strong>sign out</strong>;</li>
@@ -211,7 +222,9 @@
   unsubscribe, the Lantern Bazaar, server-run co-op, installing the web version and game controllers, and names hCaptcha,
   the human check on the account forms; version 2.7 (game version 0.27) adds the Market (listings other players can see,
   and how long they are kept) and how refunded purchases are taken back; version 2.8 (game version 0.28) adds our own
-  co-op server for online rooms, hosted by Render, and names GitHub, which hosts the website and the downloads.</p>
+  co-op server for online rooms, hosted by Render, and names GitHub, which hosts the website and the downloads; version 2.9
+  (game version 0.29) makes community and region chat a daily conversation, keeps a copy of a reported message with the
+  report, and adds duel requests (with who may send them), friends seeing what you are doing, and what the co-op lobby shows.</p>
   <p>Questions or requests: <strong>Exenova</strong>, <a href="mailto:exenovaph@gmail.com">exenovaph@gmail.com</a>.</p>
   <p class="muted">See also the <a href="terms.html">Terms of Service</a>.</p>
   </div>

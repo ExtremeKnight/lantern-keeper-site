@@ -270,3 +270,94 @@ a.platform:hover { border-color: var(--gold); color: var(--text); }
   .prose td { border: 0; padding: 6px 0; }
   .prose td[data-label]::before { content: attr(data-label); display: block; font: 400 1rem var(--pixel); letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-bottom: 2px; }
 }
+
+/* ---------- 0.29: button states (hover, press, keyboard focus, disabled, busy) ---------- */
+.btn:active { transform: translateY(1px) scale(.98); }
+.btn-primary:active, .btn-ghost:active { transform: translateY(1px) scale(.98); box-shadow: none; }
+.btn:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; pointer-events: none; }
+.btn[aria-busy="true"] { cursor: progress; opacity: .8; }
+@media (prefers-reduced-motion: reduce) { .btn, .btn:hover, .btn:active { transform: none !important; transition: none; } }
+
+/* ---------- status labels (compat.json) ---------- */
+.status { display: inline-block; vertical-align: middle; font: 600 .74rem/1 var(--body); letter-spacing: .4px; text-transform: uppercase; padding: 5px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.st-supported { color: var(--mint); background: rgba(123, 224, 176, .1); }
+.st-partial { color: var(--sky); background: rgba(124, 200, 255, .1); }
+.st-experimental { color: var(--violet); background: rgba(180, 156, 255, .1); }
+.st-untested { color: var(--gold); background: rgba(255, 207, 102, .08); }
+.st-unsupported { color: var(--dim); background: transparent; }
+
+/* ---------- each download's details ---------- */
+.sec-title { font-size: clamp(1.7rem, 3.4vw, 2.2rem); margin: 34px 0 0; scroll-margin-top: 90px; }
+.dl-main { min-width: 0; }
+.dl-facts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 8px 0 4px; font-size: .9rem; }
+.dl-facts div { display: flex; gap: 6px; }
+.dl-facts dt { color: var(--dim); }
+.dl-facts dd { margin: 0; color: var(--text); }
+.dl .hash { background: none; border: 0; color: var(--sky); cursor: pointer; font: .88rem ui-monospace, Consolas, monospace; padding: 0; text-decoration: underline; }
+.dl-note { margin: 4px 0; color: var(--muted); font-size: .92rem; }
+.rec-act { display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 680px) { .rec-act .btn { width: 100%; } }
+.prev-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.prev-list li { padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.small { font-size: .88rem; }
+
+/* ---------- the compatibility table (a card per row on phones) ---------- */
+.compat table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.compat th, .compat td { border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+.compat th { font: 400 1.12rem var(--pixel); color: var(--muted); }
+.legend { display: grid; gap: 8px; margin: 16px 0 6px; }
+.legend div { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: start; }
+.legend dd { margin: 0; color: var(--muted); font-size: .92rem; }
+@media (max-width: 700px) {
+  .compat thead { display: none; }
+  .compat tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .compat td { display: block; border: 0; padding: 3px 0; }
+  .compat td[data-label]::before { content: attr(data-label) ": "; color: var(--dim); font-size: .85rem; }
+  .compat td[data-label="Platform"]::before { content: none; }
+  .legend div { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* ---------- service status ---------- */
+.svc-list { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.svc { display: grid; grid-template-columns: auto minmax(150px, auto) 1fr; gap: 10px; align-items: baseline; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.svc .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); align-self: center; }
+.svc-up .dot { background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+.svc-down .dot { background: var(--rose); }
+.svc-off .dot, .svc-unknown .dot { background: var(--dim); }
+.svc-info .dot { background: var(--sky); }
+.svc span:last-child { color: var(--muted); }
+@media (max-width: 560px) { .svc { grid-template-columns: auto 1fr; } .svc span:last-child { grid-column: 2; } }
+.linkish { background: none; border: 0; padding: 0; color: var(--gold); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* ---------- back to top ---------- */
+.to-top { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 40; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(18, 26, 58, .92); border: 2px solid var(--line2); color: var(--gold); box-shadow: var(--shadow); text-decoration: none; }
+.to-top svg { width: 22px; height: 22px; }
+.to-top:hover { border-color: var(--gold); }
+.to-top[hidden] { display: none; }
+@media (forced-colors: active) { .status, .to-top, .svc { border: 1px solid CanvasText; } }
+
+/* ---------- press kit logos ---------- */
+.press-logos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 1em 0; }
+.press-logos figure { margin: 0; border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; }
+.press-logos img { width: 100%; height: 120px; object-fit: contain; padding: 18px; }
+.press-logos .icon img { height: 160px; }
+.press-logos .on-dark img { background: #0a0f24; }
+.press-logos .on-light img { background: #f4efe2; }
+.press-logos figcaption { padding: 8px 12px; font-size: .88rem; color: var(--muted); background: var(--surface); }
+
+/* ---------- the hero video ---------- */
+.hero-video { position: relative; }
+.hero-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--bg2); }
+.vid-toggle { position: absolute; left: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(10, 15, 36, .78); color: var(--text); font: 400 1.05rem/1 var(--pixel); cursor: pointer; }
+.vid-toggle svg { width: 16px; height: 16px; color: var(--gold); }
+.vid-toggle:hover { border-color: var(--gold); }
+.vid-toggle[hidden] { display: none; }
+@media (max-width: 560px) { .vid-toggle span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .vid-toggle { padding: 8px 12px; } }
+
+/* ---------- patch notes on the News page ---------- */
+.notes { margin-top: 10px; }
+.notes summary { cursor: pointer; color: var(--gold); font: 400 1.15rem var(--pixel); min-height: 32px; display: inline-flex; align-items: center; }
+.notes h4 { margin: 12px 0 4px; font: 400 1.15rem var(--pixel); color: var(--text); }
+.notes ul { margin: 0; padding-left: 1.2em; color: var(--muted); }
+.notes li { margin: 3px 0; }

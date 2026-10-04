@@ -1,6 +1,76 @@
 {
-  "latest": "0.28.0",
+  "latest": "0.29.0",
   "items": [
+    {
+      "version": "0.29",
+      "date": "2026-10-02",
+      "title": "Every screen, every device, together",
+      "summary": "The game's own dropdowns and a bottom bar that fits Android's navigation, a real co-op lobby with Ready and connection quality, friendly duels with friends, a daily public chat, a Lantern Bazaar you can browse and try looks on, and a bigger website with honest compatibility labels.",
+      "notes": [
+        {
+          "h": "Fits every screen",
+          "items": [
+            "Android's navigation bar no longer leaves an empty band under the bottom menu.",
+            "Dropdowns are the game's own on every device: a panel on a computer, a sheet on a phone; keyboard, controller and touch all work.",
+            "Settings has a proper cog icon, and the Lantern Bazaar is in the main menu.",
+            "One game icon everywhere: the Android and iPhone apps now show the lighthouse too.",
+            "Scrollbars in the game's colours, and achievement notices that never cover the bottom menu.",
+            "Phones turned sideways: every button fits, nothing hides under your name, and notices stay clear of the side menu.",
+            "The game fills the whole screen on wide monitors and tablets, without dark bands at the sides."
+          ]
+        },
+        {
+          "h": "Co-op lobby",
+          "items": [
+            "See every keeper's look, keeper, weapon, how they play and their connection.",
+            "Partners press Ready; Start asks first if someone isn't ready. Invite shares the room code or invites a friend.",
+            "New pings: Wait, Ready?, Focus here, Defend, Good job."
+          ]
+        },
+        {
+          "h": "Friends and duels",
+          "items": [
+            "Challenge a friend to a friendly duel: no rating change, and you choose who may challenge you.",
+            "Friends see what you are doing while you are online.",
+            "Community and region chat is a daily conversation, fresh at midnight UTC.",
+            "Fixed: an emote could be sent twice."
+          ]
+        },
+        {
+          "h": "The Bazaar",
+          "items": [
+            "A panel to browse looks, weapons, charms, materials and collections, preview them on your keeper and wear them.",
+            "More detail in the street on higher graphics settings, and the collection of the day at the entrance.",
+            "The street fills the whole window, the panel fits what it shows and can be hidden, and the street no longer comes back dark after the window is resized.",
+            "District keys: every gate is locked until you earn its key with a task (play nights, defeat bosses, earn achievements, clear a region), then walk up and it opens for good. Some open for a day or an event: Sunday music night, festivals, the weekend market.",
+            "Townsfolk walk the street, lanterns float over the harbour and fireflies drift by the trees."
+          ]
+        },
+        {
+          "h": "Fixes",
+          "items": [
+            "The account switches (cloud save, profile, news emails) showed Off and could not be turned on.",
+            "A match that ended could interfere with a quick rematch.",
+            "Two devices open at once no longer keep asking which save to keep: idle embers from either device are added together, and you are asked only when both devices made real progress.",
+            "Sign out now signs out only the device you are holding.",
+            "Start over: a fresh start for your account, from Account, after you type START OVER."
+          ]
+        },
+        {
+          "h": "Website",
+          "items": [
+            "Every download with its details and an honest status label, a compatibility table, earlier versions.",
+            "Community and Press kit pages, a live service status, RSS and Atom feeds."
+          ]
+        },
+        {
+          "h": "Privacy",
+          "items": [
+            "Privacy Policy 2.9 covers the daily chat, duel requests, friends' activity and the co-op lobby."
+          ]
+        }
+      ]
+    },
     {
       "version": "0.28",
       "date": "2026-10-02",

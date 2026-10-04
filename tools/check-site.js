@@ -4,7 +4,7 @@
 // Optional: AXE=<path to axe.min.js> also runs an accessibility scan (axe-core) on every page.
 // Every page at 360, 390, 768, 1280 and 1920 wide: no errors, no failed requests, no sideways scrolling, every image
 // loads, one h1, alt text everywhere; links inside the site resolve; the menu, the gallery lightbox, the downloads
-// recommendation for each kind of device, the news, the 404 page; and the legal pages' text against OLD_PRIVACY /
+// recommendation for each kind of device (0.29: with status labels, file details, compatibility and previous versions), the news, the 404 page; and the legal pages' text against OLD_PRIVACY /
 // OLD_TERMS (the published versions, to prove a redesign changed no word).
 'use strict';
 const path = require('path'), fs = require('fs'), { spawn } = require('child_process');
@@ -37,6 +37,8 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
       await p.goto(BASE + pg, { waitUntil: 'networkidle' });
       await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 600) { scrollTo(0, y); await new Promise(r => setTimeout(r, 30)); } scrollTo(0, 0); });
       await p.waitForLoadState('networkidle');
+      // lazy images may still be decoding on a busy machine: wait for them to finish (a broken one still fails below)
+      await p.waitForFunction(() => [...document.images].every(i => i.closest('dialog:not([open])') || i.complete), null, { timeout: 15000 }).catch(() => {});
       const r = await p.evaluate(() => ({
         overflow: document.documentElement.scrollWidth - innerWidth,
         wide: [...document.querySelectorAll('body *')].filter(e => { const b = e.getBoundingClientRect(); return b.width && b.right > innerWidth + 1 && getComputedStyle(e).position !== 'fixed' && !e.closest('.sr-only,dialog'); }).slice(0, 3).map(e => e.tagName + '.' + e.className),
@@ -84,10 +86,10 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
       const ctx = await b.newContext(Object.assign({ userAgent: ua, viewport: { width: dev === 'iphone' || dev === 'android' ? 390 : 1280, height: 844 } }, dev === 'iphone' ? { isMobile: true, hasTouch: true } : {}));
       await ctx.addInitScript(pl => { Object.defineProperty(navigator, 'platform', { get: () => pl }); }, PLAT[dev]);
       const p = await ctx.newPage(); await p.goto(BASE + 'downloads.html'); await p.waitForSelector('.rec');
-      const r = await p.evaluate(() => ({ rec: document.querySelector('.rec a').getAttribute('href'), title: document.querySelector('.rec h2').textContent, groups: [...document.querySelectorAll('.dl-group[id]')].map(g => g.id).join(), files: document.querySelectorAll('.dl').length, sums: document.querySelectorAll('[data-copy]').length }));
+      const r = await p.evaluate(() => ({ rec: document.querySelector('.rec a').getAttribute('href'), title: document.querySelector('.rec h2').textContent, groups: [...document.querySelectorAll('.dl-group[id]')].map(g => g.id).join(), compat: document.querySelectorAll('.compat tbody tr').length, badges: document.querySelectorAll('.dl .status').length, facts: document.querySelectorAll('.dl .dl-facts').length, all: !!document.querySelector('.rec a[href$="#all-downloads"]'), prev: !!document.querySelector('[data-previous] p, [data-previous] li'), files: document.querySelectorAll('.dl').length, sums: document.querySelectorAll('[data-copy]').length }));
       const home = await (async () => { await p.goto(BASE); return p.evaluate(() => { const a = document.querySelector('[data-download-cta]'); return a.textContent.trim() + ' -> ' + a.getAttribute('href'); }); })();
       report(`downloads for ${dev}: recommends ${want[dev]}, lists every platform with checksums, and the home page's button says so (${home})`,
-        r.rec.endsWith(want[dev]) && r.groups === 'windows,macos,linux,android,iphone-and-ipad' && r.files === 9 && r.sums === 9 && /downloads\.html#/.test(home), Object.assign({ home }, r));
+        r.rec.endsWith(want[dev]) && r.groups === 'windows,macos,linux,android,iphone-and-ipad,compatibility,previous-versions' && r.compat >= 10 && r.badges === 9 && r.facts === 9 && r.all && r.prev && r.files === 9 && r.sums === 9 && /downloads\.html#/.test(home), Object.assign({ home }, r));
       await ctx.close();
     }
     // news, the 404 page

@@ -1,0 +1,25 @@
+{
+  "updated": "2026-10-02",
+  "levels": {
+    "supported": ["Supported", "Built, installed and played on this kind of device for every release."],
+    "partial": ["Partially supported", "Plays, with a limitation named in the notes."],
+    "experimental": ["Experimental", "Built for every release and started in a simulator or container, but not yet played on a real device."],
+    "untested": ["Not tested", "Built for every release, but never run on this kind of device yet. It should work; please tell us if it doesn't."],
+    "unsupported": ["Not supported", "No version for this platform yet."]
+  },
+  "rows": [
+    { "id": "windows-x64", "name": "Windows 10 and 11 (x64)", "how": "Desktop app, or the web version", "status": "supported", "files": ["Lantern-Keeper-Windows-x64.exe"], "input": "Keyboard, mouse, touch, controller", "notes": "Tested at 720p to 4K." },
+    { "id": "windows-arm", "name": "Windows on ARM", "how": "Native ARM64 desktop app", "status": "untested", "files": ["Lantern-Keeper-Windows-ARM64.exe"], "input": "As Windows", "notes": "The web version is a tested alternative." },
+    { "id": "android", "name": "Android 7 and newer", "how": "Android app (.apk), or the web version", "status": "supported", "files": ["Lantern-Keeper-Android.apk"], "input": "Touch, controller, keyboard and mouse", "notes": "Phones, tablets and foldables, both ways round. Played on an OPPO phone (Android 15) and a Samsung Galaxy Tab A9+ (Android 16)." },
+    { "id": "web-chromium", "name": "Chrome and Edge (any system)", "how": "Web version, installable", "status": "supported", "input": "Keyboard, mouse, touch, controller", "notes": "Tested in Chromium for every release." },
+    { "id": "web-safari", "name": "Safari on iPhone, iPad and Mac", "how": "Web version (Add to Home Screen)", "status": "experimental", "input": "Touch, keyboard, controller", "notes": "Tested on WebKit, Safari's engine, at iPhone and iPad sizes; not yet on a real iPhone." },
+    { "id": "ios-app", "name": "iPhone and iPad app", "how": "Unsigned .ipa for sideloading", "status": "experimental", "files": ["Lantern-Keeper-iOS-unsigned.ipa"], "input": "Touch, controller", "notes": "Started in an iOS Simulator for every release. Not on the App Store; sideloading tools re-sign it with your Apple ID." },
+    { "id": "macos", "name": "macOS (Apple silicon and Intel)", "how": "Desktop app (.dmg)", "status": "untested", "files": ["Lantern-Keeper-macOS-Apple-silicon.dmg", "Lantern-Keeper-macOS-Intel.dmg"], "input": "Keyboard, trackpad, controller", "notes": "Not notarized by Apple yet." },
+    { "id": "linux", "name": "Linux (Ubuntu, Debian, Fedora, Arch)", "how": "AppImage, .deb, .rpm", "status": "experimental", "files": ["Lantern-Keeper-Linux-x86_64.AppImage", "Lantern-Keeper-Linux-amd64.deb", "Lantern-Keeper-Linux-x86_64.rpm"], "input": "Keyboard, mouse, controller", "notes": "Started and checked in a Linux container; not yet on a Linux PC." },
+    { "id": "firefox", "name": "Firefox", "how": "Web version", "status": "untested", "input": "Keyboard, mouse, touch, controller", "notes": "" },
+    { "id": "chromeos", "name": "ChromeOS", "how": "Web version or the Android app", "status": "untested", "input": "Keyboard, touch, controller", "notes": "" },
+    { "id": "steam-deck", "name": "Steam Deck", "how": "The Linux AppImage in desktop mode", "status": "untested", "input": "Controller, trackpads", "notes": "The 1280×800 layout is tested in the game's own checks." },
+    { "id": "xbox-edge", "name": "Xbox (Microsoft Edge)", "how": "Web version in the console's browser", "status": "untested", "input": "Controller", "notes": "" },
+    { "id": "consoles", "name": "Native console versions", "how": "Xbox, PlayStation, Nintendo Switch", "status": "unsupported", "input": "", "notes": "Not available. These need each maker's developer programme and certification." }
+  ]
+}
