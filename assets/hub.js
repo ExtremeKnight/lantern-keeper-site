@@ -40,6 +40,18 @@
   }
   const say = (box, msg, ok) => { const p = box.querySelector('.hub-msg') || box.appendChild(h('<p class="hub-msg" role="status"></p>')); p.textContent = msg; p.classList.toggle('ok', !!ok); };
 
+  // ---------- show / hide password: an eye on every password field (hidden by default) ----------
+  const EYE = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.1 4M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  function eyes(scope) {
+    for (const i of scope.querySelectorAll('input[type=password]:not([data-eye])')) {
+      i.dataset.eye = '1'; const wrap = h('<span class="hub-pw"></span>'); i.replaceWith(wrap); wrap.append(i);
+      const b = h(`<button type="button" class="hub-eye" aria-label="Show password" aria-pressed="false">${EYE}</button>`); wrap.append(b);
+      b.onclick = () => { const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.innerHTML = show ? EYE_OFF : EYE; b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); b.setAttribute('aria-pressed', String(show)); i.focus(); };
+    }
+  }
+  new MutationObserver(() => eyes(document.body)).observe(document.body, { childList: true, subtree: true });
+
   // ---------- the human check, loaded only when needed ----------
   let capReady = null;
   function captcha(box) {
@@ -115,8 +127,8 @@
   async function loadStore() {
     const [p, s, c, o] = await Promise.all([sb.from('store_products').select('*').eq('active', true).order('sort'),
       me ? sb.from('store_settings').select('gcash_name, gcash_number, gcash_qr, bank_details, manual_on').eq('id', 1).maybeSingle() : { data: null },
-      me ? sb.from('club_members').select('until, status, paypal_sub, months').eq('user_id', me.id).maybeSingle() : { data: null },
-      me ? sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference').order('created_at', { ascending: false }).limit(30) : { data: [] }]);
+      me ? sb.from('club_members').select('until, status, paypal_sub, months, currency, amount_cents, env').eq('user_id', me.id).maybeSingle() : { data: null },
+      me ? sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference, env').order('created_at', { ascending: false }).limit(30) : { data: [] }]);
     store.products = p.data || []; store.settings = s.data; store.club = c.data; store.orders = o.data || [];
   }
   async function renderStore() {
@@ -130,12 +142,12 @@
     root.innerHTML = `
       <div class="hub-bar"><div>${me ? `Signed in as <b>${esc(myProfile && myProfile.display_name || me.email)}</b> ${roleChips(myRoles)} · <a href="account.html">Your account</a>` : '<a href="account.html?next=store.html" class="btn btn-ghost btn-sm">Sign in to buy</a>'}</div>
         <div class="hub-cur" role="group" aria-label="Currency"><button data-cur="PHP" aria-pressed="${cur === 'PHP'}">₱ Pesos</button><button data-cur="USD" aria-pressed="${cur === 'USD'}">$ US dollars</button></div></div>
-      ${club ? `<section class="hub-club card"><div><span class="kicker">Supporter Club</span><h2>Keep the light on, every month</h2>
+      ${club ? `<section class="hub-club card"><div><span class="kicker">Supporter Club · monthly, cancel any time</span><h2>Keep the light on, every month</h2>
         <ul class="hub-perks"><li>A new lantern each month, yours to keep</li><li>The Club frame, badge and Club Keeper title</li><li>The Club role and the Supporter Lounge in the community</li><li>Early looks, behind-the-scenes posts and polls</li><li>Your name in the credits</li></ul>
-        ${member ? `<p class="hub-ok">You are in the Club until ${day(store.club.until)}${store.club.paypal_sub && store.club.status === 'active' ? ' (renews each month)' : ''}. Thank you!</p>` : ''}</div>
+        ${store.club ? subPanel(store.club, club) : ''}</div>
         <div class="hub-club-buy"><p class="hub-price">${store.price(club, cur)}<small> / month</small></p>
-        ${store.club && store.club.paypal_sub && store.club.status === 'active' && member ? '<button class="btn btn-ghost" data-club-stop>Stop the monthly payment</button>' : '<button class="btn btn-primary" data-club>Join monthly with PayPal</button>'}
-        ${store.settings && store.settings.manual_on ? `<button class="btn btn-ghost" data-buy="${esc(club.sku)}">One month by GCash</button>` : ''}
+        ${renewing(store.club) ? '<button class="btn btn-ghost" data-club-stop>Cancel the subscription</button>' : `<button class="btn btn-primary" data-club>${member ? 'Renew monthly with PayPal' : 'Join monthly with PayPal'}</button>`}
+        ${store.settings && store.settings.manual_on ? `<button class="btn btn-ghost" data-buy="${esc(club.sku)}">One month by GCash or bank</button>` : ''}
         <p class="muted small">Recognition and looks only: never an advantage. Stop any time.</p></div></section>` : ''}
       <h2 class="hub-h">Supporter packs</h2><div class="cards hub-grid">${store.products.filter(p => p.kind === 'pack').map(card).join('')}</div>
       <h2 class="hub-h">Lumens</h2><p class="muted">Lumens buy looks in the game's shop. They never buy strength.</p><div class="cards hub-grid hub-grid-4">${store.products.filter(p => p.kind === 'lumens').map(card).join('')}</div>
@@ -144,37 +156,43 @@
     for (const b of root.querySelectorAll('[data-cur]')) b.onclick = () => { store.setCur(b.dataset.cur); renderStore(); };
     for (const b of root.querySelectorAll('[data-buy]')) b.onclick = () => buy(store.products.find(p => p.sku === b.dataset.buy));
     const j = root.querySelector('[data-club]'); if (j) j.onclick = () => joinClub();
-    const st = root.querySelector('[data-club-stop]'); if (st) st.onclick = () => modal(`<h2>Stop the monthly payment?</h2><p>Your membership stays until ${day(store.club.until)}; the lanterns you received stay yours.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Stop it</button></div>`, (d, close) => { d.querySelector('[data-ok]').onclick = async () => { try { await call('store', { action: 'club_cancel' }); close(); renderStore(); } catch (e) { say(d, e.message); } }; });
+    const st = root.querySelector('[data-club-stop]'); if (st) st.onclick = () => modal(`<h2>Cancel your subscription?</h2><p>No more monthly payments. You stay a member until <b>${day(store.club.until)}</b>; then the Club frame, badge and title end. The lanterns you received stay yours, and you can join again any time.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Cancel the subscription</button><button class="btn btn-ghost" data-keep>Keep it</button></div>`, (d, close) => { d.querySelector('[data-keep]').onclick = close; d.querySelector('[data-ok]').onclick = async () => { try { await call('store', { action: 'club_cancel' }); close(); renderStore(); } catch (e) { say(d, e.message); } }; });
   }
-  const ORDER_STATE = { created: 'Waiting for payment', review: 'Pending: being checked', paid: 'Completed', rejected: 'Not confirmed', refunded: 'Refunded', cancelled: 'Cancelled' };
-  const orderRow = o => { const p = store.products.find(x => x.sku === o.sku); return `<div class="hub-order"><span>${esc(p ? p.label : o.sku)}${o.method === 'grant' ? ' · a gift from the team' : ` · ${o.currency === 'PHP' ? '₱' : '$'}${(o.amount_cents / 100).toFixed(2)} · ${o.method === 'paypal' ? 'PayPal' : o.method === 'gcash' ? 'GCash' : 'Bank'}`}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span class="state-${o.status}">${ORDER_STATE[o.status] || esc(o.status)} · ${day(o.created_at)}</span></div>`; };
+  const ORDER_STATE = { created: 'Waiting for payment', review: 'Pending: being checked', paid: 'Completed', rejected: 'Not confirmed', refunded: 'Refunded', cancelled: 'Cancelled', expired: 'Not completed: nothing was charged' };
+  const HOW = { paypal: 'PayPal', gcash: 'GCash', bank: 'Bank transfer', grant: 'Gift from the team' };
+  const renewing = c => !!(c && c.paypal_sub && c.status === 'active' && Date.parse(c.until) > Date.now());
+  function subPanel(c, club) {
+    const member = Date.parse(c.until) > Date.now(), price = c.amount_cents ? (c.currency === 'PHP' ? '₱' : '$') + (c.amount_cents / 100).toFixed(2) : store.price(club);
+    const status = !member ? 'Ended' : renewing(c) ? 'Active, renews every month' : c.paypal_sub ? 'Cancelled: stays until the end of the paid month' : 'Active (paid month by month)';
+    return `<dl class="hub-sum"><dt>Plan</dt><dd>Supporter Club${c.env && c.env !== 'live' ? ' <span class="hub-test">Test</span>' : ''}</dd><dt>Price</dt><dd>${esc(price)} a month</dd><dt>Billing</dt><dd>${c.paypal_sub ? 'Monthly with PayPal' : 'One month at a time (GCash or bank)'}</dd><dt>Status</dt><dd>${esc(status)}</dd>${renewing(c) ? `<dt>Next payment</dt><dd>${day(c.until)}</dd>` : `<dt>${member ? 'Ends' : 'Ended'}</dt><dd>${day(c.until)}</dd>`}</dl>`;
+  }
+  const orderRow = o => { const p = store.products.find(x => x.sku === o.sku); return `<div class="hub-order"><span>${esc(p ? p.label : o.sku)}${o.env && o.env !== 'live' ? ' <span class="hub-test">Test</span>' : ''}${o.method === 'grant' ? ' · a gift from the team' : ` · ${o.currency === 'PHP' ? '₱' : '$'}${(o.amount_cents / 100).toFixed(2)} ${o.currency} · ${HOW[o.method] || esc(o.method)}`}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span class="state-${o.status}">${ORDER_STATE[o.status] || esc(o.status)} · ${day(o.created_at)}</span></div>`; };
   function buy(p) {
     if (!me) { location.href = 'account.html?next=store.html'; return; }
-    const cur = store.cur(), manual = store.settings && store.settings.manual_on;
-    modal(`<h2>${esc(p.label)}: ${store.price(p, cur)}</h2><p>${p.kind === 'club' ? 'One month in the Supporter Club (it does not renew by itself).' : p.kind === 'lumens' ? `${Number(p.lumens).toLocaleString()} Lumens for your account.` : esc(p.blurb)}</p>
-      <div class="hub-actions">${p.kind !== 'club' ? '<button class="btn btn-primary" data-pp>PayPal or card</button>' : ''}${manual ? `<button class="btn ${p.kind === 'club' ? 'btn-primary' : 'btn-ghost'}" data-gc>GCash or bank transfer${cur === 'PHP' ? '' : ' (pesos)'}</button>` : ''}</div>
+    const cur = store.cur(), s = store.settings || {}, gc = s.manual_on && (s.gcash_number || s.gcash_qr), bk = s.manual_on && s.bank_details;
+    modal(`<h2>${esc(p.label)}: ${store.price(p, cur)}</h2><p>${p.kind === 'club' ? 'One month in the Supporter Club. It does not renew by itself.' : p.kind === 'lumens' ? `${Number(p.lumens).toLocaleString()} Lumens for your account.` : esc(p.blurb)} <b>One-time payment.</b></p>
+      <div class="hub-actions">${p.kind !== 'club' ? '<button class="btn btn-primary" data-pp>PayPal or card</button>' : ''}${gc ? `<button class="btn ${p.kind === 'club' ? 'btn-primary' : 'btn-ghost'}" data-gc="gcash">GCash${cur === 'PHP' ? '' : ' (pesos)'}</button>` : ''}${bk ? `<button class="btn btn-ghost" data-gc="bank">Bank transfer${cur === 'PHP' ? '' : ' (pesos)'}</button>` : ''}</div>
       <p class="muted small">Sold by Exenova. After paying with PayPal you come back here and it is added in a few seconds.</p>`, (d, close) => {
       const pp = d.querySelector('[data-pp]'); if (pp) pp.onclick = async () => { pp.disabled = true; try { const r = await call('store', { action: 'create', sku: p.sku, currency: cur }); location.href = r.approve; } catch (e) { say(d, e.message); pp.disabled = false; } };
-      const gc = d.querySelector('[data-gc]'); if (gc) gc.onclick = () => { close(); gcash(p); };
+      for (const b of d.querySelectorAll('[data-gc]')) b.onclick = () => { close(); gcash(p, b.dataset.gc); };
     });
   }
   async function joinClub() {
     if (!me) { location.href = 'account.html?next=store.html'; return; }
     try { const r = await call('store', { action: 'club', currency: store.cur() }); location.href = r.approve; } catch (e) { modal(`<h2>Not started</h2><p>${esc(e.message)}</p>`); }
   }
-  function gcash(p) {
-    const s = store.settings || {}, price = store.price(p, 'PHP');
-    modal(`<h2>Pay ${price} by GCash or bank</h2>
-      <ol class="hub-steps"><li>${s.gcash_qr ? 'Scan the QR code with GCash, or send' : 'Send'} exactly <b>${price}</b>.</li><li>Enter the reference number from your receipt.</li><li>It shows as <b>Pending</b> until we check it, usually within a day. Then it is in your account.</li></ol>
-      ${s.gcash_qr ? `<img class="hub-qr" src="${esc(s.gcash_qr)}" alt="GCash QR code to pay ${esc(price)}" width="240" height="240">` : ''}
-      ${s.gcash_number ? `<p><b>GCash:</b> ${esc(s.gcash_number)}${s.gcash_name ? ' (' + esc(s.gcash_name) + ')' : ''}</p>` : ''}${s.bank_details ? `<p><b>Bank transfer:</b> ${esc(s.bank_details)}</p>` : ''}
-      <form class="hub-form"><label>Paid with<select name="method">${s.gcash_number || s.gcash_qr ? '<option value="gcash">GCash</option>' : ''}${s.bank_details ? '<option value="bank">Bank transfer</option>' : ''}</select></label>
-        <label>Reference number<input name="ref" maxlength="64" autocomplete="off" required></label>
+  function gcash(p, method) {
+    const s = store.settings || {}, price = store.price(p, 'PHP'), g = method === 'gcash';
+    modal(`<h2>Pay ${price} by ${g ? 'GCash' : 'bank transfer'}</h2>
+      <ol class="hub-steps"><li>${g ? (s.gcash_qr ? 'Scan the QR code with GCash, or send' : 'Send') : 'Transfer'} exactly <b>${price}</b>.</li><li>Enter the reference number from your receipt.</li><li>It shows as <b>Pending</b> until we check it, usually within a day. Then it is in your account.</li></ol>
+      ${g && s.gcash_qr ? `<img class="hub-qr" src="${esc(s.gcash_qr)}" alt="GCash QR code to pay ${esc(price)}" width="240" height="240">` : ''}
+      ${g && s.gcash_number ? `<p><b>GCash number:</b> ${esc(s.gcash_number)}${s.gcash_name ? ' (' + esc(s.gcash_name) + ')' : ''}</p>` : ''}${!g ? `<p><b>Bank transfer to:</b> ${esc(s.bank_details || '')}</p>` : ''}
+      <form class="hub-form"><label>Reference number<input name="ref" maxlength="64" autocomplete="off" required></label>
         <label>Name on the account you paid from <small>(optional, helps us find it)</small><input name="payer" maxlength="80" autocomplete="name"></label>
         <button class="btn btn-primary" type="submit">Submit payment</button></form>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
-        try { const r = await call('store', { action: 'manual', sku: p.sku, currency: 'PHP', method: v.method, reference: v.ref, payer: v.payer });
-          d.innerHTML = `<h2>Payment submitted</h2><p>${esc(p.label)} · ${price} · ${v.method === 'gcash' ? 'GCash' : 'Bank transfer'} · reference <b>${esc(String(v.ref).trim())}</b></p><p>Status: <b>Pending</b>. We check it against our ${v.method === 'gcash' ? 'GCash' : 'bank'} history, usually within a day; then it is in your account and the game tells you. Order ${esc(String(r.order).slice(0, 8))}.</p><div class="hub-actions"><button class="btn btn-primary" data-done>Done</button></div>`;
+        try { const r = await call('store', { action: 'manual', sku: p.sku, currency: 'PHP', method, reference: v.ref, payer: v.payer });
+          d.innerHTML = `<h2>Payment submitted</h2><dl class="hub-sum"><dt>Product</dt><dd>${esc(p.label)}</dd><dt>Payment</dt><dd>${g ? 'GCash' : 'Bank transfer'}</dd><dt>Amount</dt><dd>${price} PHP</dd><dt>Status</dt><dd><b>Pending</b>: being checked</dd><dt>Reference</dt><dd>${esc(String(v.ref).trim())}</dd><dt>Order</dt><dd>${esc(String(r.order).slice(0, 8))}</dd></dl><p>We check it against our ${g ? 'GCash' : 'bank'} history, usually within a day; then it is in your account and the game tells you.</p><div class="hub-actions"><button class="btn btn-primary" data-done>Done</button></div>`;
           d.querySelector('[data-done]').onclick = () => { close(); renderStore(); };
         } catch (err) { say(f, err.message); } };
     });
@@ -186,8 +204,8 @@
     if (!me) { needSignIn(root, 'Sign in with your Lantern Keeper account, or make one: it is the same account as in the game.', () => { const n = new URLSearchParams(location.search).get('next'); if (n && /^[a-z-]+\.html$/.test(n)) location.href = n; else renderAccount(); }); return; }
     root.innerHTML = '<p class="muted">Loading your account...</p>';
     const [w, e, c, prefs, o] = await Promise.all([sb.from('wallets').select('lumens').eq('user_id', me.id).maybeSingle(), sb.from('entitlements').select('sku, granted_at, revoked_at').eq('user_id', me.id),
-      sb.from('club_members').select('until, status, paypal_sub, months').eq('user_id', me.id).maybeSingle(), sb.from('comm_prefs').select('*').eq('user_id', me.id).maybeSingle(),
-      sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference').order('created_at', { ascending: false }).limit(30)]);
+      sb.from('club_members').select('until, status, paypal_sub, months, currency, amount_cents, env').eq('user_id', me.id).maybeSingle(), sb.from('comm_prefs').select('*').eq('user_id', me.id).maybeSingle(),
+      sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference, env').order('created_at', { ascending: false }).limit(30)]);
     const p = myProfile || {}, ents = (e.data || []).filter(x => !x.revoked_at), sc = p.showcase || {}, md = me.user_metadata || {};
     const packs = ents.filter(x => SKU_NAME[x.sku] && x.sku !== 'lk.club').map(x => SKU_NAME[x.sku]), lanterns = ents.filter(x => /^lk\.club\.\d{4}-\d\d$/.test(x.sku)).length, looks = ents.filter(x => /^lumen:/.test(x.sku)).length;
     const member = c.data && Date.parse(c.data.until) > Date.now(), cp = prefs.data || {};
@@ -204,7 +222,7 @@
         <button class="btn btn-primary" type="submit">Save</button></form>
         <p class="muted small">Your keeper name, avatar, frame and title are changed in the game (Profile).</p></section>
       <section class="card"><h2>Supporter status</h2>
-        ${member ? `<p class="hub-ok">Supporter Club until ${day(c.data.until)}${c.data.paypal_sub && c.data.status === 'active' ? ' (renews each month)' : ''} · ${c.data.months} month${c.data.months === 1 ? '' : 's'} so far</p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
+        ${c.data ? subPanel(c.data, store.products.find(x => x.kind === 'club') || { usd_cents: 0, php_cents: 0 }) + `<p><a href="store.html">${renewing(c.data) ? 'Manage or cancel the subscription' : member ? 'Renew monthly' : 'Join again'}</a></p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
         ${packs.length ? `<p>Packs: ${packs.map(esc).join(', ')}</p>` : '<p class="muted">No supporter packs yet.</p>'}${lanterns ? `<p>Club lanterns kept: ${lanterns}</p>` : ''}</section>
       <section class="card"><h2>Emails</h2><form class="hub-form" data-mail>
         <label class="hub-check"><input type="checkbox" name="email_updates" ${cp.email_updates ? 'checked' : ''}> Patch notes and updates</label>
@@ -223,132 +241,310 @@
       const { error } = await sb.from('comm_prefs').upsert(row); say(mf, error ? 'Not saved: ' + error.message : 'Saved.', !error); };
   }
 
-  // ---------- the community ----------
-  const CATS = [['announcements', 'Announcements', 'team'], ['updates', 'Development updates', 'team'], ['roadmap', 'Roadmap', 'team'], ['devlog', 'Devlogs', 'team'], ['events', 'Events', 'staff'],
-    ['general', 'General', ''], ['feedback', 'Feedback', ''], ['bugs', 'Bug reports', ''], ['features', 'Feature requests', ''], ['artwork', 'Artwork', ''], ['screenshots', 'Screenshots', ''], ['lounge', 'Supporter Lounge', 'club']];
-  const CAT = Object.fromEntries(CATS.map(c => [c[0], c]));
+  // ---------- the community (0.30.1): channels, live chat, threads, news, giveaways, tickets, search ----------
   const REACT = [['lamp', '🏮'], ['heart', '❤️'], ['laugh', '😄'], ['wow', '😮'], ['thanks', '🙏']];
-  const canPostIn = c => { const w = CAT[c][2]; return w === 'team' ? isTeam() : w === 'staff' ? isStaff() : w === 'club' ? isStaff() || myRoles.includes('subscriber') : !!me; };
+  const GROUPS = [['news', 'From the team'], ['community', 'Community'], ['support', 'Support'], ['club', 'Supporter Club']];
+  const TICKET_CATS = [['account', 'Account'], ['login', 'Signing in'], ['payment', 'A payment'], ['subscription', 'The Supporter Club'], ['bug', 'A bug'], ['game', 'The game'], ['report', 'Reporting someone'], ['other', 'Something else']];
+  const TICKET_STATE = { open: 'Open: waiting for support', answered: 'Answered', waiting: 'Waiting for you', closed: 'Closed' };
+  let channels = [], live = null, members = [], unread = 0, beat = 0;
   const names = new Map();
   async function people(ids) {
     const need = [...new Set(ids)].filter(id => id && !names.has(id)); if (!need.length) return;
-    const [{ data }, roles] = await Promise.all([sb.from('profiles').select('id, display_name, show_profile').in('id', need), Promise.all(need.map(id => sb.rpc('roles_of', { p_user: id }).then(r => [id, r.data || []])))]);
-    const rm = new Map(roles); for (const id of need) { const p = (data || []).find(x => x.id === id); names.set(id, { name: p && p.show_profile ? p.display_name : 'A keeper', shown: !!(p && p.show_profile), roles: rm.get(id) || [] }); }
+    const [{ data }, roles] = await Promise.all([sb.from('profiles').select('id, display_name, show_profile, last_seen').in('id', need), Promise.all(need.map(id => sb.rpc('roles_of', { p_user: id }).then(r => [id, r.data || []])))]);
+    const rm = new Map(roles); for (const id of need) { const p = (data || []).find(x => x.id === id); names.set(id, { name: p && p.show_profile ? p.display_name : 'A keeper', shown: !!(p && p.show_profile), roles: rm.get(id) || [], online: !!(p && p.show_profile && p.last_seen && Date.now() - Date.parse(p.last_seen) < 10 * 6e4) }); }
   }
-  const who = id => { const n = names.get(id) || { name: 'A keeper', roles: [] }; const team = (n.roles || []).filter(r => ['owner', 'developer', 'moderator'].includes(r)); // (a hidden profile shows only staff roles: never whether someone paid)
-    return n.shown ? `<a href="#/k/${id}" class="hub-who">${esc(n.name)}</a> ${roleChips(n.roles)}` : `<span class="hub-who">${esc(n.name)}</span> ${roleChips(team)}`; };
+  const avatar = (id, size = 36) => { const n = names.get(id) || { name: '?' }; return `<span class="lkc-av${n.online ? ' on' : ''}" style="width:${size}px;height:${size}px" aria-hidden="true">${esc(String(n.name).slice(0, 1).toUpperCase())}</span>`; };
+  const who = id => { const n = names.get(id) || { name: 'A keeper', roles: [] }; const staffRoles = (n.roles || []).filter(r => ['owner', 'developer', 'moderator'].includes(r)); // (a hidden profile shows only staff roles: never whether someone paid)
+    return n.shown ? `<a href="#/k/${id}" class="hub-who">${esc(n.name)}</a> ${roleChips(n.roles)}` : `<span class="hub-who">${esc(n.name)}</span> ${roleChips(staffRoles)}`; };
   const pubUrl = path => `${CFG.url}/storage/v1/object/public/community/${path}`;
-  const textHtml = (t, team) => esc(t).replace(/\n/g, '<br>').replace(team ? /(https:\/\/[^\s<]+)/g : /$^/, '<a href="$1" rel="noopener nofollow" target="_blank">$1</a>');
-  function shell(inner, active) {
-    root.innerHTML = `<div class="hub-com"><nav class="hub-side" aria-label="Community sections">
-        <a href="#/" class="${active === 'all' ? 'on' : ''}">Everything</a>${me ? `<a href="#/following" class="${active === 'following' ? 'on' : ''}">Following</a>` : ''}
-        <p class="hub-side-h">From the team</p>${CATS.filter(c => c[2] === 'team' || c[2] === 'staff').map(c => `<a href="#/s/${c[0]}" class="${active === c[0] ? 'on' : ''}">${c[1]}</a>`).join('')}
-        <p class="hub-side-h">Keepers</p>${CATS.filter(c => !c[2]).map(c => `<a href="#/s/${c[0]}" class="${active === c[0] ? 'on' : ''}">${c[1]}</a>`).join('')}
-        ${me && (myRoles.includes('subscriber') || isStaff()) ? `<a href="#/s/lounge" class="${active === 'lounge' ? 'on' : ''}">Supporter Lounge</a>` : ''}
-        ${me ? '<a href="#/new" class="btn btn-primary btn-sm">New post</a>' : '<a href="account.html?next=community.html" class="btn btn-ghost btn-sm">Sign in to post</a>'}
-      </nav><div class="hub-main">${inner}</div></div>`;
+  const textHtml = (t, team) => esc(t).replace(/\n/g, '<br>').replace(/@([A-Za-z0-9_.'-]{3,16})/g, '<b class="lkc-mention">@$1</b>').replace(team ? /(https:\/\/[^\s<]+)/g : /$^/, '<a href="$1" rel="noopener nofollow" target="_blank">$1</a>');
+  const canPost = ch => !ch ? !!me : ch.post_role === 'team' ? isTeam() : ch.post_role === 'staff' ? isStaff() : ch.post_role === 'club' ? isStaff() || myRoles.includes('subscriber') : !!me;
+  const canRead = ch => ch.read_role !== 'club' || isStaff() || myRoles.includes('subscriber');
+  const chan = id => channels.find(c => c.id === id), byCat = cat => channels.find(c => c.category === cat);
+  const setLive = sub => { if (live) { sb.removeChannel(live); live = null; } live = sub || null; };
+  async function loadNotifications() { if (!me) return; const { count } = await sb.from('community_notifications').select('id', { count: 'exact', head: true }).eq('read', false); unread = count || 0; const b = document.querySelector('.lkc-bell b'); if (b) { b.textContent = unread > 9 ? '9+' : unread || ''; b.hidden = !unread; } }
+  // signed in on the website counts as being online (profile shown only)
+  function heartbeat() { if (!me || beat) return; const tick = () => sb.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', me.id).then(() => {}, () => {}); tick(); beat = setInterval(() => { tick(); loadNotifications(); }, 120000); }
+  function shell(active, inner) {
+    const visible = channels.filter(canRead);
+    root.innerHTML = `<div class="lkc">
+      <aside class="lkc-rail" id="lkcRail" aria-label="Community channels">
+        <form class="lkc-search" role="search"><input name="q" placeholder="Search the community" aria-label="Search the community" value="${esc(decodeURIComponent((location.hash.match(/^#\/search\/(.+)$/) || [])[1] || ''))}"></form>
+        <a class="lkc-ch${active === 'home' ? ' on' : ''}" href="#/"><span class="lkc-ico">⌂</span>Home</a>
+        ${me ? `<a class="lkc-ch${active === 'following' ? ' on' : ''}" href="#/following"><span class="lkc-ico">★</span>Following</a>` : ''}
+        ${GROUPS.map(([g, label]) => { const list = visible.filter(c => c.grp === g); return list.length ? `<p class="lkc-grp">${label}</p>` + list.map(c => `<a class="lkc-ch${active === c.id ? ' on' : ''}" href="#/c/${c.id}" title="${esc(c.description)}"><span class="lkc-ico">${c.kind === 'chat' ? '#' : c.kind === 'news' ? '📣' : '▤'}</span>${esc(c.name)}</a>`).join('') + (g === 'support' && me ? `<a class="lkc-ch${active === 'tickets' ? ' on' : ''}" href="#/tickets"><span class="lkc-ico">✉</span>My tickets</a>` : '') : ''; }).join('')}
+        <div class="lkc-me">${me ? `${avatar(me.id, 32)}<span><b>${esc((myProfile && myProfile.display_name) || 'Keeper')}</b><small>${myProfile && myProfile.show_profile ? 'Online' : 'Profile hidden'}</small></span><button class="lkc-bell" aria-label="Notifications" data-bell>🔔<b ${unread ? '' : 'hidden'}>${unread > 9 ? '9+' : unread || ''}</b></button>`
+          : '<a class="btn btn-primary btn-sm" href="account.html?next=community.html">Sign in to take part</a>'}</div>
+      </aside>
+      <section class="lkc-main"><div class="lkc-top"><button class="lkc-menu" aria-controls="lkcRail" aria-expanded="false" aria-label="Channels">☰</button><span id="lkcTitle"></span></div><div class="lkc-body">${inner}</div></section>
+      <aside class="lkc-people" aria-label="Online now"><p class="lkc-grp">Online now · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 28)}<span>${esc(names.get(m.id).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}</aside>
+    </div>`;
+    const rail = root.querySelector('#lkcRail'), mb = root.querySelector('.lkc-menu');
+    mb.onclick = () => { const open = rail.classList.toggle('open'); mb.setAttribute('aria-expanded', String(open)); };
+    for (const a of rail.querySelectorAll('a')) a.addEventListener('click', () => rail.classList.remove('open'));
+    root.querySelector('.lkc-search').onsubmit = e => { e.preventDefault(); const q = new FormData(e.target).get('q').trim(); if (q.length >= 2) location.hash = '#/search/' + encodeURIComponent(q); };
+    const bell = root.querySelector('[data-bell]'); if (bell) bell.onclick = showNotifications;
+    return root.querySelector('.lkc-body');
   }
-  async function listPosts(filter, active, title) {
-    shell('<p class="muted">Loading...</p>', active);
-    let q = sb.from('community_posts').select('id, author, category, title, body, image, pinned, locked, state, replies, reactions, created_at, poll').eq('status', 'visible');
-    q = filter(q); const { data, error } = await q.order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(40);
-    if (error) { root.querySelector('.hub-main').innerHTML = `<p>Could not load the posts: ${esc(error.message)}</p>`; return; }
+  const title = t => { const e = document.getElementById('lkcTitle'); if (e) e.innerHTML = t; };
+  async function loadMembers() {
+    const { data } = await sb.from('profiles').select('id, display_name, last_seen').eq('show_profile', true).gt('last_seen', new Date(Date.now() - 10 * 6e4).toISOString()).order('last_seen', { ascending: false }).limit(40);
+    members = data || []; await people(members.map(m => m.id));
+  }
+  async function showNotifications() {
+    const { data } = await sb.from('community_notifications').select('*').order('created_at', { ascending: false }).limit(30);
+    modal(`<h2>Notifications</h2>${(data || []).length ? `<div class="lkc-notes">${data.map(n => `<a class="lkc-note${n.read ? '' : ' new'}" href="${esc(n.link || '#/')}" data-n="${n.id}"><b>${esc(n.title)}</b><small>${ago(n.created_at)}</small></a>`).join('')}</div>` : '<p class="muted">Nothing yet. Mentions, replies, follows and ticket answers show here.</p>'}`, (d, close) => {
+      for (const a of d.querySelectorAll('[data-n]')) a.addEventListener('click', () => close());
+    });
+    if ((data || []).some(n => !n.read)) { await sb.from('community_notifications').update({ read: true }).eq('read', false); loadNotifications(); }
+  }
+  // ----- home -----
+  async function home() {
+    const body = shell('home', '<p class="muted">Loading...</p>'); title('<b>Lantern Keeper Community</b>');
+    const now = new Date().toISOString();
+    const [ann, dev, ev, recent, online] = await Promise.all([
+      sb.from('community_posts').select('id, title, body, created_at, author').eq('category', 'announcements').eq('status', 'visible').order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(3),
+      sb.from('community_posts').select('id, title, version, created_at').eq('category', 'devlog').eq('status', 'visible').order('created_at', { ascending: false }).limit(1),
+      sb.from('community_posts').select('id, title, category, starts_at, ends_at, prize').in('category', ['events', 'giveaways']).eq('status', 'visible').or(`ends_at.is.null,ends_at.gt.${now}`).order('created_at', { ascending: false }).limit(4),
+      sb.from('community_posts').select('id, title, category, replies, created_at, author').in('category', ['features', 'feedback', 'bugs', 'help', 'artwork', 'screenshots', 'general', 'discussion']).eq('status', 'visible').order('created_at', { ascending: false }).limit(6),
+      Promise.resolve(members.length)]);
+    await people([...(ann.data || []), ...(recent.data || [])].map(p => p.author));
+    const catName = c => (byCat(c) || { name: c }).name;
+    body.innerHTML = `<div class="lkc-home">
+      <section class="card lkc-hero"><span class="kicker">Welcome</span><h2>The home of Lantern Keeper</h2><p>News and devlogs from the team, live chat with other keepers, ideas, bug reports and support. ${online} keeper${online === 1 ? '' : 's'} online now.</p>
+        ${me ? '' : '<p><a class="btn btn-primary btn-sm" href="account.html?next=community.html">Sign in with your game account</a></p>'}</section>
+      <div class="lkc-cols"><section><h3 class="lkc-h">Announcements</h3>${(ann.data || []).map(p => `<a class="card lkc-mini" href="#/p/${p.id}"><b>${esc(p.title)}</b><small>${ago(p.created_at)}</small><span>${esc(p.body.slice(0, 140))}${p.body.length > 140 ? '...' : ''}</span></a>`).join('') || '<p class="muted">No announcements yet.</p>'}
+        ${(dev.data || [])[0] ? `<h3 class="lkc-h">Latest devlog</h3><a class="card lkc-mini" href="#/p/${dev.data[0].id}"><b>${dev.data[0].version ? 'v' + esc(dev.data[0].version) + ' · ' : ''}${esc(dev.data[0].title)}</b><small>${ago(dev.data[0].created_at)}</small></a>` : ''}</section>
+      <section><h3 class="lkc-h">Events and giveaways</h3>${(ev.data || []).map(p => `<a class="card lkc-mini" href="#/p/${p.id}"><b>${esc(p.title)}</b><small>${p.category === 'giveaways' ? 'Giveaway' : 'Event'}${p.ends_at ? ' · until ' + day(p.ends_at) : ''}</small>${p.prize ? `<span>Prize: ${esc(p.prize)}</span>` : ''}</a>`).join('') || '<p class="muted">Nothing running right now.</p>'}
+        <h3 class="lkc-h">New from keepers</h3>${(recent.data || []).map(p => `<a class="lkc-row" href="#/p/${p.id}"><span>${esc(p.title)}</span><small>${esc(catName(p.category))} · ${p.replies} repl${p.replies === 1 ? 'y' : 'ies'} · ${ago(p.created_at)}</small></a>`).join('') || '<p class="muted">Be the first: say hello in #general.</p>'}</section></div></div>`;
+  }
+  // ----- a live chat channel -----
+  async function chat(ch) {
+    const body = shell(ch.id, '<p class="muted">Loading...</p>'); title(`<b># ${esc(ch.name)}</b> <small>${esc(ch.description)}</small>`);
+    const { data } = await sb.from('community_messages').select('*').eq('channel', ch.id).order('created_at', { ascending: false }).limit(80);
+    const msgs = (data || []).reverse(); await people(msgs.map(m => m.author));
+    let replyTo = null;
+    body.innerHTML = `<div class="lkc-chat"><div class="lkc-msgs" role="log" aria-live="polite"></div>
+      ${canPost(ch) ? `<form class="lkc-compose"><div class="lkc-replying" hidden></div><textarea name="body" rows="1" maxlength="1000" placeholder="Message #${esc(ch.name)} (@Name to mention someone)" aria-label="Your message"></textarea><button class="btn btn-primary btn-sm" type="submit">Send</button></form>`
+        : `<p class="lkc-locked">${me ? (ch.post_role === 'club' ? 'This chat is for Supporter Club members.' : 'Only the team writes here.') : '<a href="account.html?next=community.html">Sign in</a> to chat.'}</p>`}</div>`;
+    const box = body.querySelector('.lkc-msgs');
+    const line = m => { const r = m.reply_to && msgs.find(x => x.id === m.reply_to), mine = me && m.author === me.id, mentioned = me && (m.mentions || []).includes(me.id);
+      return `<div class="lkc-msg${mentioned ? ' me' : ''}${m.status !== 'visible' ? ' gone' : ''}" data-m="${m.id}">${avatar(m.author)}<div>${r ? `<p class="lkc-quote">↪ ${esc((names.get(r.author) || { name: 'A keeper' }).name)}: ${esc(r.body.slice(0, 80))}</p>` : ''}<p class="lkc-meta">${who(m.author)} <small>${ago(m.created_at)}${m.edited_at ? ' · edited' : ''}${m.status !== 'visible' ? ' · ' + esc(m.status) : ''}</small></p><p class="lkc-text">${textHtml(m.body, (names.get(m.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p></div>
+        <span class="lkc-acts">${me && canPost(ch) ? `<button data-reply="${m.id}" aria-label="Reply">↩</button>` : ''}${mine ? `<button data-del="${m.id}" aria-label="Delete">✕</button>` : me ? `<button data-rep="${m.id}" aria-label="Report">⚑</button>` : ''}${isStaff() && !mine ? `<button data-hide="${m.id}" aria-label="Hide">⊘</button>` : ''}</span></div>`; };
+    const draw = () => { box.innerHTML = msgs.length ? msgs.map(line).join('') : '<p class="muted lkc-empty">No messages yet: say hello!</p>'; box.scrollTop = box.scrollHeight; wire(); };
+    const wire = () => {
+      for (const b of box.querySelectorAll('[data-reply]')) b.onclick = () => { replyTo = +b.dataset.reply; const m = msgs.find(x => x.id === replyTo), rp = body.querySelector('.lkc-replying'); rp.hidden = false; rp.innerHTML = `Replying to ${esc((names.get(m.author) || { name: '' }).name)} <button type="button" aria-label="Stop replying">✕</button>`; rp.querySelector('button').onclick = () => { replyTo = null; rp.hidden = true; }; body.querySelector('textarea').focus(); };
+      for (const b of box.querySelectorAll('[data-del]')) b.onclick = async () => { try { await call('community', { action: 'message_delete', message: +b.dataset.del }); const m = msgs.find(x => x.id === +b.dataset.del); if (m) m.status = 'removed'; draw(); } catch (e) { modal(`<p>${esc(e.message)}</p>`); } };
+      for (const b of box.querySelectorAll('[data-hide]')) b.onclick = async () => { try { await call('community', { action: 'message_moderate', message: +b.dataset.hide, status: 'hidden' }); const m = msgs.find(x => x.id === +b.dataset.hide); if (m) m.status = 'hidden'; draw(); } catch (e) { modal(`<p>${esc(e.message)}</p>`); } };
+      for (const b of box.querySelectorAll('[data-rep]')) b.onclick = () => report({ message: +b.dataset.rep });
+    };
+    draw();
+    const f = body.querySelector('.lkc-compose');
+    if (f) { const ta = f.querySelector('textarea');
+      ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); f.requestSubmit(); } });
+      f.onsubmit = async e => { e.preventDefault(); const text = ta.value.trim(); if (!text) return; ta.disabled = true;
+        try { const r = await call('community', { action: 'message', channel: ch.id, body: text, reply_to: replyTo }); ta.value = ''; if (!msgs.some(m => m.id === r.message)) { const { data: row } = await sb.from('community_messages').select('*').eq('id', r.message).maybeSingle(); if (row && !msgs.some(m => m.id === row.id)) { await people([row.author]); msgs.push(row); draw(); } } replyTo = null; f.querySelector('.lkc-replying').hidden = true; } catch (err) { say(f, err.message); } ta.disabled = false; ta.focus(); }; }
+    // new messages arrive live
+    setLive(sb.channel('lkc-' + ch.id + '-' + Date.now()).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages', filter: `channel=eq.${ch.id}` }, async ev => {
+      if (msgs.some(m => m.id === ev.new.id)) return; await people([ev.new.author]); msgs.push(ev.new); draw();
+    }).subscribe());
+  }
+  // ----- a forum or news channel: the list -----
+  async function threads(ch) {
+    const body = shell(ch.id, '<p class="muted">Loading...</p>'); title(`<b>${esc(ch.name)}</b> <small>${esc(ch.description)}</small>`);
+    const devlog = ch.category === 'devlog', version = devlog ? decodeURIComponent((location.hash.match(/[?&]v=([^&]+)/) || [])[1] || '') : '';
+    let q = sb.from('community_posts').select('id, author, category, title, body, image, pinned, locked, state, replies, reactions, created_at, poll, version, published, publish_at, starts_at, ends_at, prize').eq('category', ch.category).neq('status', 'removed');
+    if (version) q = q.eq('version', version);
+    const { data, error } = await q.order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(60);
+    if (error) { body.innerHTML = `<p>Could not load: ${esc(error.message)}</p>`; return; }
     await people((data || []).map(p => p.author));
-    root.querySelector('.hub-main').innerHTML = `<h2 class="hub-h">${esc(title)}</h2>${(data || []).length ? data.map(p => `<article class="card hub-post${p.pinned ? ' pinned' : ''}"><a class="hub-post-link" href="#/p/${p.id}">
-        <span class="hub-cat">${esc(CAT[p.category][1])}</span>${p.pinned ? '<span class="hub-pin">Pinned</span>' : ''}${p.state ? `<span class="hub-state st-${p.state.replace(/ /g, '-')}">${esc(p.state)}</span>` : ''}${p.poll ? '<span class="hub-pin">Poll</span>' : ''}
-        <h3>${esc(p.title)}</h3><p>${esc(p.body.slice(0, 220))}${p.body.length > 220 ? '...' : ''}</p></a>
-        ${p.image ? `<img class="hub-thumb" src="${esc(pubUrl(p.image))}" alt="" loading="lazy">` : ''}
-        <p class="hub-meta">${who(p.author)} · ${ago(p.created_at)} · ${p.replies} repl${p.replies === 1 ? 'y' : 'ies'} · ${p.reactions} reaction${p.reactions === 1 ? '' : 's'}${p.locked ? ' · closed' : ''}</p></article>`).join('') : '<p class="muted">Nothing here yet.</p>'}`;
+    const versions = devlog ? [...new Set((await sb.from('community_posts').select('version').eq('category', 'devlog').not('version', 'is', null)).data.map(x => x.version))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true })) : [];
+    body.innerHTML = `<div class="lkc-list-head">${canPost(ch) ? `<a class="btn btn-primary btn-sm" href="#/new/${ch.id}">${ch.kind === 'news' ? 'New post' : 'New thread'}</a>` : ''}
+        ${devlog && versions.length ? `<label class="lkc-ver">Version <select data-ver><option value="">All versions</option>${versions.map(v => `<option ${v === version ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>` : ''}</div>
+      ${(data || []).map(p => `<article class="card hub-post${p.pinned ? ' pinned' : ''}"><a class="hub-post-link" href="#/p/${p.id}">
+        ${p.pinned ? '<span class="hub-pin">Pinned</span>' : ''}${!p.published ? '<span class="hub-state">Draft</span>' : ''}${p.publish_at && Date.parse(p.publish_at) > Date.now() ? `<span class="hub-state">Scheduled ${day(p.publish_at)}</span>` : ''}${p.version ? `<span class="hub-cat">v${esc(p.version)}</span>` : ''}${p.state ? `<span class="hub-state st-${p.state.replace(/ /g, '-')}">${esc(p.state)}</span>` : ''}${p.poll ? '<span class="hub-pin">Poll</span>' : ''}${p.category === 'giveaways' ? `<span class="hub-pin">${p.ends_at && Date.parse(p.ends_at) < Date.now() ? 'Ended' : 'Open'}</span>` : ''}
+        <h3>${esc(p.title)}</h3><p>${esc(p.body.slice(0, 220))}${p.body.length > 220 ? '...' : ''}</p></a>${p.image ? `<img class="hub-thumb" src="${esc(pubUrl(p.image))}" alt="" loading="lazy">` : ''}
+        <p class="hub-meta">${who(p.author)} · ${ago(p.created_at)} · ${p.replies} repl${p.replies === 1 ? 'y' : 'ies'} · ${p.reactions} reaction${p.reactions === 1 ? '' : 's'}${p.locked ? ' · closed' : ''}${p.ends_at ? ' · until ' + day(p.ends_at) : ''}</p></article>`).join('') || `<p class="muted">Nothing here yet.${canPost(ch) ? ' Start the first one.' : ''}</p>`}`;
+    const vs = body.querySelector('[data-ver]'); if (vs) vs.onchange = () => { location.hash = '#/c/' + ch.id + (vs.value ? '?v=' + encodeURIComponent(vs.value) : ''); };
   }
+  // ----- one post (thread, news, devlog, event, giveaway) -----
   async function showPost(id) {
-    shell('<p class="muted">Loading...</p>', '');
+    const body = shell('', '<p class="muted">Loading...</p>');
     const { data: p } = await sb.from('community_posts').select('*').eq('id', id).maybeSingle();
-    const main = root.querySelector('.hub-main'); if (!p) { main.innerHTML = '<p>That post is gone, or it is in the Supporter Lounge.</p>'; return; }
-    const [{ data: replies }, { data: reacts }, { data: votes }] = await Promise.all([sb.from('community_replies').select('*').eq('post_id', id).order('created_at'),
-      sb.from('community_reactions').select('kind, user_id').eq('post_id', id), p.poll ? sb.from('community_votes').select('choice, user_id').eq('post_id', id) : { data: [] }]);
+    if (!p) { body.innerHTML = '<p>That post is gone, or it is in the Supporter Lounge.</p>'; return; }
+    const ch = byCat(p.category) || { id: p.category, name: p.category }; title(`<a href="#/c/${ch.id}">${esc(ch.name)}</a>`);
+    const [{ data: replies }, { data: reacts }, { data: votes }, gcount, mine] = await Promise.all([sb.from('community_replies').select('*').eq('post_id', id).order('created_at'),
+      sb.from('community_reactions').select('kind, user_id').eq('post_id', id), p.poll ? sb.from('community_votes').select('choice, user_id').eq('post_id', id) : { data: [] },
+      p.category === 'giveaways' ? sb.rpc('giveaway_count', { p_post: id }) : { data: 0 }, p.category === 'giveaways' && me ? sb.from('giveaway_entries').select('winner').eq('post_id', id).eq('user_id', me.id).maybeSingle() : { data: null }]);
     await people([p.author, ...(replies || []).map(r => r.author)]);
     const authorTeam = (names.get(p.author) || { roles: [] }).roles.some(r => r === 'owner' || r === 'developer');
-    const mine = r => me && r.author === me.id, myVote = (votes || []).find(v => me && v.user_id === me.id), total = (votes || []).length;
-    main.innerHTML = `<p><a href="#/s/${p.category}">← ${esc(CAT[p.category][1])}</a></p><article class="card hub-full">
-        <p class="hub-meta">${who(p.author)} · ${ago(p.created_at)}${p.edited_at ? ' · edited' : ''}${p.state ? ` · <span class="hub-state st-${p.state.replace(/ /g, '-')}">${esc(p.state)}</span>` : ''}${p.status !== 'visible' ? ` · <b>${esc(p.status)}</b>` : ''}</p>
-        <h2>${esc(p.title)}</h2>${p.body ? `<p class="hub-body">${textHtml(p.body, authorTeam)}</p>` : ''}${p.image ? `<img class="hub-img" src="${esc(pubUrl(p.image))}" alt="${esc(p.title)}">` : ''}
+    const own = r => me && r.author === me.id, myVote = (votes || []).find(v => me && v.user_id === me.id), total = (votes || []).length;
+    const giveOpen = p.category === 'giveaways' && (!p.starts_at || Date.parse(p.starts_at) <= Date.now()) && (!p.ends_at || Date.parse(p.ends_at) > Date.now());
+    body.innerHTML = `<article class="card hub-full">
+        <p class="hub-meta">${who(p.author)} · ${ago(p.created_at)}${p.edited_at ? ' · edited' : ''}${p.version ? ` · <span class="hub-cat">v${esc(p.version)}</span>` : ''}${p.state ? ` · <span class="hub-state st-${p.state.replace(/ /g, '-')}">${esc(p.state)}</span>` : ''}${!p.published ? ' · <b>Draft</b>' : ''}${p.status !== 'visible' ? ` · <b>${esc(p.status)}</b>` : ''}</p>
+        <h2>${esc(p.title)}</h2>${p.starts_at || p.ends_at ? `<p class="lkc-when">${p.starts_at ? 'From ' + day(p.starts_at) : ''}${p.ends_at ? ' until ' + day(p.ends_at) : ''}</p>` : ''}
+        ${p.body ? `<p class="hub-body">${textHtml(p.body, authorTeam)}</p>` : ''}${p.image ? `<img class="hub-img" src="${esc(pubUrl(p.image))}" alt="${esc(p.title)}">` : ''}
+        ${p.category === 'giveaways' ? `<div class="lkc-give"><p><b>Prize:</b> ${esc(p.prize || 'see above')} · ${gcount.data || 0} entr${gcount.data === 1 ? 'y' : 'ies'}</p>${mine.data ? `<p class="hub-ok">${mine.data.winner ? 'You won! We will contact you.' : 'You are in. Good luck!'}</p>` : giveOpen ? (me ? '<button class="btn btn-primary btn-sm" data-enter>Enter the giveaway</button>' : '<a href="account.html?next=community.html">Sign in to enter</a>') : '<p class="muted">This giveaway has ended.</p>'}<p class="muted small">No purchase needed. One entry per account. Winners are drawn by the team and announced here.</p></div>` : ''}
         ${p.poll ? `<div class="hub-poll">${p.poll.map((o, i) => { const n = (votes || []).filter(v => v.choice === i).length, pc = total ? Math.round(n / total * 100) : 0; return `<button class="hub-opt${myVote && myVote.choice === i ? ' on' : ''}" data-vote="${i}" ${myVote || !me || p.locked ? 'disabled' : ''}><span style="width:${myVote || !me ? pc : 0}%"></span><b>${esc(o)}</b>${myVote || !me ? ` <small>${pc}% (${n})</small>` : ''}</button>`; }).join('')}<p class="muted small">${total} vote${total === 1 ? '' : 's'}${!me ? ' · sign in to vote' : myVote ? ' · you voted' : ''}</p></div>` : ''}
         <div class="hub-reacts">${REACT.map(([k, e]) => { const n = (reacts || []).filter(r => r.kind === k).length, on = me && (reacts || []).some(r => r.kind === k && r.user_id === me.id); return `<button class="hub-react${on ? ' on' : ''}" data-react="${k}" ${me ? '' : 'disabled'} aria-pressed="${!!on}" aria-label="${k}">${e} ${n || ''}</button>`; }).join('')}</div>
-        <p class="hub-tools">${mine(p) ? '<button class="hub-link" data-edit>Edit</button> <button class="hub-link" data-del>Delete</button>' : ''}${me && !mine(p) ? `<button class="hub-link" data-report="post:${p.id}">Report</button>` : ''}
-        ${isStaff() ? ` · <button class="hub-link" data-mod="pinned:${!p.pinned}">${p.pinned ? 'Unpin' : 'Pin'}</button> <button class="hub-link" data-mod="locked:${!p.locked}">${p.locked ? 'Reopen' : 'Close replies'}</button> <button class="hub-link" data-mod="status:${p.status === 'visible' ? 'hidden' : 'visible'}">${p.status === 'visible' ? 'Hide' : 'Show'}</button>${p.state ? ` <select data-state aria-label="State">${['open', 'planned', 'in progress', 'done', 'fixed', 'not planned'].map(s => `<option ${s === p.state ? 'selected' : ''}>${s}</option>`).join('')}</select>` : ''}` : ''}</p></article>
+        <p class="hub-tools">${own(p) ? '<button class="hub-link" data-edit>Edit</button> <button class="hub-link" data-del>Delete</button>' : ''}${me && !own(p) ? `<button class="hub-link" data-report>Report</button>` : ''}
+        ${isStaff() ? ` · <button class="hub-link" data-mod="pinned:${!p.pinned}">${p.pinned ? 'Unpin' : 'Pin'}</button> <button class="hub-link" data-mod="locked:${!p.locked}">${p.locked ? 'Reopen' : 'Close replies'}</button> <button class="hub-link" data-mod="status:${p.status === 'visible' ? 'hidden' : 'visible'}">${p.status === 'visible' ? 'Hide' : 'Show'}</button>${!p.published && isTeam() ? ' <button class="hub-link" data-mod="published:true">Publish</button>' : ''}${p.state ? ` <select data-state aria-label="State">${['open', 'planned', 'in progress', 'done', 'fixed', 'not planned'].map(s => `<option ${s === p.state ? 'selected' : ''}>${s}</option>`).join('')}</select>` : ''}` : ''}</p></article>
       <h3 class="hub-h">${(replies || []).length} repl${(replies || []).length === 1 ? 'y' : 'ies'}</h3>
-      ${(replies || []).map(r => `<div class="card hub-reply${r.status !== 'visible' ? ' hidden-r' : ''}"><p class="hub-meta">${who(r.author)} · ${ago(r.created_at)}${r.edited_at ? ' · edited' : ''}${r.status !== 'visible' ? ' · <b>' + esc(r.status) + '</b>' : ''}</p><p class="hub-body">${textHtml(r.body, (names.get(r.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p>
-        <p class="hub-tools">${mine(r) ? `<button class="hub-link" data-rdel="${r.id}">Delete</button>` : me ? `<button class="hub-link" data-report="reply:${r.id}">Report</button>` : ''}${isStaff() ? ` <button class="hub-link" data-rmod="${r.id}:${r.status === 'visible' ? 'hidden' : 'visible'}">${r.status === 'visible' ? 'Hide' : 'Show'}</button>` : ''}</p></div>`).join('')}
+      ${(replies || []).map(r => `<div class="card hub-reply${r.status !== 'visible' ? ' hidden-r' : ''}"><div class="lkc-msg plain">${avatar(r.author)}<div><p class="lkc-meta">${who(r.author)} <small>${ago(r.created_at)}${r.edited_at ? ' · edited' : ''}${r.status !== 'visible' ? ' · ' + esc(r.status) : ''}</small></p><p class="hub-body">${textHtml(r.body, (names.get(r.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p></div></div>
+        <p class="hub-tools">${own(r) ? `<button class="hub-link" data-rdel="${r.id}">Delete</button>` : me ? `<button class="hub-link" data-rrep="${r.id}">Report</button>` : ''}${isStaff() ? ` <button class="hub-link" data-rmod="${r.id}:${r.status === 'visible' ? 'hidden' : 'visible'}">${r.status === 'visible' ? 'Hide' : 'Show'}</button>` : ''}</p></div>`).join('')}
       ${p.locked ? '<p class="muted">Replies are closed.</p>' : me ? `<form class="hub-form card" data-reply><label>Your reply<textarea name="body" maxlength="2000" rows="3" required></textarea></label><button class="btn btn-primary" type="submit">Reply</button></form>` : '<p><a href="account.html?next=community.html">Sign in</a> to reply.</p>'}`;
-    const act = async (body, after) => { try { await call('community', body); (after || (() => showPost(id)))(); } catch (e) { modal(`<h2>Not done</h2><p>${esc(e.message)}</p>`); } };
-    for (const b of main.querySelectorAll('[data-vote]')) b.onclick = async () => { const { error } = await sb.from('community_votes').insert({ post_id: id, user_id: me.id, choice: +b.dataset.vote }); if (error) modal(`<p>${esc(error.message)}</p>`); showPost(id); };
-    for (const b of main.querySelectorAll('[data-react]')) b.onclick = async () => { const on = b.classList.contains('on'); if (on) await sb.from('community_reactions').delete().eq('post_id', id).eq('user_id', me.id).eq('kind', b.dataset.react); else await sb.from('community_reactions').insert({ post_id: id, user_id: me.id, kind: b.dataset.react }); showPost(id); };
-    for (const b of main.querySelectorAll('[data-mod]')) b.onclick = () => { const [k, v] = b.dataset.mod.split(':'); act({ action: 'moderate', post: id, [k]: k === 'status' ? v : v === 'true' }); };
-    const sel = main.querySelector('[data-state]'); if (sel) sel.onchange = () => act({ action: 'moderate', post: id, state: sel.value });
-    for (const b of main.querySelectorAll('[data-rmod]')) b.onclick = () => { const [rid, s] = b.dataset.rmod.split(':'); act({ action: 'moderate', reply: +rid, status: s }); };
-    for (const b of main.querySelectorAll('[data-rdel]')) b.onclick = () => act({ action: 'delete', reply: +b.dataset.rdel });
-    const del = main.querySelector('[data-del]'); if (del) del.onclick = () => modal('<h2>Delete this post?</h2><p>It is removed for everyone, with its picture.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Delete</button></div>', (d, close) => { d.querySelector('[data-ok]').onclick = () => { close(); act({ action: 'delete', post: id }, () => { location.hash = '#/s/' + p.category; }); }; });
-    const ed = main.querySelector('[data-edit]'); if (ed) ed.onclick = () => modal(`<h2>Edit your post</h2><form class="hub-form"><label>Title<input name="title" maxlength="120" value="${esc(p.title)}"></label><label>Text<textarea name="body" rows="8" maxlength="5000">${esc(p.body)}</textarea></label><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => { const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); close(); act({ action: 'edit', post: id, title: v.title, body: v.body }); }; });
-    for (const b of main.querySelectorAll('[data-report]')) b.onclick = () => { const [k, rid] = b.dataset.report.split(':'); modal(`<h2>Report this</h2><form class="hub-form"><label>Why<select name="reason">${['abuse', 'spam', 'cheating', 'personal information', 'not for children', 'other'].map(r => `<option>${r}</option>`).join('')}</select></label><label>Anything to add <small>(optional)</small><textarea name="details" maxlength="500" rows="3"></textarea></label><button class="btn btn-primary" type="submit">Send the report</button></form><p class="muted small">Moderators see it; the person you report doesn't see who reported.</p>`, (d, close) => {
-      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const row = { reporter: me.id, reason: v.reason, details: v.details || null, [k === 'post' ? 'post_id' : 'reply_id']: +rid }; const { error } = await sb.from('community_reports').insert(row); if (error) say(f, error.message); else { d.innerHTML = '<h2>Thank you</h2><p>A moderator will look at it.</p>'; setTimeout(close, 1500); } }; }); };
-    const rf = main.querySelector('[data-reply]'); if (rf) rf.onsubmit = e => { e.preventDefault(); act({ action: 'reply', post: id, body: new FormData(rf).get('body') }); };
+    const act = async (b, after) => { try { await call('community', b); (after || (() => showPost(id)))(); } catch (e) { modal(`<h2>Not done</h2><p>${esc(e.message)}</p>`); } };
+    const $$ = s => body.querySelectorAll(s), $1 = s => body.querySelector(s);
+    for (const b of $$('[data-vote]')) b.onclick = async () => { const { error } = await sb.from('community_votes').insert({ post_id: id, user_id: me.id, choice: +b.dataset.vote }); if (error) modal(`<p>${esc(error.message)}</p>`); showPost(id); };
+    for (const b of $$('[data-react]')) b.onclick = async () => { if (b.classList.contains('on')) await sb.from('community_reactions').delete().eq('post_id', id).eq('user_id', me.id).eq('kind', b.dataset.react); else await sb.from('community_reactions').insert({ post_id: id, user_id: me.id, kind: b.dataset.react }); showPost(id); };
+    for (const b of $$('[data-mod]')) b.onclick = () => { const [k, v] = b.dataset.mod.split(':'); act({ action: 'moderate', post: id, [k]: k === 'status' ? v : v === 'true' }); };
+    const sel = $1('[data-state]'); if (sel) sel.onchange = () => act({ action: 'moderate', post: id, state: sel.value });
+    for (const b of $$('[data-rmod]')) b.onclick = () => { const [rid, s] = b.dataset.rmod.split(':'); act({ action: 'moderate', reply: +rid, status: s }); };
+    for (const b of $$('[data-rdel]')) b.onclick = () => act({ action: 'delete', reply: +b.dataset.rdel });
+    for (const b of $$('[data-rrep]')) b.onclick = () => report({ reply: +b.dataset.rrep });
+    const rp = $1('[data-report]'); if (rp) rp.onclick = () => report({ post: id });
+    const en = $1('[data-enter]'); if (en) en.onclick = async () => { const { error } = await sb.from('giveaway_entries').insert({ post_id: id, user_id: me.id }); if (error) modal(`<p>${esc(error.message)}</p>`); showPost(id); };
+    const del = $1('[data-del]'); if (del) del.onclick = () => modal('<h2>Delete this post?</h2><p>It is removed for everyone, with its picture.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Delete</button></div>', (d, close) => { d.querySelector('[data-ok]').onclick = () => { close(); act({ action: 'delete', post: id }, () => { location.hash = '#/c/' + ch.id; }); }; });
+    const ed = $1('[data-edit]'); if (ed) ed.onclick = () => modal(`<h2>Edit your post</h2><form class="hub-form"><label>Title<input name="title" maxlength="120" value="${esc(p.title)}"></label><label>Text<textarea name="body" rows="8" maxlength="5000">${esc(p.body)}</textarea></label><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => { const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); close(); act({ action: 'edit', post: id, title: v.title, body: v.body }); }; });
+    const rf = $1('[data-reply]'); if (rf) rf.onsubmit = e => { e.preventDefault(); act({ action: 'reply', post: id, body: new FormData(rf).get('body') }); };
+  }
+  function report(target) {
+    modal(`<h2>Report this</h2><form class="hub-form"><label>Why<select name="reason">${['abuse', 'spam', 'cheating', 'personal information', 'not for children', 'other'].map(r => `<option>${r}</option>`).join('')}</select></label><label>Anything to add <small>(optional)</small><textarea name="details" maxlength="500" rows="3"></textarea></label><button class="btn btn-primary" type="submit">Send the report</button></form><p class="muted small">Moderators see it; the person you report doesn't see who reported.</p>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
+        const row = { reporter: me.id, reason: v.reason, details: v.details || null, [target.post ? 'post_id' : target.reply ? 'reply_id' : 'message_id']: target.post || target.reply || target.message };
+        const { error } = await sb.from('community_reports').insert(row); if (error) say(f, error.message); else { d.innerHTML = '<h2>Thank you</h2><p>A moderator will look at it.</p>'; setTimeout(close, 1500); } };
+    });
   }
   async function showKeeper(id) {
-    shell('<p class="muted">Loading...</p>', '');
-    const { data: k } = await sb.rpc('keeper_page', { p_user: id }); const main = root.querySelector('.hub-main');
-    if (!k) { main.innerHTML = '<p>This keeper\'s profile is hidden.</p>'; return; }
+    const body = shell('', '<p class="muted">Loading...</p>'); title('<b>A keeper</b>');
+    const { data: k } = await sb.rpc('keeper_page', { p_user: id });
+    if (!k) { body.innerHTML = '<p>This keeper\'s profile is hidden.</p>'; return; }
+    await people([id]); title(`<b>${esc(k.name)}</b>`);
     const follows = me && me.id !== id ? !!(await sb.from('community_follows').select('follower').eq('follower', me.id).eq('followee', id).maybeSingle()).data : false;
     const { data: posts } = await sb.from('community_posts').select('id, title, category, created_at, replies').eq('author', id).eq('status', 'visible').order('created_at', { ascending: false }).limit(20);
-    const sc = k.showcase || {};
-    main.innerHTML = `<section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${esc(String(k.name || '?').slice(0, 1))}</div><div><h2>${esc(k.name)}</h2><p>${roleChips(k.roles)} <span class="muted">Joined ${day(k.joined)}</span></p></div></div>
+    const sc = k.showcase || {}, n = names.get(id) || {};
+    body.innerHTML = `<section class="card hub-me"><div class="hub-me-head">${avatar(id, 64)}<div><h2>${esc(k.name)}</h2><p>${roleChips(k.roles)} <span class="muted">${n.online ? '<b class="lkc-online">● Online</b> · ' : ''}Joined ${day(k.joined)}</span></p></div></div>
       ${k.bio ? `<p>${esc(k.bio)}</p>` : ''}<div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}<span><b>${k.posts}</b> posts</span><span><b>${k.followers}</b> followers</span><span><b>${k.following}</b> following</span></div>
       <p>${k.discord ? `Discord: <b>${esc(k.discord)}</b> · ` : ''}Friend code <b>${esc(k.friend_code || '-')}</b>${me && me.id !== id ? ` · <button class="btn btn-ghost btn-sm" data-follow>${follows ? 'Following' : 'Follow'}</button>` : ''}</p></section>
-      <h3 class="hub-h">Posts</h3>${(posts || []).map(p => `<p><a href="#/p/${p.id}">${esc(p.title)}</a> <span class="muted small">${esc(CAT[p.category][1])} · ${ago(p.created_at)} · ${p.replies} replies</span></p>`).join('') || '<p class="muted">No posts yet.</p>'}`;
-    const f = main.querySelector('[data-follow]'); if (f) f.onclick = async () => { if (follows) await sb.from('community_follows').delete().eq('follower', me.id).eq('followee', id); else await sb.from('community_follows').insert({ follower: me.id, followee: id }); showKeeper(id); };
+      <h3 class="hub-h">Posts</h3>${(posts || []).map(p => `<a class="lkc-row" href="#/p/${p.id}"><span>${esc(p.title)}</span><small>${esc((byCat(p.category) || { name: p.category }).name)} · ${ago(p.created_at)} · ${p.replies} replies</small></a>`).join('') || '<p class="muted">No posts yet.</p>'}`;
+    const f = body.querySelector('[data-follow]'); if (f) f.onclick = async () => { if (follows) await sb.from('community_follows').delete().eq('follower', me.id).eq('followee', id); else await sb.from('community_follows').insert({ follower: me.id, followee: id }); showKeeper(id); };
   }
-  function compose() {
+  function compose(chId) {
     if (!me) { location.href = 'account.html?next=community.html'; return; }
-    const cats = CATS.filter(c => canPostIn(c[0]));
-    shell(`<h2 class="hub-h">New post</h2><form class="hub-form card" data-new>
-      <label>Section<select name="category">${cats.map(c => `<option value="${c[0]}">${c[1]}</option>`).join('')}</select></label>
+    const options = channels.filter(c => c.kind !== 'chat' && canPost(c)), pre = chan(chId);
+    const body = shell(chId || '', ''); title('<b>New post</b>');
+    body.innerHTML = `<form class="hub-form card" data-new>
+      <label>Where<select name="channel">${options.map(c => `<option value="${c.id}" ${pre && pre.id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>
       <label>Title<input name="title" maxlength="120" required></label>
       <label>Text<textarea name="body" maxlength="5000" rows="8"></textarea></label>
       <label>A picture <small>(optional: PNG, JPEG or WebP, up to 3 MB)</small><input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
       <label>A poll <small>(optional: one choice per line, 2 to 6)</small><textarea name="poll" rows="3" maxlength="400"></textarea></label>
+      ${isStaff() ? `<fieldset class="lkc-team"><legend>Team options</legend>
+        <label>Version <small>(devlogs: for example 0.30)</small><input name="version" maxlength="10" placeholder="0.30"></label>
+        <div class="hub-row"><label>Starts <small>(events, giveaways)</small><input name="starts_at" type="datetime-local"></label><label>Ends<input name="ends_at" type="datetime-local"></label></div>
+        <label>Prize <small>(giveaways)</small><input name="prize" maxlength="200"></label>
+        <label>Show from <small>(empty: now)</small><input name="publish_at" type="datetime-local"></label>
+        <label class="hub-check"><input type="checkbox" name="draft"> Save as a draft (only the team sees it)</label></fieldset>` : ''}
       <p class="muted small">Be kind, no links (the team can share them), no personal details. Posts are public; moderators can remove what breaks the <a href="terms.html#5-co-op-chat-and-the-community">rules</a>.</p>
-      <button class="btn btn-primary" type="submit">Post</button></form>`, '');
-    const f = root.querySelector('[data-new]');
+      <button class="btn btn-primary" type="submit">Post</button></form>`;
+    const f = body.querySelector('[data-new]');
     f.onsubmit = async e => {
       e.preventDefault(); const fd = new FormData(f), btn = f.querySelector('[type=submit]'); btn.disabled = true;
       try {
         let image = null; const file = fd.get('image');
         if (file && file.size) { if (file.size > 3 * 1048576) throw new Error('Use a picture under 3 MB.'); const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
           image = `${me.id}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}.${ext}`; const up = await sb.storage.from('community').upload(image, file, { contentType: file.type }); if (up.error) throw up.error; }
-        const poll = String(fd.get('poll') || '').split('\n').map(s => s.trim()).filter(Boolean);
-        const r = await call('community', { action: 'post', category: fd.get('category'), title: fd.get('title'), body: fd.get('body'), image, poll: poll.length ? poll : undefined });
+        const poll = String(fd.get('poll') || '').split('\n').map(s => s.trim()).filter(Boolean), c = chan(fd.get('channel'));
+        const team = isStaff() ? { version: fd.get('version') || undefined, starts_at: fd.get('starts_at') || undefined, ends_at: fd.get('ends_at') || undefined, prize: fd.get('prize') || undefined, publish_at: fd.get('publish_at') || undefined, published: fd.get('draft') ? false : undefined } : {};
+        const r = await call('community', Object.assign({ action: 'post', category: c.category, title: fd.get('title'), body: fd.get('body'), image, poll: poll.length ? poll : undefined }, team));
         location.hash = '#/p/' + r.post;
       } catch (err) { say(f, err.message || String(err)); btn.disabled = false; }
     };
   }
-  async function following() {
-    const { data: f } = await sb.from('community_follows').select('followee').eq('follower', me.id);
-    const ids = (f || []).map(x => x.followee); if (!ids.length) { shell('<h2 class="hub-h">Following</h2><p class="muted">Follow keepers from their page to see their posts here.</p>', 'following'); return; }
-    listPosts(q => q.in('author', ids), 'following', 'Following');
+  // ----- support tickets -----
+  async function tickets() {
+    if (!me) { location.href = 'account.html?next=community.html'; return; }
+    const body = shell('tickets', '<p class="muted">Loading...</p>'); title('<b>My tickets</b> <small>Private: only you and support see them</small>');
+    const { data } = await sb.from('support_tickets').select('*').eq('user_id', me.id).order('updated_at', { ascending: false });
+    body.innerHTML = `<div class="lkc-list-head"><a class="btn btn-primary btn-sm" href="#/tickets/new">New ticket</a></div>
+      ${(data || []).map(t => `<a class="lkc-row" href="#/tickets/${t.id}"><span>#${t.id} · ${esc(t.subject)}</span><small class="tk-${t.status}">${TICKET_STATE[t.status]} · ${ago(t.updated_at)}</small></a>`).join('') || '<p class="muted">No tickets. For account, payment or subscription problems, open one: support answers usually within a day.</p>'}`;
   }
-  function route() {
-    const hsh = location.hash.replace(/^#/, '') || '/', m = hsh.match(/^\/(s|p|k)\/([^/]+)$/);
-    if (hsh === '/new') return compose();
-    if (hsh === '/following' && me) return following();
-    if (m && m[1] === 's' && CAT[m[2]]) return listPosts(q => q.eq('category', m[2]), m[2], CAT[m[2]][1]);
-    if (m && m[1] === 'p') return showPost(+m[2]);
-    if (m && m[1] === 'k') return showKeeper(m[2]);
-    return listPosts(q => q, 'all', 'Everything');
+  function newTicket() {
+    if (!me) { location.href = 'account.html?next=community.html'; return; }
+    const body = shell('tickets', ''); title('<b>New ticket</b>');
+    body.innerHTML = `<form class="hub-form card" data-tk><label>What is it about<select name="category">${TICKET_CATS.map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+      <label>Subject<input name="subject" maxlength="120" required></label><label>Describe the problem <small>(what happened, when, on which device; never your password)</small><textarea name="body" rows="7" maxlength="4000" required></textarea></label>
+      <label>A file <small>(optional: a screenshot or a receipt, PNG, JPEG, WebP, PDF or text, up to 5 MB)</small><input name="file" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label>
+      <button class="btn btn-primary" type="submit">Send to support</button></form>`;
+    const f = body.querySelector('[data-tk]');
+    f.onsubmit = async e => { e.preventDefault(); const fd = new FormData(f), btn = f.querySelector('[type=submit]'); btn.disabled = true;
+      try {
+        const { data: t, error } = await sb.from('support_tickets').insert({ user_id: me.id, category: fd.get('category'), subject: String(fd.get('subject')).trim() }).select('id').single(); if (error) throw error;
+        const attachment = await upTicketFile(fd.get('file'));
+        const { error: e2 } = await sb.from('ticket_messages').insert({ ticket_id: t.id, author: me.id, body: String(fd.get('body')).trim(), attachment }); if (e2) throw e2;
+        location.hash = '#/tickets/' + t.id;
+      } catch (err) { say(f, err.message || String(err)); btn.disabled = false; } };
+  }
+  async function upTicketFile(file) {
+    if (!file || !file.size) return null; if (file.size > 5 * 1048576) throw new Error('Use a file under 5 MB.');
+    const ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'application/pdf': 'pdf', 'text/plain': 'txt' })[file.type]; if (!ext) throw new Error('That kind of file can\'t be attached.');
+    const path = `${me.id}/${Date.now().toString(36)}.${ext}`; const up = await sb.storage.from('tickets').upload(path, file, { contentType: file.type }); if (up.error) throw up.error; return path;
+  }
+  async function showTicket(id) {
+    const body = shell('tickets', '<p class="muted">Loading...</p>');
+    const { data: t } = await sb.from('support_tickets').select('*').eq('id', id).maybeSingle(); if (!t) { body.innerHTML = '<p>No such ticket.</p>'; return; }
+    title(`<b>#${t.id} · ${esc(t.subject)}</b>`);
+    const { data: msgs } = await sb.from('ticket_messages').select('*').eq('ticket_id', id).order('created_at'); await people((msgs || []).map(m => m.author));
+    const files = {}; for (const m of msgs || []) if (m.attachment) { const { data: s } = await sb.storage.from('tickets').createSignedUrl(m.attachment, 600); if (s) files[m.id] = s.signedUrl; }
+    body.innerHTML = `<p class="lkc-when">${esc((TICKET_CATS.find(c => c[0] === t.category) || [, t.category])[1])} · <b class="tk-${t.status}">${TICKET_STATE[t.status]}</b> · opened ${day(t.created_at)}</p>
+      ${(msgs || []).map(m => `<div class="card hub-reply${m.author === t.user_id ? '' : ' lkc-staff'}"><div class="lkc-msg plain">${avatar(m.author)}<div><p class="lkc-meta">${m.author === t.user_id ? 'You' : '<b>Lantern Keeper support</b>'} <small>${ago(m.created_at)}</small></p><p class="hub-body">${esc(m.body).replace(/\n/g, '<br>')}</p>${files[m.id] ? `<p><a href="${esc(files[m.id])}" target="_blank" rel="noopener">Attached file</a></p>` : ''}</div></div></div>`).join('')}
+      ${t.status === 'closed' ? '<p class="muted">This ticket is closed.</p><button class="btn btn-ghost btn-sm" data-reopen>Reopen it</button>'
+        : `<form class="hub-form card" data-tr><label>Your reply<textarea name="body" rows="4" maxlength="4000" required></textarea></label><label>A file <small>(optional)</small><input name="file" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label>
+          <div class="hub-actions"><button class="btn btn-primary" type="submit">Send</button><button class="btn btn-ghost" type="button" data-close>It's solved: close the ticket</button></div></form>`}`;
+    const f = body.querySelector('[data-tr]'); if (f) f.onsubmit = async e => { e.preventDefault(); const fd = new FormData(f); try { const attachment = await upTicketFile(fd.get('file')); const { error } = await sb.from('ticket_messages').insert({ ticket_id: id, author: me.id, body: String(fd.get('body')).trim(), attachment }); if (error) throw error; showTicket(id); } catch (err) { say(f, err.message); } };
+    const cl = body.querySelector('[data-close]'); if (cl) cl.onclick = async () => { await sb.from('support_tickets').update({ status: 'closed' }).eq('id', id); showTicket(id); };
+    const ro = body.querySelector('[data-reopen]'); if (ro) ro.onclick = async () => { await sb.from('support_tickets').update({ status: 'open' }).eq('id', id); showTicket(id); };
+  }
+  async function search(q) {
+    const body = shell('', '<p class="muted">Searching...</p>'); title(`<b>Search</b> <small>"${esc(q)}"</small>`);
+    const { data } = await sb.rpc('community_search', { p_q: q });
+    body.innerHTML = (data || []).map(r => r.kind === 'post' ? `<a class="lkc-row" href="#/p/${r.id}"><span>${esc(r.title)}</span><small>${esc((byCat(r.channel) || { name: r.channel }).name)} · ${ago(r.created_at)} · ${esc(r.snippet)}</small></a>`
+      : `<a class="lkc-row" href="#/c/${esc(r.channel)}"><span>#${esc((chan(r.channel) || { name: r.channel }).name)}: ${esc(r.snippet)}</span><small>${ago(r.created_at)}</small></a>`).join('') || '<p class="muted">Nothing found.</p>';
+  }
+  async function following() {
+    const body = shell('following', '<p class="muted">Loading...</p>'); title('<b>Following</b>');
+    const { data: f } = await sb.from('community_follows').select('followee').eq('follower', me.id); const ids = (f || []).map(x => x.followee);
+    if (!ids.length) { body.innerHTML = '<p class="muted">Follow keepers from their page to see their posts here.</p>'; return; }
+    const { data } = await sb.from('community_posts').select('id, title, category, created_at, author, replies').in('author', ids).eq('status', 'visible').order('created_at', { ascending: false }).limit(40); await people(ids);
+    body.innerHTML = (data || []).map(p => `<a class="lkc-row" href="#/p/${p.id}"><span>${esc(p.title)}</span><small>${esc(names.get(p.author).name)} · ${esc((byCat(p.category) || { name: p.category }).name)} · ${ago(p.created_at)}</small></a>`).join('') || '<p class="muted">Nothing from them yet.</p>';
+  }
+  async function route() {
+    setLive(null);
+    const hsh = location.hash.replace(/^#/, '') || '/', path = hsh.split('?')[0];
+    let m;
+    if ((m = path.match(/^\/c\/([a-z0-9-]+)$/)) && chan(m[1])) { const ch = chan(m[1]); if (!canRead(ch)) { shell(ch.id, '<p>This channel is for Supporter Club members. <a href="store.html">Join the Club</a>.</p>'); return; } return ch.kind === 'chat' ? chat(ch) : threads(ch); }
+    if ((m = path.match(/^\/s\/([a-z]+)$/))) { const ch = byCat(m[1]); if (ch) { location.replace('#/c/' + ch.id); return; } } // (links from 0.30)
+    if ((m = path.match(/^\/p\/(\d+)$/))) return showPost(+m[1]);
+    if ((m = path.match(/^\/k\/([0-9a-f-]{36})$/))) return showKeeper(m[1]);
+    if ((m = path.match(/^\/new(?:\/([a-z0-9-]+))?$/))) return compose(m[1]);
+    if (path === '/tickets') return tickets();
+    if (path === '/tickets/new') return newTicket();
+    if ((m = path.match(/^\/tickets\/(\d+)$/))) return showTicket(+m[1]);
+    if ((m = path.match(/^\/search\/(.+)$/))) return search(decodeURIComponent(m[1]));
+    if (path === '/following' && me) return following();
+    return home();
+  }
+  async function startCommunity() {
+    const { data } = await sb.from('community_channels').select('*').order('sort'); channels = data || [];
+    await loadMembers(); await loadNotifications(); heartbeat();
+    route(); window.addEventListener('hashchange', route);
+    setInterval(() => { loadMembers().then(() => { const p = root.querySelector('.lkc-people'); if (p) p.innerHTML = `<p class="lkc-grp">Online now · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 28)}<span>${esc(names.get(m.id).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}`; }); }, 60000);
   }
 
   // ---------- start ----------
   loadMe().then(() => {
     if (PAGE === 'store') renderStore();
     else if (PAGE === 'account') renderAccount();
-    else if (PAGE === 'community') { route(); window.addEventListener('hashchange', route); }
+    else if (PAGE === 'community') startCommunity();
   });
 })();
