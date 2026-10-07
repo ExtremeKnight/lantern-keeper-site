@@ -31,7 +31,7 @@
   <div class="wrap head-in">
     <a class="brand" href="./" aria-label="Lantern Keeper, home"><img src="assets/img/icon-64.png" alt="" width="36" height="36">Lantern Keeper</a>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav"><svg aria-hidden="true"><use href="#i-menu"/></svg><span class="sr-only">Menu</span></button>
-    <nav class="nav" id="site-nav" aria-label="Main"><a href="index.html#features">Features</a><a href="index.html#gallery">Gallery</a><a href="downloads.html">Downloads</a><a href="news.html">News</a><a href="community.html">Community</a><a href="support.html">Support</a><a class="btn btn-primary btn-sm" href="play/"><svg aria-hidden="true"><use href="#i-play"/></svg>Play free</a></nav>
+    <nav class="nav" id="site-nav" aria-label="Main"><a href="index.html#features">Features</a><a href="index.html#gallery">Gallery</a><a href="downloads.html">Downloads</a><a href="news.html">News</a><a href="community.html">Community</a><a href="store.html">Store</a><a href="support.html">Support</a><a href="account.html">Account</a><a class="btn btn-primary btn-sm" href="play/"><svg aria-hidden="true"><use href="#i-play"/></svg>Play free</a></nav>
   </div>
 </header>
 <main id="main">
@@ -47,6 +47,7 @@
     <p>Go back to Lantern Keeper: what you bought is in your account and appears in the game within a few seconds, on
     every device you sign in to. If it doesn't, open Shop &gt; Supporter and press <strong>Check</strong> next to the order,
     or write to <a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a> with your PayPal receipt.</p>
+    <p><a class="btn btn-primary" href="store.html">Back to the store</a> <a class="btn btn-ghost" href="account.html">Your account</a></p>
     <p class="muted">Sold by Shan Patrick V. Cruz (Exenova). Refunds: see the <a href="terms.html">Terms of Service</a>.</p>
   </div>
 </div>
@@ -54,10 +55,18 @@
 // PayPal sends the player here with its order id (token). The store function checks the payment with PayPal itself
 // before giving anything, so this page only asks it to look now instead of waiting for the game to ask.
 (function () {
-  var q = new URLSearchParams(location.search), t = q.get('token'), title = document.getElementById('payTitle'), text = document.getElementById('payText');
+  var API = ((location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) && window.LK_HUB_CFG ? window.LK_HUB_CFG.url : 'https://odnjaegbkudwsfrwnjiy.supabase.co') + '/functions/v1/store'; // (tests: the local server)
+  var q = new URLSearchParams(location.search), t = q.get('token'), sub = q.get('subscription_id'), title = document.getElementById('payTitle'), text = document.getElementById('payText');
   if (q.get('cancelled')) { title.textContent = 'Payment cancelled'; text.textContent = 'Nothing was charged. You can close this page and go back to the game.'; return; }
+  if (sub) { // the Supporter Club by PayPal: the server counts the months PayPal has been paid
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'return', subscription: sub }) })
+      .then(function (r) { return r.json(); })
+      .then(function (b) { if (b.status === 'active') { title.textContent = 'Welcome to the Supporter Club!'; text.textContent = 'Thank you. Your Club things are in your account: go back to the game or the store.'; } else { title.textContent = 'Almost there'; text.textContent = 'PayPal is still confirming your subscription: it is added in a few minutes.'; } })
+      .catch(function () { title.textContent = 'Go back to the game'; text.textContent = 'We could not reach our server from this page, but the game checks your membership itself.'; });
+    return;
+  }
   if (!t) { title.textContent = 'Nothing to finish here'; text.textContent = 'This page is where PayPal sends you after paying for something in Lantern Keeper.'; return; }
-  fetch('https://odnjaegbkudwsfrwnjiy.supabase.co/functions/v1/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'return', token: t }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'return', token: t }) })
     .then(function (r) { return r.json(); })
     .then(function (b) {
       if (b.status === 'paid') { title.textContent = 'Thank you!'; text.textContent = 'Your payment is confirmed. You can close this page and go back to the game.'; }
@@ -79,7 +88,7 @@
       <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li></ul></div>
       <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a></li></ul></div>
     </div>
-    <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site.</span></div>
+    <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site. Signing in keeps your sign-in in this browser; the sign-in form loads hCaptcha's human check.</span></div>
   </div>
 </footer>
 <script src="assets/site.js" defer></script>

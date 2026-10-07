@@ -10,7 +10,8 @@
 const path = require('path'), fs = require('fs'), { spawn } = require('child_process');
 const pw = require(process.env.LK_PLAYWRIGHT || path.join(__dirname, '..', '..', 'lantern-keeper', 'node_modules', 'playwright'));
 const PORT = 8731 + Math.floor(Math.random() * 50), BASE = `http://localhost:${PORT}/`;
-const PAGES = ['', 'downloads.html', 'news.html', 'support.html', 'privacy-policy.html', 'terms.html'];
+const PAGES = ['', 'downloads.html', 'news.html', 'support.html', 'privacy-policy.html', 'terms.html', 'store.html', 'community.html', 'account.html']; // (0.30: the hub's pages too)
+const NFILES = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'downloads.json'), 'utf8')).files.length; // (0.30: 13 downloads)
 const WIDTHS = [[360, 740], [390, 844], [768, 1024], [1280, 800], [1920, 1080]];
 let pass = 0, fail = 0;
 const report = (name, ok, info) => { ok ? pass++ : fail++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '\n        ' + JSON.stringify(info).slice(0, 1200)}`); };
@@ -32,7 +33,7 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
     const links = new Set();
     for (const pg of PAGES) for (const [w, h] of WIDTHS) {
       const ctx = await b.newContext({ viewport: { width: w, height: h }, reducedMotion: 'reduce' }), p = await ctx.newPage(), errs = [], bad = [];
-      p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+      p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type() === 'error' && !/localhost detected/.test(m.text())) errs.push(m.text()); }); // (hCaptcha warns on localhost only)
       p.on('response', r => { if (r.status() >= 400 && r.url().startsWith(BASE)) bad.push(r.status() + ' ' + r.url()); }); p.on('requestfailed', r => { if (r.url().startsWith(BASE)) bad.push('failed ' + r.url()); });
       await p.goto(BASE + pg, { waitUntil: 'networkidle' });
       await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 600) { scrollTo(0, y); await new Promise(r => setTimeout(r, 30)); } scrollTo(0, 0); });
@@ -61,7 +62,7 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
     // links inside the site (and their #anchors)
     const internal = [...links].filter(l => l.startsWith(BASE)), dead = [];
     for (const l of internal) { const [u, hash] = l.split('#'); const res = await fetch(u); if (!res.ok) { dead.push(res.status + ' ' + l); continue; }
-      if (hash && /\.html$|\/$/.test(u) && !/^(features|gallery|platforms|windows|macos|linux|android|iphone-and-ipad|main|top)$/.test(hash)) { const t = await res.text(); let ok = t.includes(`id="${hash}"`);
+      if (hash && !hash.startsWith('/') && /\.html$|\/$/.test(u) && !/^(features|gallery|platforms|windows|macos|linux|android|iphone-and-ipad|main|top)$/.test(hash)) { const t = await res.text(); let ok = t.includes(`id="${hash}"`);
         if (!ok && /news\.html$/.test(u) && /^v\d/.test(hash)) { const nj = await (await fetch(u.replace(/news\.html$/, 'news.json'))).json(); ok = nj.items.some(it => 'v' + it.version.replace(/\./g, '-') === hash); } // (a version's entry is drawn from news.json)
         if (!ok) dead.push('no #' + hash + ' in ' + u); } }
     report(`every link inside the site works (${internal.length} links)`, !dead.length, dead);
@@ -91,7 +92,7 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
       const r = await p.evaluate(() => ({ rec: document.querySelector('.rec a').getAttribute('href'), title: document.querySelector('.rec h2').textContent, groups: [...document.querySelectorAll('.dl-group[id]')].map(g => g.id).join(), compat: document.querySelectorAll('.compat tbody tr').length, badges: document.querySelectorAll('.dl .status').length, facts: document.querySelectorAll('.dl .dl-facts').length, all: !!document.querySelector('.rec a[href$="#all-downloads"]'), prev: !!document.querySelector('[data-previous] p, [data-previous] li'), files: document.querySelectorAll('.dl').length, sums: document.querySelectorAll('[data-copy]').length }));
       const home = await (async () => { await p.goto(BASE); return p.evaluate(() => { const a = document.querySelector('[data-download-cta]'); return a.textContent.trim() + ' -> ' + a.getAttribute('href'); }); })();
       report(`downloads for ${dev}: recommends ${want[dev]}, lists every platform with checksums, and the home page's button says so (${home})`,
-        r.rec.endsWith(want[dev]) && r.groups === 'windows,macos,linux,android,iphone-and-ipad,older-systems,compatibility,previous-versions' && r.compat >= 10 && r.badges === 9 && r.facts === 9 && r.all && r.prev && r.files === 9 && r.sums === 9 && /downloads\.html#/.test(home), Object.assign({ home }, r));
+        r.rec.endsWith(want[dev]) && r.groups === 'windows,macos,linux,android,iphone-and-ipad,older-systems,compatibility,previous-versions' && r.compat >= 10 && r.badges === 9 && r.facts === NFILES && r.all && r.prev && r.files === NFILES && r.sums === NFILES && /downloads\.html#/.test(home), Object.assign({ home }, r));
       await ctx.close();
     }
     // news, the 404 page

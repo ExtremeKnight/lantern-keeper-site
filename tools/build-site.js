@@ -52,7 +52,7 @@ const ICONS = {
 };
 const sprite = () => `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</defs></svg>`;
 
-const NAV = [['index.html#features', 'Features', 'features'], ['index.html#gallery', 'Gallery', 'gallery'], ['downloads.html', 'Downloads', 'downloads'], ['news.html', 'News', 'news'], ['community.html', 'Community', 'community'], ['support.html', 'Support', 'support']];
+const NAV = [['index.html#features', 'Features', 'features'], ['index.html#gallery', 'Gallery', 'gallery'], ['downloads.html', 'Downloads', 'downloads'], ['news.html', 'News', 'news'], ['community.html', 'Community', 'community'], ['store.html', 'Store', 'store'], ['support.html', 'Support', 'support'], ['account.html', 'Account', 'account']];
 
 function layout(meta, body) {
   const url = SITE + (meta.path === 'index.html' ? '' : meta.path), img = SITE + (meta.image || 'assets/img/og.png');
@@ -110,7 +110,7 @@ ${body.trim()}
       <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li></ul></div>
       <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a></li></ul></div>
     </div>
-    <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site.</span></div>
+    <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site. Signing in keeps your sign-in in this browser; the sign-in form loads hCaptcha's human check.</span></div>
   </div>
 </footer>
 <script src="assets/site.js" defer></script>
