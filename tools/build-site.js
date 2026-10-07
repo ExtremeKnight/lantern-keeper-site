@@ -65,7 +65,7 @@ function layout(meta, body) {
 <meta charset="utf-8">${meta.base ? `
 <base href="${meta.base}">` : ""}
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${esc(title)}</title>
+<title>${esc(title)}</title>${meta.noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta name="description" content="${esc(meta.description)}">
 <link rel="canonical" href="${url}">
 <meta name="theme-color" content="#0a0f24">
@@ -129,7 +129,7 @@ for (const f of fs.readdirSync(PAGES).filter(f => f.endsWith('.html'))) {
 }
 // the sitemap (every page except the 404)
 const today = new Date().toISOString().slice(0, 10);
-fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${built.filter(b => b.path !== '404.html').map(b => `  <url><loc>${SITE}${b.path === 'index.html' ? '' : b.path}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n  <url><loc>${SITE}play/</loc><lastmod>${today}</lastmod></url>\n</urlset>\n`);
+fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${built.filter(b => b.path !== '404.html' && !b.noindex).map(b => `  <url><loc>${SITE}${b.path === 'index.html' ? '' : b.path}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n  <url><loc>${SITE}play/</loc><lastmod>${today}</lastmod></url>\n</urlset>\n`);
 // 0.29: news feeds (RSS 2.0 and Atom) from news.json, for feed readers
 const xml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const news = JSON.parse(fs.readFileSync(path.join(ROOT, 'news.json'), 'utf8')).items.slice(0, 30);

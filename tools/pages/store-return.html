@@ -1,0 +1,33 @@
+<!--{"title": "Payment", "description": "Finishing a Lantern Keeper purchase made with PayPal.", "nav": "", "path": "store-return.html", "noindex": true}-->
+<div class="page-head">
+  <div class="wrap">
+    <span class="kicker">Lantern Keeper store</span>
+    <h1 id="payTitle">Finishing your payment...</h1>
+    <p id="payText">One moment: we are confirming it with PayPal.</p>
+  </div>
+</div>
+<div class="page">
+  <div class="wrap prose">
+    <p>Go back to Lantern Keeper: what you bought is in your account and appears in the game within a few seconds, on
+    every device you sign in to. If it doesn't, open Shop &gt; Supporter and press <strong>Check</strong> next to the order,
+    or write to <a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a> with your PayPal receipt.</p>
+    <p class="muted">Sold by Shan Patrick V. Cruz (Exenova). Refunds: see the <a href="terms.html">Terms of Service</a>.</p>
+  </div>
+</div>
+<script>
+// PayPal sends the player here with its order id (token). The store function checks the payment with PayPal itself
+// before giving anything, so this page only asks it to look now instead of waiting for the game to ask.
+(function () {
+  var q = new URLSearchParams(location.search), t = q.get('token'), title = document.getElementById('payTitle'), text = document.getElementById('payText');
+  if (q.get('cancelled')) { title.textContent = 'Payment cancelled'; text.textContent = 'Nothing was charged. You can close this page and go back to the game.'; return; }
+  if (!t) { title.textContent = 'Nothing to finish here'; text.textContent = 'This page is where PayPal sends you after paying for something in Lantern Keeper.'; return; }
+  fetch('https://odnjaegbkudwsfrwnjiy.supabase.co/functions/v1/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'return', token: t }) })
+    .then(function (r) { return r.json(); })
+    .then(function (b) {
+      if (b.status === 'paid') { title.textContent = 'Thank you!'; text.textContent = 'Your payment is confirmed. You can close this page and go back to the game.'; }
+      else if (b.status === 'pending') { title.textContent = 'Payment received'; text.textContent = 'PayPal is still checking it: it is added to your account as soon as PayPal confirms it.'; }
+      else { title.textContent = 'Not confirmed yet'; text.textContent = 'Go back to the game: it keeps checking. If you were charged and nothing arrives within an hour, write to us.'; }
+    })
+    .catch(function () { title.textContent = 'Go back to the game'; text.textContent = 'We could not reach our server from this page, but the game checks your payment itself.'; });
+})();
+</script>
