@@ -235,7 +235,8 @@
     const [{ data }, roles] = await Promise.all([sb.from('profiles').select('id, display_name, show_profile').in('id', need), Promise.all(need.map(id => sb.rpc('roles_of', { p_user: id }).then(r => [id, r.data || []])))]);
     const rm = new Map(roles); for (const id of need) { const p = (data || []).find(x => x.id === id); names.set(id, { name: p && p.show_profile ? p.display_name : 'A keeper', shown: !!(p && p.show_profile), roles: rm.get(id) || [] }); }
   }
-  const who = id => { const n = names.get(id) || { name: 'A keeper', roles: [] }; return n.shown ? `<a href="#/k/${id}" class="hub-who">${esc(n.name)}</a> ${roleChips(n.roles)}` : `<span class="hub-who">${esc(n.name)}</span> ${roleChips(n.roles)}`; };
+  const who = id => { const n = names.get(id) || { name: 'A keeper', roles: [] }; const team = (n.roles || []).filter(r => ['owner', 'developer', 'moderator'].includes(r)); // (a hidden profile shows only staff roles: never whether someone paid)
+    return n.shown ? `<a href="#/k/${id}" class="hub-who">${esc(n.name)}</a> ${roleChips(n.roles)}` : `<span class="hub-who">${esc(n.name)}</span> ${roleChips(team)}`; };
   const pubUrl = path => `${CFG.url}/storage/v1/object/public/community/${path}`;
   const textHtml = (t, team) => esc(t).replace(/\n/g, '<br>').replace(team ? /(https:\/\/[^\s<]+)/g : /$^/, '<a href="$1" rel="noopener nofollow" target="_blank">$1</a>');
   function shell(inner, active) {

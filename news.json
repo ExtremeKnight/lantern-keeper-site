@@ -1,6 +1,81 @@
 {
-  "latest": "0.29.0",
+  "latest": "0.30.0",
   "items": [
+    {
+      "version": "0.30",
+      "date": "2026-10-07",
+      "title": "A home for keepers: notifications, a store, the Supporter Club and the community",
+      "summary": "The website becomes the home of Lantern Keeper: a store, your account and a community with news and devlogs from the team. Plus the Supporter Club, supporter packs, a Notification Center, emails you choose, Bazaar gates that open one at a time, a faster start and stronger fair play.",
+      "notes": [
+        {
+          "h": "The website is home",
+          "items": [
+            "Sign in on the website with your game account: your profile, supporter status, purchases and email choices.",
+            "The community: news, development updates, the roadmap and devlogs from the team; feedback, bug reports, feature requests, artwork and screenshots from keepers, with pictures, polls, reactions and follows.",
+            "The store on the website: everything the game sells, with PayPal, cards, GCash or bank transfer."
+          ]
+        },
+        {
+          "h": "Supporters and the Supporter Club",
+          "items": [
+            "Starter, Dedicated and Founder supporter packs with Lumens, looks, frames, badges and titles.",
+            "The Supporter Club, monthly: a new lantern each month to keep, the Club frame, badge and title, and the Supporter Lounge.",
+            "Everything sold is looks and recognition only: it never makes anyone stronger."
+          ]
+        },
+        {
+          "h": "Notifications",
+          "items": [
+            "The bell on the home screen: announcements, friend requests, invitations, challenges, achievements and festivals in one list, each shown once.",
+            "Choose which kinds appear and pop up in Settings > Notifications. Important notices always show.",
+            "Notifications while the game is in the background on computers and in browsers, and push notifications on Android, if you turn them on."
+          ]
+        },
+        {
+          "h": "Emails you choose",
+          "items": [
+            "Patch notes and updates, events, a daily \"From friends\" round-up of what you missed, and promotions for players 18 and over: each one off unless you turn it on in Settings > Account > Emails.",
+            "Every email has a one-click link that stops just that kind."
+          ]
+        },
+        {
+          "h": "Web store",
+          "items": [
+            "Lumen packs and the Supporter Pack on Windows, Mac, Linux, the web version and the Android app from this website.",
+            "Pay with PayPal or a card, or with GCash (scan the QR code) or a bank transfer. Prices in pesos in the Philippines and US dollars everywhere else.",
+            "Everything sold is cosmetic: it never makes you stronger."
+          ]
+        },
+        {
+          "h": "Lantern Bazaar",
+          "items": [
+            "The district gates now open one at a time, each with its own task, so every keeper earns them the same way.",
+            "The townsfolk, the trees and the street lamps are finally out in the street."
+          ]
+        },
+        {
+          "h": "Fair play and a faster start",
+          "items": [
+            "The server checks more of every save: nights, bosses, creatures, regions and achievements can only grow as fast as real play allows.",
+            "A save changed outside the game is never sent to your account.",
+            "The game starts faster in the web version and the desktop app, about half the time from the third launch."
+          ]
+        },
+        {
+          "h": "More platforms",
+          "items": [
+            "A 32-bit Windows installer, Linux on ARM64 (Raspberry Pi 4 and 5), and older browsers such as Firefox ESR 115."
+          ]
+        },
+        {
+          "h": "Your choices",
+          "items": [
+            "Anonymous gameplay statistics, only if you agree, help us find what to improve. Never your name, email or account.",
+            "Privacy Policy 3.0 and Terms 1.6 explain all of the above."
+          ]
+        }
+      ]
+    },
     {
       "version": "0.29",
       "date": "2026-10-02",
