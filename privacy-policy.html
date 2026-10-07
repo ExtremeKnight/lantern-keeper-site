@@ -91,6 +91,9 @@
     <tr><td data-label="What"><strong>Email choices</strong> (from game version 0.30): which optional emails you want: patch notes and updates, events, messages from friends you missed, and promotions (adults only). All are off unless you turn them on</td>
         <td data-label="Why">To send only the emails you chose (consent, which you can withdraw at any time)</td>
         <td data-label="How long">Until you change them or delete the account</td></tr>
+<tr><td data-label="What"><strong>Push notifications</strong> (Android app, from game version 0.30, only if you turn them on): your phone's push token (a code from Google's Firebase that lets us send to that phone), the kinds of notice the phone shows, and when it was last seen; a record of each push sent, skipped or failed (the kind, when and to which account; not the message)</td>
+        <td data-label="Why">To send friend requests, party invitations and important announcements to your phone while the game is closed (consent: you can turn it off in Settings &gt; Notifications or in Android's settings)</td>
+        <td data-label="How long">The token: until you turn push off, sign out, or Firebase says the phone no longer takes it. The record: 90 days</td></tr>
     <tr><td data-label="What"><strong>Profile choices:</strong> title, avatar, frame, banner and your privacy settings</td>
         <td data-label="Why">To show your profile the way you set it</td>
         <td data-label="How long">Until you delete the account</td></tr>
@@ -204,6 +207,9 @@
     <li><strong>Supabase</strong> hosts the accounts database, sign-in and the save service. Data may be stored or processed in a
     country other than yours; it is encrypted in transit and at rest.</li>
     <li><strong>Google Play</strong> handles payments in the Google Play version of the app and tells our server whether a purchase is genuine.</li>
+    <li><strong>Google Firebase Cloud Messaging</strong> delivers push notifications to the Android app, if you turned them on:
+    it receives your phone's push token and the notice (for example "Keeper wants to be friends"), under
+    <a href="https://firebase.google.com/support/privacy">Google's Firebase privacy terms</a>.</li>
     <li><strong>PayPal</strong> handles payments in our web store (from game version 0.30): it receives what you enter on its
     checkout page, and tells our server the order's amount and whether it was paid or refunded, under
     <a href="https://www.paypal.com/myaccount/privacy/privacyhub">its own privacy statement</a>.</li>
@@ -286,6 +292,8 @@
     <li><strong>Internet</strong>: for signing in, cloud saves, purchases and co-op.</li>
     <li><strong>Camera</strong> (optional): only to scan a co-op pairing QR code. Images are processed on your device and are never saved or sent. You can paste codes instead.</li>
     <li><strong>Vibration</strong>: for haptic feedback, which you can turn off in Settings.</li>
+    <li><strong>Notifications</strong> (optional, from game version 0.30): asked only when you turn on push notifications in
+    Settings &gt; Notifications. Android asks you to allow them; you can turn them off there or in Android's settings.</li>
     <li><strong>Game controllers</strong>: read only while the game is open, to play with them. Nothing about them is sent to us.</li>
   </ul>
 
@@ -307,7 +315,8 @@
   report, and adds duel requests (with who may send them), friends seeing what you are doing, and what the co-op lobby shows;
   version 3.0 (game version 0.30) adds anonymous gameplay statistics and feedback (only if you agree), the Notification
   Center, email choices by category with promotions for adults only, the save's check value, our web store (PayPal,
-  GCash and bank transfers) and its records, and names Brevo, PayPal and is-local.host, which provides the website's
+  GCash and bank transfers) and its records, push notifications on the Android app, and names Brevo, PayPal, Google
+  Firebase Cloud Messaging and is-local.host, which provides the website's
   address.</p>
   <p>Questions or requests: <strong>Shan Patrick V. Cruz (Exenova)</strong>, <a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a>.</p>
   <p class="muted">See also the <a href="terms.html">Terms of Service</a>.</p>
