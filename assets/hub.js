@@ -140,7 +140,7 @@
       <h2 class="hub-h">Supporter packs</h2><div class="cards hub-grid">${store.products.filter(p => p.kind === 'pack').map(card).join('')}</div>
       <h2 class="hub-h">Lumens</h2><p class="muted">Lumens buy looks in the game's shop. They never buy strength.</p><div class="cards hub-grid hub-grid-4">${store.products.filter(p => p.kind === 'lumens').map(card).join('')}</div>
       ${me && store.orders.length ? `<h2 class="hub-h">Your orders</h2><div class="hub-orders">${store.orders.map(orderRow).join('')}</div>` : ''}
-      <p class="muted small">Sold by Shan Patrick V. Cruz (Exenova). Pay with PayPal (a PayPal account or a card) or GCash and bank transfer. Everything goes to your account, in the game on every device. Refunds within 14 days: see the <a href="terms.html#4a-refunds">Terms</a>. If you are under 18, ask a parent before buying.</p>`;
+      <p class="muted small">Sold by Exenova. Pay with PayPal (a PayPal account or a card) or GCash and bank transfer. Everything goes to your account, in the game on every device. Refunds within 14 days: see the <a href="terms.html#4a-refunds">Terms</a>. If you are under 18, ask a parent before buying.</p>`;
     for (const b of root.querySelectorAll('[data-cur]')) b.onclick = () => { store.setCur(b.dataset.cur); renderStore(); };
     for (const b of root.querySelectorAll('[data-buy]')) b.onclick = () => buy(store.products.find(p => p.sku === b.dataset.buy));
     const j = root.querySelector('[data-club]'); if (j) j.onclick = () => joinClub();
@@ -153,7 +153,7 @@
     const cur = store.cur(), manual = store.settings && store.settings.manual_on;
     modal(`<h2>${esc(p.label)}: ${store.price(p, cur)}</h2><p>${p.kind === 'club' ? 'One month in the Supporter Club (it does not renew by itself).' : p.kind === 'lumens' ? `${Number(p.lumens).toLocaleString()} Lumens for your account.` : esc(p.blurb)}</p>
       <div class="hub-actions">${p.kind !== 'club' ? '<button class="btn btn-primary" data-pp>PayPal or card</button>' : ''}${manual ? `<button class="btn ${p.kind === 'club' ? 'btn-primary' : 'btn-ghost'}" data-gc>GCash or bank transfer${cur === 'PHP' ? '' : ' (pesos)'}</button>` : ''}</div>
-      <p class="muted small">Sold by Shan Patrick V. Cruz (Exenova). After paying with PayPal you come back here and it is added in a few seconds.</p>`, (d, close) => {
+      <p class="muted small">Sold by Exenova. After paying with PayPal you come back here and it is added in a few seconds.</p>`, (d, close) => {
       const pp = d.querySelector('[data-pp]'); if (pp) pp.onclick = async () => { pp.disabled = true; try { const r = await call('store', { action: 'create', sku: p.sku, currency: cur }); location.href = r.approve; } catch (e) { say(d, e.message); pp.disabled = false; } };
       const gc = d.querySelector('[data-gc]'); if (gc) gc.onclick = () => { close(); gcash(p); };
     });
