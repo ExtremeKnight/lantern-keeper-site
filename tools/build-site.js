@@ -152,5 +152,12 @@ ${news.map(it => `<entry><title>${xml(it.version + ': ' + it.title)}</title><id>
 // the email design, for the dashboard's previews (0.30.1): copied from the game repo next to this one, when it is there
 { const SHARED = path.join(ROOT, '..', 'lantern-keeper', 'supabase', 'functions', '_shared'), OUTE = path.join(ROOT, 'assets', 'email', 'js');
   if (fs.existsSync(SHARED)) { fs.mkdirSync(OUTE, { recursive: true }); for (const f of ['email-layout.js', 'email-render.js', 'email-templates.js']) fs.copyFileSync(path.join(SHARED, f), path.join(OUTE, f)); } }
+// 0.30.1: every stylesheet and script is loaded with a fingerprint of its content (?v=...), so a phone or browser that
+// kept an old copy takes the new one at once after a release; the language files follow the same fingerprint
+{ const crypto = require('crypto'), fp = f => { try { return crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, f))).digest('hex').slice(0, 10); } catch (e) { return ''; } };
+  const langDir = path.join(ROOT, 'assets', 'i18n'), langFp = fs.existsSync(langDir) ? crypto.createHash('sha256').update(fs.readdirSync(langDir).sort().map(f => fs.readFileSync(path.join(langDir, f), 'utf8')).join('')).digest('hex').slice(0, 10) : '';
+  for (const b of built) { const f = path.join(ROOT, b.path); let h = fs.readFileSync(f, 'utf8');
+    h = h.replace(/(src|href)="(assets\/[^"?#]+\.(?:js|css))"/g, (m, a, u) => { const v = u === 'assets/i18n.js' ? fp(u) + langFp : fp(u); return v ? `${a}="${u}?v=${v}"` : m; });
+    fs.writeFileSync(f, h); } }
 fs.writeFileSync(path.join(ROOT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE}sitemap.xml\n`);
 console.log('built ' + built.map(b => b.path).join(', ') + ', sitemap.xml, robots.txt, feed.xml, atom.xml');

@@ -7,6 +7,7 @@
 (function () {
   'use strict';
   const LANGS = [['en', 'English'], ['fil', 'Filipino'], ['es', 'Español'], ['pt-BR', 'Português (Brasil)'], ['id', 'Bahasa Indonesia'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '简体中文']]; // (more languages are added by translating assets/i18n/en.json: tools/i18n-merge.js)
+  const VER = ((document.currentScript && document.currentScript.src || '').match(/[?&]v=([0-9a-f]+)/) || [])[1] || ''; // (the page's fingerprint: a new release loads new language files)
   const CFG = { url: 'https://odnjaegbkudwsfrwnjiy.supabase.co', key: 'sb_publishable_IUdpT3MRtokyJD3SsNNF0Q_eZAovpor' };
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && window.LK_HUB_CFG) Object.assign(CFG, window.LK_HUB_CFG); // (tests)
   const LEGAL = /(terms|privacy-policy)\.html$/.test(location.pathname), COLLECT = !!window.LK_I18N_COLLECT;
@@ -72,7 +73,7 @@
     if (lang !== 'en') {
       // the shipped file first; the team's changes (dashboard) when they arrive, then the page is translated again
       const over = fetch(`${CFG.url}/rest/v1/translations?select=key,value&lang=eq.${encodeURIComponent(lang)}`, { headers: { apikey: CFG.key } }).then(r => r.ok ? r.json() : [], () => []);
-      const file = await fetch(`assets/i18n/${lang}.json`).then(r => r.ok ? r.json() : {}, () => ({}));
+      const file = await fetch(`assets/i18n/${lang}.json${VER ? '?v=' + VER : ''}`).then(r => r.ok ? r.json() : {}, () => ({}));
       dict = {}; for (const [k, v] of Object.entries(file)) dict[norm(k)] = v;
       over.then(list => { if (!list.length) return; for (const o of list) dict[norm(o.key)] = o.value; ver++; walk(document.body); });
     }
