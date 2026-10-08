@@ -29,7 +29,7 @@ window.LKAdmin = function (root, A) {
     ['overview', 'Overview', ['dashboard.open'], overview], ['payments', 'Payments', ['payments.view', 'payments.settings'], payments], ['subs', 'Subscriptions', ['subs.view'], subs],
     ['tickets', 'Tickets', ['tickets.handle'], tickets], ['moderation', 'Reports and mutes', ['moderation'], moderation], ['people', 'People and roles', ['people.view'], peoplePage],
     ['perms', 'Permissions', ['perms.manage'], permsPage], ['site', 'Website', ['site.edit', 'site.settings'], sitePage],
-    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['content', 'Notices (old)', ['site.edit'], content],
+    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['switches', 'Game switches', ['game.switches'], switchesPage], ['content', 'Notices (old)', ['site.edit'], content],
     ['faq', 'FAQ and chatbot', ['faq.edit'], faq], ['store', 'Products and prices', ['prices.edit', 'payments.settings'], store], ['emails', 'Email templates', ['emails.templates', 'emails.approve'], emails],
     ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
   ].filter(s => can(...s[2]));
@@ -239,6 +239,28 @@ window.LKAdmin = function (root, A) {
     for (const b of el.querySelectorAll('[data-wipe]')) b.onclick = () => confirmBox(`Reset ${esc(b.dataset.wipe)}?`, '<p>Every change made on this page goes, and it looks as designed again. Each one stays in the history, so it can be brought back.</p>', async () => { const { error: e2 } = await sb.from('site_edits').delete().eq('page', b.dataset.wipe); if (e2) throw e2; route(); }, 'Reset');
     for (const b of el.querySelectorAll('[data-undo]')) b.onclick = () => { const x = log.find(y => y.id === +b.dataset.undo); confirmBox('Undo this change?', `<p>${x.before ? 'It goes back to what it was before.' : 'It is taken off again.'}</p>`, async () => {
       const q = x.before ? await sb.from('site_edits').upsert({ page: x.page, key: x.key, lang: x.lang, kind: x.kind, value: x.before }) : await sb.from('site_edits').delete().eq('page', x.page).eq('key', x.key).eq('lang', x.lang); if (q.error) throw q.error; route(); }, 'Undo'); };
+  }
+
+  // ---------- game switches: a part of the game off for a while, a message on every player's home screen ----------
+  const SW_NAMES = { notice: 'Message on the home screen', coop: 'Co-op', pvp: 'PvP', bazaar: 'The Bazaar', store: 'The store (Lumens and packs)', trade: 'Trading' };
+  async function switchesPage(el) {
+    const { data, error } = await sb.from('game_switches').select('*'); if (error) throw error;
+    const rows = ['notice', 'coop', 'pvp', 'bazaar', 'store', 'trade'].map(k => (data || []).find(s => s.key === k)).filter(Boolean);
+    await people(rows.map(s => s.updated_by));
+    el.innerHTML = head('Game switches', 'Turn a part of the game off for every player for a while (its button explains why), or show a short message on every home screen. Players see a change within five minutes; nothing already running is stopped. Works without a new release.')
+      + `<div class="adm-table">${rows.map(s => `<div class="adm-row adm-permrow"><span><b>${esc(SW_NAMES[s.key])}</b><br><small>${s.updated_by ? 'changed ' + ago(s.updated_at) + ' by ' + nm(s.updated_by) : 'never changed'}</small>
+        <input data-swmsg="${s.key}" maxlength="300" value="${esc(s.message || '')}" placeholder="${s.key === 'notice' ? 'The message, e.g. Maintenance at 22:00 (UTC), about 30 minutes' : 'Why it is off (optional)'}" aria-label="${esc(SW_NAMES[s.key])}: message" style="width:100%;margin-top:6px"></span>
+        <label class="hub-check"><input type="checkbox" data-swon="${s.key}" ${s.on ? 'checked' : ''}> ${s.key === 'notice' ? 'Shown' : 'Available'}</label></div>`).join('')}</div>
+      <p><button class="btn btn-primary btn-sm" data-swsave>Review and save</button></p>`;
+    el.querySelector('[data-swsave]').onclick = () => {
+      const next = rows.map(s => ({ key: s.key, on: el.querySelector(`[data-swon="${s.key}"]`).checked, message: el.querySelector(`[data-swmsg="${s.key}"]`).value.trim() }));
+      const changed = next.filter(n => { const o = rows.find(s => s.key === n.key); return o.on !== n.on || (o.message || '') !== n.message; });
+      if (!changed.length) return modal('<h2>Nothing changed</h2>');
+      if (changed.some(n => n.key === 'notice' && n.on && !n.message)) return modal('<h2>The message needs its text</h2><p>Write what players should read on the home screen.</p>');
+      confirmBox('Change this for every player?', `<ul>${changed.map(n => `<li><b>${esc(SW_NAMES[n.key])}</b>: ${n.key === 'notice' ? (n.on ? 'shown' : 'hidden') : (n.on ? 'available' : '<b>OFF</b>')}${n.message ? ` ("${esc(n.message)}")` : ''}</li>`).join('')}</ul>`, async () => {
+        for (const n of changed) { const { error: e2 } = await sb.from('game_switches').update({ on: n.on, message: n.message }).eq('key', n.key); if (e2) throw e2; }
+        route(); }, 'Change');
+    };
   }
 
   // ---------- posts: news, devlogs (by version), events, giveaways; drafts and schedules ----------
