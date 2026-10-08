@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Header preview</title>
+<link rel="stylesheet" href="../../assets/site.css">
+<style>
+/* ---------- proposed header (preview only) ---------- */
+.ph { position: sticky; top: 0; z-index: 50; background: rgba(10,15,36,.94); border-bottom: 1px solid var(--line); }
+.ph-in { display: flex; align-items: center; gap: 14px; min-height: 68px; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--pad); }
+.ph .brand { flex: none; }
+.ph-nav { display: flex; align-items: center; gap: 2px; margin-left: 18px; min-width: 0; }
+.ph-nav a, .ph-more > button { padding: 8px 12px; border-radius: 10px; color: var(--muted); text-decoration: none; font: 600 .98rem var(--body); white-space: nowrap; background: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.ph-nav a:hover, .ph-more > button:hover { color: var(--text); background: var(--surface); }
+.ph-nav a.on { color: var(--gold); }
+.ph-more { position: relative; }
+.ph-more .chev { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+.ph-chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface); color: var(--text); font: 700 .88rem var(--body); cursor: pointer; }
+.ph-chip:hover { border-color: var(--gold); }
+.ph-chip .globe { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--gold); position: relative; }
+.ph-chip .globe::before { content: ""; position: absolute; inset: 2px 5px; border-left: 2px solid var(--gold); border-right: 2px solid var(--gold); border-radius: 50%; }
+.ph-chip small { color: var(--dim); font-weight: 600; }
+.ph-icon { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface); display: grid; place-items: center; color: var(--text); }
+.ph-icon svg { width: 20px; height: 20px; }
+.ph-cta { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 14px; background: linear-gradient(180deg, var(--gold), var(--gold2)); color: #1d1405; font: 400 1.15rem var(--display); text-decoration: none; box-shadow: 0 6px 22px rgba(255,185,56,.35); white-space: nowrap; }
+.ph-menu { display: none; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface); color: var(--text); place-items: center; }
+/* the popovers: the game's panel look */
+.pop { position: absolute; top: calc(100% + 8px); right: 0; width: 300px; background: #121a3a; border: 1px solid var(--line2); border-top: 3px solid var(--gold); border-radius: 16px; box-shadow: var(--shadow); padding: 14px; z-index: 60; }
+.pop h4 { margin: 2px 4px 10px; font: 400 1.25rem var(--display); color: var(--gold); letter-spacing: .5px; }
+.pop .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pop .opt { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 9px 10px; border-radius: 10px; color: var(--text); font: 600 .92rem var(--body); border: 1px solid transparent; }
+.pop .opt:hover { background: var(--surface2); }
+.pop .opt.on { border-color: var(--gold); background: rgba(255,207,102,.08); color: var(--gold); }
+.pop .opt.on::after { content: "✓"; font-weight: 800; }
+.pop .sep { height: 1px; background: var(--line); margin: 12px 2px; }
+.pop .cur { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pop .cur .opt { justify-content: center; flex-direction: column; gap: 0; padding: 8px 4px; }
+.pop .cur .opt b { font: 400 1.2rem var(--display); }
+.pop .cur .opt small { color: var(--dim); font-size: .72rem; }
+.pop .cur .opt.on::after { display: none; }
+.pop .note { margin: 10px 4px 0; color: var(--dim); font-size: .78rem; }
+.more-pop { left: 0; right: auto; width: 240px; }
+.more-pop a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 600; }
+.more-pop a:hover { background: var(--surface2); }
+.more-pop a small { display: block; color: var(--dim); font-weight: 400; font-size: .8rem; }
+/* phone and tablet */
+.drawer { display: none; }
+@media (max-width: 1080px) {
+  .ph-nav, .ph-right .ph-chip, .ph-right .ph-icon { display: none; }
+  .ph-menu { display: grid; }
+  .ph-cta { height: 40px; padding: 0 14px; font-size: 1.05rem; }
+  .drawer.open { display: block; position: fixed; inset: 0; z-index: 70; background: rgba(5,8,20,.6); }
+  .drawer .panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(88vw, 360px); background: #0d1430; border-left: 1px solid var(--line2); padding: 18px 16px; overflow-y: auto; }
+  .drawer .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .drawer .grp { margin: 16px 6px 6px; font: 700 .72rem var(--body); letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+  .drawer a.it { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; color: var(--text); text-decoration: none; font: 600 1.02rem var(--body); }
+  .drawer a.it.on { background: var(--surface); color: var(--gold); }
+  .drawer .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 6px; }
+  .drawer .chips span { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line2); color: var(--text); font: 600 .9rem var(--body); }
+  .drawer .chips span.on { border-color: var(--gold); color: var(--gold); background: rgba(255,207,102,.08); }
+}
+@media (max-width: 420px) { .brand span { display: none; } }
+.stage { padding: 40px var(--pad); max-width: var(--wrap); margin: 0 auto; }
+.stage h1 { font-size: clamp(2.2rem, 6vw, 4.2rem); }
+</style>
+</head>
+<body>
+<header class="ph"><div class="ph-in">
+  <a class="brand" href="#"><img src="../../assets/img/icon-64.png" alt="" width="36" height="36"><span>Lantern Keeper</span></a>
+  <nav class="ph-nav" aria-label="Main">
+    <a href="#" data-k="community" class="on">Community</a><a href="#" data-k="news">News</a><a href="#" data-k="store">Store</a><a href="#" data-k="downloads">Downloads</a>
+    <div class="ph-more"><button type="button" data-k="more">More <i class="chev"></i></button>
+      <div class="pop more-pop" id="morePop" hidden>
+        <a href="#">Features<small></small></a><a href="#">Gallery</a><a href="#">Support &amp; FAQ</a><a href="#">Press kit</a>
+      </div></div>
+  </nav>
+  <div class="ph-right">
+    <div style="position:relative"><button class="ph-chip" type="button"><i class="globe"></i><span data-l>EN</span><small>·</small><span data-c>₱</span></button>
+      <div class="pop" id="langPop" hidden>
+        <h4 data-t="lang">Language</h4>
+        <div class="grid" id="langs"></div>
+        <div class="sep"></div>
+        <h4 data-t="cur">Currency</h4>
+        <div class="cur" id="curs"></div>
+        <p class="note" data-t="note">Prices show in your currency. GCash and bank transfer are in pesos.</p>
+      </div></div>
+    <a class="ph-icon" href="#" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></a>
+    <a class="ph-cta" href="#">▶ <span data-t="play">Play free</span></a>
+    <button class="ph-menu" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+<div class="drawer" id="drawer"><div class="panel">
+  <div class="head"><a class="brand" href="#"><img src="../../assets/img/icon-64.png" alt="" width="32" height="32"><span>Lantern Keeper</span></a><button class="ph-menu" style="display:grid" aria-label="Close">✕</button></div>
+  <p class="grp" data-t="g1">Play</p><a class="it" href="#">▶ <span data-t="play">Play free</span></a><a class="it" href="#">⬇ Downloads</a>
+  <p class="grp" data-t="g2">Keepers</p><a class="it on" href="#">💬 Community</a><a class="it" href="#">📰 News</a><a class="it" href="#">🛍 Store</a><a class="it" href="#">👤 Account</a>
+  <p class="grp" data-t="g3">About the game</p><a class="it" href="#">✦ Features</a><a class="it" href="#">🖼 Gallery</a><a class="it" href="#">❓ Support &amp; FAQ</a><a class="it" href="#">📦 Press kit</a>
+  <p class="grp" data-t="lang">Language</p><div class="chips" id="dlangs"></div>
+  <p class="grp" data-t="cur">Currency</p><div class="chips" id="dcurs"></div>
+</div></div>
+<main class="stage"><span class="kicker">Community</span><h1 data-t="h1">Keepers, together</h1><p class="muted" data-t="p">The home of Lantern Keeper: news and devlogs from the team, live chat, ideas, bug reports, events and giveaways, and private support tickets.</p></main>
+<script>
+const LANGS = [['en','English','EN'],['fil','Filipino','FIL'],['es','Español','ES'],['pt-BR','Português (Brasil)','PT'],['id','Bahasa Indonesia','ID'],['ja','日本語','日本'],['ko','한국어','한국'],['zh-CN','简体中文','中文']];
+const CURS = [['PHP','₱','Peso'],['USD','$','US dollar'],['EUR','€','Euro'],['GBP','£','Pound'],['JPY','¥','Yen'],['KRW','₩','Won'],['IDR','Rp','Rupiah'],['BRL','R$','Real'],['AUD','A$','Aus. dollar']];
+const T = { ja: { lang: '言語', cur: '通貨', note: '価格はお使いの通貨で表示されます。GCashと銀行振込はペソです。', play: '無料で遊ぶ', h1: 'キーパーたち、ともに', p: 'Lantern Keeperの拠点：チームからのニュースと開発ログ、ライブチャット、アイデア、バグ報告、イベントとプレゼント企画、非公開のサポートチケット。', g1: '遊ぶ', g2: 'キーパー', g3: 'ゲームについて', nav: { community: 'コミュニティ', news: 'ニュース', store: 'ストア', downloads: 'ダウンロード', more: 'その他' } },
+  fil: { lang: 'Wika', cur: 'Currency', note: 'Ipinapakita ang presyo sa currency mo. Piso ang GCash at bank transfer.', play: 'Maglaro nang libre', h1: 'Mga keeper, magkakasama', g1: 'Maglaro', g2: 'Mga keeper', g3: 'Tungkol sa laro', nav: { community: 'Komunidad', news: 'Balita', store: 'Store', downloads: 'Mga download', more: 'Iba pa' } } };
+const q = new URLSearchParams(location.search), L = q.get('lang') || 'en', C = q.get('cur') || 'PHP', t = T[L] || {};
+document.querySelector('[data-l]').textContent = LANGS.find(x => x[0] === L)[2]; document.querySelector('[data-c]').textContent = CURS.find(x => x[0] === C)[1];
+for (const e of document.querySelectorAll('[data-t]')) if (t[e.dataset.t]) e.textContent = t[e.dataset.t];
+if (t.nav) for (const e of document.querySelectorAll('[data-k]')) if (t.nav[e.dataset.k]) e.firstChild.textContent = t.nav[e.dataset.k] + (e.dataset.k === 'more' ? ' ' : '');
+document.getElementById('langs').innerHTML = LANGS.map(([c, n]) => `<span class="opt${c === L ? ' on' : ''}">${n}</span>`).join('');
+document.getElementById('curs').innerHTML = CURS.map(([c, s, n]) => `<span class="opt${c === C ? ' on' : ''}"><b>${s}</b><small>${c}</small></span>`).join('');
+document.getElementById('dlangs').innerHTML = LANGS.map(([c, n]) => `<span class="${c === L ? 'on' : ''}">${n}</span>`).join('');
+document.getElementById('dcurs').innerHTML = CURS.map(([c, s]) => `<span class="${c === C ? 'on' : ''}">${s} ${c}</span>`).join('');
+if (q.has('pop')) document.getElementById('langPop').hidden = false;
+if (q.has('more')) document.getElementById('morePop').hidden = false;
+if (q.has('drawer')) document.getElementById('drawer').classList.add('open');
+</script>
+</body></html>

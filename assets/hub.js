@@ -211,16 +211,16 @@
     const member = c.data && Date.parse(c.data.until) > Date.now(), cp = prefs.data || {};
     store.products = store.products.length ? store.products : ((await sb.from('store_products').select('*')).data || []);
     root.innerHTML = `
-      <section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${esc((p.display_name || '?').slice(0, 1))}</div><div>
+      <section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${p.web_avatar ? `<img src="${esc(CFG.url + '/storage/v1/object/public/community/' + p.web_avatar)}" alt="">` : esc((p.display_name || '?').slice(0, 1))}</div><div>
         <h2>${esc(p.display_name || 'Keeper')}</h2><p>${roleChips(myRoles)} <span class="muted">Joined ${day(p.created_at || me.created_at)} · Friend code ${esc(p.friend_code || '-')}</span></p></div></div>
         <div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${(w.data && w.data.lumens) || 0}</b> Lumens</span><span><b>${looks + packs.length + lanterns}</b> paid looks and packs</span></div>
         <p>${isStaff() ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
-      <section class="card"><h2>Profile</h2><form class="hub-form" data-profile>
+      <section class="card"><h2>Profile</h2><p><a class="btn btn-primary btn-sm" href="community.html#/me">Edit your profile: picture, banner, name, colour</a></p><form class="hub-form" data-profile>
         <label>About you <small>(shown on your public page, 300 characters)</small><textarea name="bio" maxlength="300" rows="3">${esc(p.bio || '')}</textarea></label>
         <label>Discord name <small>(optional: shown so friends can find you)</small><input name="discord" maxlength="40" value="${esc(p.discord || '')}"></label>
         <label class="hub-check"><input type="checkbox" name="show" ${p.show_profile ? 'checked' : ''}> Show my profile to other keepers (your public page, the community and the leaderboard)</label>
         <button class="btn btn-primary" type="submit">Save</button></form>
-        <p class="muted small">Your keeper name, avatar, frame and title are changed in the game (Profile).</p></section>
+        <p class="muted small">Your in-game avatar, frame and title are changed in the game (Profile).</p></section>
       <section class="card"><h2>Supporter status</h2>
         ${c.data ? subPanel(c.data, store.products.find(x => x.kind === 'club') || { usd_cents: 0, php_cents: 0 }) + `<p><a href="store.html">${renewing(c.data) ? 'Manage or cancel the subscription' : member ? 'Renew monthly' : 'Join again'}</a></p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
         ${packs.length ? `<p>Packs: ${packs.map(esc).join(', ')}</p>` : '<p class="muted">No supporter packs yet.</p>'}${lanterns ? `<p>Club lanterns kept: ${lanterns}</p>` : ''}</section>
@@ -248,15 +248,20 @@
   const TICKET_STATE = { open: 'Open: waiting for support', answered: 'Answered', waiting: 'Waiting for you', closed: 'Closed' };
   let channels = [], live = null, members = [], unread = 0, beat = 0;
   const names = new Map();
+  const pubUrl = path => `${CFG.url}/storage/v1/object/public/community/${path}`;
+  // other keepers come from community_people / community_online (0.30.1): a profile shows its name, picture and colour
+  // only when it is shown; a hidden one is "A keeper" with only a staff role
   async function people(ids) {
     const need = [...new Set(ids)].filter(id => id && !names.has(id)); if (!need.length) return;
-    const [{ data }, roles] = await Promise.all([sb.from('profiles').select('id, display_name, show_profile, last_seen').in('id', need), Promise.all(need.map(id => sb.rpc('roles_of', { p_user: id }).then(r => [id, r.data || []])))]);
-    const rm = new Map(roles); for (const id of need) { const p = (data || []).find(x => x.id === id); names.set(id, { name: p && p.show_profile ? p.display_name : 'A keeper', shown: !!(p && p.show_profile), roles: rm.get(id) || [], online: !!(p && p.show_profile && p.last_seen && Date.now() - Date.parse(p.last_seen) < 10 * 6e4) }); }
+    const { data } = await sb.rpc('community_people', { p_ids: need });
+    for (const id of need) { const p = (data || []).find(x => x.id === id) || {}; names.set(id, { name: p.shown ? p.name : 'A keeper', shown: !!p.shown, roles: p.roles || [], online: !!p.online, avatar: p.avatar || null, accent: p.accent || null }); }
   }
-  const avatar = (id, size = 36) => { const n = names.get(id) || { name: '?' }; return `<span class="lkc-av${n.online ? ' on' : ''}" style="width:${size}px;height:${size}px" aria-hidden="true">${esc(String(n.name).slice(0, 1).toUpperCase())}</span>`; };
+  const ACCENT = { gold: '#ffcf66', ember: '#ff8a3d', sky: '#7cc8ff', rose: '#e8616d', mint: '#7be0b0', violet: '#b49cff' };
+  const ico = n => `<svg class="ico" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+  const avatar = (id, size = 36) => { const n = names.get(id) || (me && id === me.id && myProfile ? { name: myProfile.display_name || '?', avatar: myProfile.web_avatar, accent: myProfile.accent, online: !!myProfile.show_profile } : { name: '?' });
+    return `<span class="lkc-av${n.online ? ' on' : ''}" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .45)}px${n.accent && ACCENT[n.accent] ? ';--acc:' + ACCENT[n.accent] : ''}" aria-hidden="true">${n.avatar ? `<img src="${esc(pubUrl(n.avatar))}" alt="" loading="lazy" decoding="async">` : esc(String(n.name).slice(0, 1).toUpperCase())}</span>`; };
   const who = id => { const n = names.get(id) || { name: 'A keeper', roles: [] }; const staffRoles = (n.roles || []).filter(r => ['owner', 'developer', 'moderator'].includes(r)); // (a hidden profile shows only staff roles: never whether someone paid)
     return n.shown ? `<a href="#/k/${id}" class="hub-who">${esc(n.name)}</a> ${roleChips(n.roles)}` : `<span class="hub-who">${esc(n.name)}</span> ${roleChips(staffRoles)}`; };
-  const pubUrl = path => `${CFG.url}/storage/v1/object/public/community/${path}`;
   const textHtml = (t, team) => esc(t).replace(/\n/g, '<br>').replace(/@([A-Za-z0-9_.'-]{3,16})/g, '<b class="lkc-mention">@$1</b>').replace(team ? /(https:\/\/[^\s<]+)/g : /$^/, '<a href="$1" rel="noopener nofollow" target="_blank">$1</a>');
   const canPost = ch => !ch ? !!me : ch.post_role === 'team' ? isTeam() : ch.post_role === 'staff' ? isStaff() : ch.post_role === 'club' ? isStaff() || myRoles.includes('subscriber') : !!me;
   const canRead = ch => ch.read_role !== 'club' || isStaff() || myRoles.includes('subscriber');
@@ -270,26 +275,30 @@
     root.innerHTML = `<div class="lkc">
       <aside class="lkc-rail" id="lkcRail" aria-label="Community channels">
         <form class="lkc-search" role="search"><input name="q" placeholder="Search the community" aria-label="Search the community" value="${esc(decodeURIComponent((location.hash.match(/^#\/search\/(.+)$/) || [])[1] || ''))}"></form>
-        <a class="lkc-ch${active === 'home' ? ' on' : ''}" href="#/"><span class="lkc-ico">⌂</span>Home</a>
-        ${me ? `<a class="lkc-ch${active === 'following' ? ' on' : ''}" href="#/following"><span class="lkc-ico">★</span>Following</a>` : ''}
-        ${GROUPS.map(([g, label]) => { const list = visible.filter(c => c.grp === g); return list.length ? `<p class="lkc-grp">${label}</p>` + list.map(c => `<a class="lkc-ch${active === c.id ? ' on' : ''}" href="#/c/${c.id}" title="${esc(c.description)}"><span class="lkc-ico">${c.kind === 'chat' ? '#' : c.kind === 'news' ? '📣' : '▤'}</span>${esc(c.name)}</a>`).join('') + (g === 'support' && me ? `<a class="lkc-ch${active === 'tickets' ? ' on' : ''}" href="#/tickets"><span class="lkc-ico">✉</span>My tickets</a>` : '') : ''; }).join('')}
-        <div class="lkc-me">${me ? `${avatar(me.id, 32)}<span><b>${esc((myProfile && myProfile.display_name) || 'Keeper')}</b><small>${myProfile && myProfile.show_profile ? 'Online' : 'Profile hidden'}</small></span><button class="lkc-bell" aria-label="Notifications" data-bell>🔔<b ${unread ? '' : 'hidden'}>${unread > 9 ? '9+' : unread || ''}</b></button>`
+        <a class="lkc-ch${active === 'home' ? ' on' : ''}" href="#/">${ico('home')}<span>Home</span></a>
+        ${me ? `<a class="lkc-ch${active === 'following' ? ' on' : ''}" href="#/following">${ico('star')}<span>Following</span></a><a class="lkc-ch${active === 'saved' ? ' on' : ''}" href="#/saved">${ico('bookmark')}<span>Saved</span></a>` : ''}
+        ${GROUPS.map(([g, label]) => { const list = visible.filter(c => c.grp === g); return list.length ? `<p class="lkc-grp">${label}</p>` + list.map(c => `<a class="lkc-ch${active === c.id ? ' on' : ''}" href="#/c/${c.id}" title="${esc(c.description)}">${ico(c.kind === 'chat' ? 'hash' : c.kind === 'news' ? 'megaphone' : 'list')}<span>${esc(c.name)}</span></a>`).join('') + (g === 'support' && me ? `<a class="lkc-ch${active === 'tickets' ? ' on' : ''}" href="#/tickets">${ico('mail')}<span>My tickets</span></a>` : '') : ''; }).join('')}
+        <div class="lkc-me">${me ? `<a class="lkc-me-link" href="#/k/${me.id}">${avatar(me.id, 34)}<span><b>${esc((myProfile && myProfile.display_name) || 'Keeper')}</b><small>${myProfile && myProfile.show_profile ? 'Online' : 'Profile hidden'}</small></span></a><a class="lkc-iconbtn" href="#/me" aria-label="Edit your profile" title="Edit your profile">${ico('edit')}</a><button class="lkc-iconbtn lkc-bell" aria-label="Notifications" data-bell>${ico('bell')}<b ${unread ? '' : 'hidden'}>${unread > 9 ? '9+' : unread || ''}</b></button>`
           : '<a class="btn btn-primary btn-sm" href="account.html?next=community.html">Sign in to take part</a>'}</div>
       </aside>
-      <section class="lkc-main"><div class="lkc-top"><button class="lkc-menu" aria-controls="lkcRail" aria-expanded="false" aria-label="Channels">☰</button><span id="lkcTitle"></span></div><div class="lkc-body">${inner}</div></section>
-      <aside class="lkc-people" aria-label="Online now"><p class="lkc-grp">Online now · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 28)}<span>${esc(names.get(m.id).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}</aside>
+      <section class="lkc-main"><div class="lkc-top"><button class="lkc-menu" aria-controls="lkcRail" aria-expanded="false" aria-label="Channels">${ico('menu')}</button><span id="lkcTitle"></span></div><div class="lkc-body">${inner}</div></section>
+      <aside class="lkc-people" aria-label="Online now"><p class="lkc-grp"><span>Online now</span> · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 30)}<span>${esc((names.get(m.id) || m).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}</aside>
     </div>`;
     const rail = root.querySelector('#lkcRail'), mb = root.querySelector('.lkc-menu');
-    mb.onclick = () => { const open = rail.classList.toggle('open'); mb.setAttribute('aria-expanded', String(open)); };
-    for (const a of rail.querySelectorAll('a')) a.addEventListener('click', () => rail.classList.remove('open'));
+    const lkc = root.querySelector('.lkc'), closeRail = () => { rail.classList.remove('open'); lkc.classList.remove('rail-open'); mb.setAttribute('aria-expanded', 'false'); };
+    mb.onclick = () => { const open = rail.classList.toggle('open'); mb.setAttribute('aria-expanded', String(open)); lkc.classList.toggle('rail-open', open); };
+    lkc.addEventListener('click', e => { if (rail.classList.contains('open') && e.target === lkc) closeRail(); });
+    rail.addEventListener('keydown', e => { if (e.key === 'Escape' && rail.classList.contains('open')) { closeRail(); mb.focus(); } });
+    for (const a of rail.querySelectorAll('a')) a.addEventListener('click', closeRail);
     root.querySelector('.lkc-search').onsubmit = e => { e.preventDefault(); const q = new FormData(e.target).get('q').trim(); if (q.length >= 2) location.hash = '#/search/' + encodeURIComponent(q); };
     const bell = root.querySelector('[data-bell]'); if (bell) bell.onclick = showNotifications;
     return root.querySelector('.lkc-body');
   }
   const title = t => { const e = document.getElementById('lkcTitle'); if (e) e.innerHTML = t; };
   async function loadMembers() {
-    const { data } = await sb.from('profiles').select('id, display_name, last_seen').eq('show_profile', true).gt('last_seen', new Date(Date.now() - 10 * 6e4).toISOString()).order('last_seen', { ascending: false }).limit(40);
-    members = data || []; await people(members.map(m => m.id));
+    const { data } = await sb.rpc('community_online'); members = data || [];
+    const fresh = members.filter(m => !names.has(m.id)).map(m => m.id); await people(fresh);
+    for (const m of members) { const n = names.get(m.id) || { roles: [] }; names.set(m.id, Object.assign(n, { name: m.name, shown: true, online: true, avatar: m.avatar || null, accent: m.accent || null })); }
   }
   async function showNotifications() {
     const { data } = await sb.from('community_notifications').select('*').order('created_at', { ascending: false }).limit(30);
@@ -311,7 +320,7 @@
     await people([...(ann.data || []), ...(recent.data || [])].map(p => p.author));
     const catName = c => (byCat(c) || { name: c }).name;
     body.innerHTML = `<div class="lkc-home">
-      <section class="card lkc-hero"><span class="kicker">Welcome</span><h2>The home of Lantern Keeper</h2><p>News and devlogs from the team, live chat with other keepers, ideas, bug reports and support. ${online} keeper${online === 1 ? '' : 's'} online now.</p>
+      <section class="card lkc-hero"><span class="kicker">Welcome</span><h2>The home of Lantern Keeper</h2><p>News and devlogs from the team, live chat with other keepers, ideas, bug reports and support.</p><p class="lkc-online-n"><span>Keepers online now:</span> <b>${online}</b></p>
         ${me ? '' : '<p><a class="btn btn-primary btn-sm" href="account.html?next=community.html">Sign in with your game account</a></p>'}</section>
       <div class="lkc-cols"><section><h3 class="lkc-h">Announcements</h3>${(ann.data || []).map(p => `<a class="card lkc-mini" href="#/p/${p.id}"><b>${esc(p.title)}</b><small>${ago(p.created_at)}</small><span>${esc(p.body.slice(0, 140))}${p.body.length > 140 ? '...' : ''}</span></a>`).join('') || '<p class="muted">No announcements yet.</p>'}
         ${(dev.data || [])[0] ? `<h3 class="lkc-h">Latest devlog</h3><a class="card lkc-mini" href="#/p/${dev.data[0].id}"><b>${dev.data[0].version ? 'v' + esc(dev.data[0].version) + ' · ' : ''}${esc(dev.data[0].title)}</b><small>${ago(dev.data[0].created_at)}</small></a>` : ''}</section>
@@ -330,7 +339,7 @@
     const box = body.querySelector('.lkc-msgs');
     const line = m => { const r = m.reply_to && msgs.find(x => x.id === m.reply_to), mine = me && m.author === me.id, mentioned = me && (m.mentions || []).includes(me.id);
       return `<div class="lkc-msg${mentioned ? ' me' : ''}${m.status !== 'visible' ? ' gone' : ''}" data-m="${m.id}">${avatar(m.author)}<div>${r ? `<p class="lkc-quote">↪ ${esc((names.get(r.author) || { name: 'A keeper' }).name)}: ${esc(r.body.slice(0, 80))}</p>` : ''}<p class="lkc-meta">${who(m.author)} <small>${ago(m.created_at)}${m.edited_at ? ' · edited' : ''}${m.status !== 'visible' ? ' · ' + esc(m.status) : ''}</small></p><p class="lkc-text">${textHtml(m.body, (names.get(m.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p></div>
-        <span class="lkc-acts">${me && canPost(ch) ? `<button data-reply="${m.id}" aria-label="Reply">↩</button>` : ''}${mine ? `<button data-del="${m.id}" aria-label="Delete">✕</button>` : me ? `<button data-rep="${m.id}" aria-label="Report">⚑</button>` : ''}${isStaff() && !mine ? `<button data-hide="${m.id}" aria-label="Hide">⊘</button>` : ''}</span></div>`; };
+        <span class="lkc-acts">${me && canPost(ch) ? `<button data-reply="${m.id}" aria-label="Reply" title="Reply">${ico('reply')}</button>` : ''}${mine ? `<button data-del="${m.id}" aria-label="Delete" title="Delete">${ico('trash')}</button>` : me ? `<button data-rep="${m.id}" aria-label="Report" title="Report">${ico('flag')}</button>` : ''}${isStaff() && !mine ? `<button data-hide="${m.id}" aria-label="Hide" title="Hide">${ico('ban')}</button>` : ''}</span></div>`; };
     const draw = () => { box.innerHTML = msgs.length ? msgs.map(line).join('') : '<p class="muted lkc-empty">No messages yet: say hello!</p>'; box.scrollTop = box.scrollHeight; wire(); };
     const wire = () => {
       for (const b of box.querySelectorAll('[data-reply]')) b.onclick = () => { replyTo = +b.dataset.reply; const m = msgs.find(x => x.id === replyTo), rp = body.querySelector('.lkc-replying'); rp.hidden = false; rp.innerHTML = `Replying to ${esc((names.get(m.author) || { name: '' }).name)} <button type="button" aria-label="Stop replying">✕</button>`; rp.querySelector('button').onclick = () => { replyTo = null; rp.hidden = true; }; body.querySelector('textarea').focus(); };
@@ -376,6 +385,7 @@
     const [{ data: replies }, { data: reacts }, { data: votes }, gcount, mine] = await Promise.all([sb.from('community_replies').select('*').eq('post_id', id).order('created_at'),
       sb.from('community_reactions').select('kind, user_id').eq('post_id', id), p.poll ? sb.from('community_votes').select('choice, user_id').eq('post_id', id) : { data: [] },
       p.category === 'giveaways' ? sb.rpc('giveaway_count', { p_post: id }) : { data: 0 }, p.category === 'giveaways' && me ? sb.from('giveaway_entries').select('winner').eq('post_id', id).eq('user_id', me.id).maybeSingle() : { data: null }]);
+    const saved = me ? !!(await sb.from('community_saves').select('post_id').eq('post_id', id).maybeSingle()).data : false;
     await people([p.author, ...(replies || []).map(r => r.author)]);
     const authorTeam = (names.get(p.author) || { roles: [] }).roles.some(r => r === 'owner' || r === 'developer');
     const own = r => me && r.author === me.id, myVote = (votes || []).find(v => me && v.user_id === me.id), total = (votes || []).length;
@@ -387,7 +397,7 @@
         ${p.category === 'giveaways' ? `<div class="lkc-give"><p><b>Prize:</b> ${esc(p.prize || 'see above')} · ${gcount.data || 0} entr${gcount.data === 1 ? 'y' : 'ies'}</p>${mine.data ? `<p class="hub-ok">${mine.data.winner ? 'You won! We will contact you.' : 'You are in. Good luck!'}</p>` : giveOpen ? (me ? '<button class="btn btn-primary btn-sm" data-enter>Enter the giveaway</button>' : '<a href="account.html?next=community.html">Sign in to enter</a>') : '<p class="muted">This giveaway has ended.</p>'}<p class="muted small">No purchase needed. One entry per account. Winners are drawn by the team and announced here.</p></div>` : ''}
         ${p.poll ? `<div class="hub-poll">${p.poll.map((o, i) => { const n = (votes || []).filter(v => v.choice === i).length, pc = total ? Math.round(n / total * 100) : 0; return `<button class="hub-opt${myVote && myVote.choice === i ? ' on' : ''}" data-vote="${i}" ${myVote || !me || p.locked ? 'disabled' : ''}><span style="width:${myVote || !me ? pc : 0}%"></span><b>${esc(o)}</b>${myVote || !me ? ` <small>${pc}% (${n})</small>` : ''}</button>`; }).join('')}<p class="muted small">${total} vote${total === 1 ? '' : 's'}${!me ? ' · sign in to vote' : myVote ? ' · you voted' : ''}</p></div>` : ''}
         <div class="hub-reacts">${REACT.map(([k, e]) => { const n = (reacts || []).filter(r => r.kind === k).length, on = me && (reacts || []).some(r => r.kind === k && r.user_id === me.id); return `<button class="hub-react${on ? ' on' : ''}" data-react="${k}" ${me ? '' : 'disabled'} aria-pressed="${!!on}" aria-label="${k}">${e} ${n || ''}</button>`; }).join('')}</div>
-        <p class="hub-tools">${own(p) ? '<button class="hub-link" data-edit>Edit</button> <button class="hub-link" data-del>Delete</button>' : ''}${me && !own(p) ? `<button class="hub-link" data-report>Report</button>` : ''}
+        <p class="hub-tools">${me ? `<button class="hub-link" data-save aria-pressed="${saved}">${saved ? 'Saved' : 'Save'}</button> · ` : ''}<button class="hub-link" data-share>Copy link</button>${own(p) ? ' · <button class="hub-link" data-edit>Edit</button> <button class="hub-link" data-del>Delete</button>' : ''}${me && !own(p) ? `<button class="hub-link" data-report>Report</button>` : ''}
         ${isStaff() ? ` · <button class="hub-link" data-mod="pinned:${!p.pinned}">${p.pinned ? 'Unpin' : 'Pin'}</button> <button class="hub-link" data-mod="locked:${!p.locked}">${p.locked ? 'Reopen' : 'Close replies'}</button> <button class="hub-link" data-mod="status:${p.status === 'visible' ? 'hidden' : 'visible'}">${p.status === 'visible' ? 'Hide' : 'Show'}</button>${!p.published && isTeam() ? ' <button class="hub-link" data-mod="published:true">Publish</button>' : ''}${p.state ? ` <select data-state aria-label="State">${['open', 'planned', 'in progress', 'done', 'fixed', 'not planned'].map(s => `<option ${s === p.state ? 'selected' : ''}>${s}</option>`).join('')}</select>` : ''}` : ''}</p></article>
       <h3 class="hub-h">${(replies || []).length} repl${(replies || []).length === 1 ? 'y' : 'ies'}</h3>
       ${(replies || []).map(r => `<div class="card hub-reply${r.status !== 'visible' ? ' hidden-r' : ''}"><div class="lkc-msg plain">${avatar(r.author)}<div><p class="lkc-meta">${who(r.author)} <small>${ago(r.created_at)}${r.edited_at ? ' · edited' : ''}${r.status !== 'visible' ? ' · ' + esc(r.status) : ''}</small></p><p class="hub-body">${textHtml(r.body, (names.get(r.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p></div></div>
@@ -403,6 +413,8 @@
     for (const b of $$('[data-rdel]')) b.onclick = () => act({ action: 'delete', reply: +b.dataset.rdel });
     for (const b of $$('[data-rrep]')) b.onclick = () => report({ reply: +b.dataset.rrep });
     const rp = $1('[data-report]'); if (rp) rp.onclick = () => report({ post: id });
+    const sv = $1('[data-save]'); if (sv) sv.onclick = async () => { const { error } = saved ? await sb.from('community_saves').delete().eq('post_id', id).eq('user_id', me.id) : await sb.from('community_saves').insert({ user_id: me.id, post_id: id }); if (error) modal(`<p>${esc(error.message)}</p>`); showPost(id); };
+    const sh = $1('[data-share]'); if (sh) sh.onclick = () => copyLink(sh, `community.html#/p/${id}`);
     const en = $1('[data-enter]'); if (en) en.onclick = async () => { const { error } = await sb.from('giveaway_entries').insert({ post_id: id, user_id: me.id }); if (error) modal(`<p>${esc(error.message)}</p>`); showPost(id); };
     const del = $1('[data-del]'); if (del) del.onclick = () => modal('<h2>Delete this post?</h2><p>It is removed for everyone, with its picture.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Delete</button></div>', (d, close) => { d.querySelector('[data-ok]').onclick = () => { close(); act({ action: 'delete', post: id }, () => { location.hash = '#/c/' + ch.id; }); }; });
     const ed = $1('[data-edit]'); if (ed) ed.onclick = () => modal(`<h2>Edit your post</h2><form class="hub-form"><label>Title<input name="title" maxlength="120" value="${esc(p.title)}"></label><label>Text<textarea name="body" rows="8" maxlength="5000">${esc(p.body)}</textarea></label><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => { const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); close(); act({ action: 'edit', post: id, title: v.title, body: v.body }); }; });
@@ -411,23 +423,101 @@
   function report(target) {
     modal(`<h2>Report this</h2><form class="hub-form"><label>Why<select name="reason">${['abuse', 'spam', 'cheating', 'personal information', 'not for children', 'other'].map(r => `<option>${r}</option>`).join('')}</select></label><label>Anything to add <small>(optional)</small><textarea name="details" maxlength="500" rows="3"></textarea></label><button class="btn btn-primary" type="submit">Send the report</button></form><p class="muted small">Moderators see it; the person you report doesn't see who reported.</p>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
-        const row = { reporter: me.id, reason: v.reason, details: v.details || null, [target.post ? 'post_id' : target.reply ? 'reply_id' : 'message_id']: target.post || target.reply || target.message };
+        const row = { reporter: me.id, reason: v.reason, details: v.details || null, [target.post ? 'post_id' : target.reply ? 'reply_id' : target.profile ? 'profile_id' : 'message_id']: target.post || target.reply || target.profile || target.message };
         const { error } = await sb.from('community_reports').insert(row); if (error) say(f, error.message); else { d.innerHTML = '<h2>Thank you</h2><p>A moderator will look at it.</p>'; setTimeout(close, 1500); } };
     });
   }
-  async function showKeeper(id) {
+  // ----- a keeper's page (0.30.1): banner, picture, name and pronouns, roles and badges, about, numbers, posts and replies -----
+  const BADGE = { 'lk.event.community-founder': ['Community Founder', 'Posted in the first week of the community'], 'lk.event.spotlight-2026': ['Spotlight 2026', 'A winner of Show Us Your Lighthouse'] };
+  const copyLink = (b, path) => { const url = new URL(path, location.href).href, done = () => { const t = b.textContent; b.textContent = 'Link copied'; setTimeout(() => { b.textContent = t; }, 1500); };
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) navigator.share({ url }).catch(() => {}); else if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('Link', url)); else prompt('Link', url); };
+  // the top of a profile, also the editor's live preview (k: name, pronouns, accent, bio, roles...; pics: picture and banner addresses)
+  const profileHead = (k, pics, extra = '') => { const acc = ACCENT[k.accent] || ACCENT.gold;
+    return `<div class="lkp-banner" style="--acc:${acc}${pics.banner ? `;background-image:url('${esc(pics.banner)}')` : ''}"></div>
+      <div class="lkp-head"><span class="lkp-av" style="--acc:${acc}">${pics.avatar ? `<img src="${esc(pics.avatar)}" alt="">` : esc(String(k.name || '?').slice(0, 1).toUpperCase())}</span>
+        <div class="lkp-id"><h2>${esc(k.name || 'Keeper')}${k.pronouns ? ` <small>${esc(k.pronouns)}</small>` : ''}</h2><p>${roleChips(k.roles || [])}${(k.badges || []).filter(x => BADGE[x]).map(x => `<span class="lkp-badge" title="${esc(BADGE[x][1])}">${ico('star')}${esc(BADGE[x][0])}</span>`).join('')}</p></div>${extra}</div>
+      ${k.bio ? `<p class="lkp-bio">${esc(k.bio)}</p>` : ''}`; };
+  async function showKeeper(id, tab = 'posts') {
     const body = shell('', '<p class="muted">Loading...</p>'); title('<b>A keeper</b>');
     const { data: k } = await sb.rpc('keeper_page', { p_user: id });
-    if (!k) { body.innerHTML = '<p>This keeper\'s profile is hidden.</p>'; return; }
-    await people([id]); title(`<b>${esc(k.name)}</b>`);
-    const follows = me && me.id !== id ? !!(await sb.from('community_follows').select('follower').eq('follower', me.id).eq('followee', id).maybeSingle()).data : false;
-    const { data: posts } = await sb.from('community_posts').select('id, title, category, created_at, replies').eq('author', id).eq('status', 'visible').order('created_at', { ascending: false }).limit(20);
+    if (!k) { body.innerHTML = `<div class="card"><p>This keeper's profile is hidden.</p>${me && me.id === id ? '<p><a class="btn btn-primary btn-sm" href="#/me">Show and edit your profile</a></p>' : ''}</div>`; return; }
+    names.delete(id); await people([id]); title(`<b>${esc(k.name)}</b>`);
+    const mine = me && me.id === id, follows = me && !mine ? !!(await sb.from('community_follows').select('follower').eq('follower', me.id).eq('followee', id).maybeSingle()).data : false;
+    const [{ data: posts }, { data: replies }] = await Promise.all([
+      sb.from('community_posts').select('id, title, category, created_at, replies').eq('author', id).eq('status', 'visible').order('created_at', { ascending: false }).limit(30),
+      sb.from('community_replies').select('id, post_id, body, created_at').eq('author', id).eq('status', 'visible').order('created_at', { ascending: false }).limit(30)]);
     const sc = k.showcase || {}, n = names.get(id) || {};
-    body.innerHTML = `<section class="card hub-me"><div class="hub-me-head">${avatar(id, 64)}<div><h2>${esc(k.name)}</h2><p>${roleChips(k.roles)} <span class="muted">${n.online ? '<b class="lkc-online">● Online</b> · ' : ''}Joined ${day(k.joined)}</span></p></div></div>
-      ${k.bio ? `<p>${esc(k.bio)}</p>` : ''}<div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}<span><b>${k.posts}</b> posts</span><span><b>${k.followers}</b> followers</span><span><b>${k.following}</b> following</span></div>
-      <p>${k.discord ? `Discord: <b>${esc(k.discord)}</b> · ` : ''}Friend code <b>${esc(k.friend_code || '-')}</b>${me && me.id !== id ? ` · <button class="btn btn-ghost btn-sm" data-follow>${follows ? 'Following' : 'Follow'}</button>` : ''}</p></section>
-      <h3 class="hub-h">Posts</h3>${(posts || []).map(p => `<a class="lkc-row" href="#/p/${p.id}"><span>${esc(p.title)}</span><small>${esc((byCat(p.category) || { name: p.category }).name)} · ${ago(p.created_at)} · ${p.replies} replies</small></a>`).join('') || '<p class="muted">No posts yet.</p>'}`;
-    const f = body.querySelector('[data-follow]'); if (f) f.onclick = async () => { if (follows) await sb.from('community_follows').delete().eq('follower', me.id).eq('followee', id); else await sb.from('community_follows').insert({ follower: me.id, followee: id }); showKeeper(id); };
+    const acts = `<div class="lkp-acts">${mine ? `<a class="btn btn-primary btn-sm" href="#/me">${ico('edit')}<span>Edit profile</span></a>` : me ? `<button class="btn ${follows ? 'btn-ghost' : 'btn-primary'} btn-sm" data-follow aria-pressed="${follows}">${follows ? 'Following' : 'Follow'}</button>` : ''}
+      <button class="lkc-iconbtn" data-share aria-label="Share this profile" title="Share">${ico('share')}</button>${me && !mine ? `<button class="lkc-iconbtn" data-report aria-label="Report this profile" title="Report">${ico('flag')}</button>` : ''}</div>`;
+    body.innerHTML = `<section class="card lkp">${profileHead(k, { avatar: k.web_avatar && pubUrl(k.web_avatar), banner: k.web_banner && pubUrl(k.web_banner) }, acts)}
+        <p class="lkp-facts">${n.online ? '<b class="lkc-online">● Online</b>' : k.last_seen ? `Seen ${ago(k.last_seen)}` : ''}<span>Joined ${day(k.joined)}</span>${k.discord ? `<span>Discord <b>${esc(k.discord)}</b></span>` : ''}<span>Friend code <b>${esc(k.friend_code || '-')}</b></span></p>
+        <div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${k.posts}</b> posts</span><span><b>${k.replies || 0}</b> replies</span><span><b>${k.followers}</b> followers</span><span><b>${k.following}</b> following</span></div></section>
+      <div class="lkp-tabs" role="tablist"><button role="tab" data-tab="posts" aria-selected="${tab === 'posts'}">Posts</button><button role="tab" data-tab="replies" aria-selected="${tab === 'replies'}">Replies</button></div>
+      <div class="lkp-list" data-pane="posts" ${tab === 'posts' ? '' : 'hidden'}>${(posts || []).map(p => `<a class="lkc-row" href="#/p/${p.id}"><span>${esc(p.title)}</span><small>${esc((byCat(p.category) || { name: p.category }).name)} · ${ago(p.created_at)} · ${p.replies} repl${p.replies === 1 ? 'y' : 'ies'}</small></a>`).join('') || '<p class="muted">No posts yet.</p>'}</div>
+      <div class="lkp-list" data-pane="replies" ${tab === 'replies' ? '' : 'hidden'}>${(replies || []).map(r => `<a class="lkc-row" href="#/p/${r.post_id}"><span class="lkc-text">${esc(r.body.slice(0, 160))}${r.body.length > 160 ? '...' : ''}</span><small>${ago(r.created_at)}</small></a>`).join('') || '<p class="muted">No replies yet.</p>'}</div>`;
+    for (const t of body.querySelectorAll('[data-tab]')) t.onclick = () => { for (const x of body.querySelectorAll('[data-tab]')) x.setAttribute('aria-selected', String(x === t)); for (const pn of body.querySelectorAll('[data-pane]')) pn.hidden = pn.dataset.pane !== t.dataset.tab; };
+    const f = body.querySelector('[data-follow]'); if (f) f.onclick = async () => { f.disabled = true; if (follows) await sb.from('community_follows').delete().eq('follower', me.id).eq('followee', id); else await sb.from('community_follows').insert({ follower: me.id, followee: id }); showKeeper(id); };
+    body.querySelector('[data-share]').onclick = e => copyLink(e.currentTarget, `community.html#/k/${id}`);
+    const rp = body.querySelector('[data-report]'); if (rp) rp.onclick = () => report({ profile: id });
+  }
+  // ----- editing your profile: picture, banner, colour, name, pronouns, about, Discord, shown or hidden; a live preview -----
+  // Pictures are cropped to the middle and made smaller in this browser, then saved as WebP: what a photo hides (where
+  // and when it was taken, the camera) never leaves the device. A moderator can take a picture down if it is reported.
+  async function squash(file, w, h) {
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) throw new Error('Use a PNG, JPEG or WebP picture.');
+    if (file.size > 20e6) throw new Error('That picture is too big (20 MB at most).');
+    const src = await (window.createImageBitmap ? createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => null) : null) || await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('That picture could not be opened.')); i.src = URL.createObjectURL(file); });
+    const sw = src.width, sh = src.height, k = Math.max(w / sw, h / sh), cw = w / k, ch = h / k;
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, w, h);
+    const blob = await new Promise(r => c.toBlob(r, 'image/webp', .86)) || await new Promise(r => c.toBlob(r, 'image/jpeg', .88));
+    if (!blob) throw new Error('That picture could not be prepared.'); return blob;
+  }
+  async function editProfile() {
+    if (!me) { const body = shell('me', ''); title('<b>Your profile</b>'); needSignIn(body, 'Sign in with your game account to set up your profile.', async () => { await loadMe(); heartbeat(); editProfile(); }); return; }
+    await loadMe(); const p = Object.assign({}, myProfile || {}); const body = shell('me', ''); title('<b>Edit your profile</b>');
+    const pics = { avatar: p.web_avatar ? pubUrl(p.web_avatar) : null, banner: p.web_banner ? pubUrl(p.web_banner) : null }, pending = {};
+    const roles = myRoles.filter(r => r !== 'player'), badgesQ = (await sb.rpc('keeper_page', { p_user: me.id })).data, badges = badgesQ ? badgesQ.badges : [];
+    body.innerHTML = `<div class="lkp-edit">
+      <form class="hub-form card lkp-form" novalidate>
+        <div class="lkp-media"><div><p class="lkp-lab">Profile picture</p><p class="muted small">Square, shown everywhere you post.</p>
+            <div class="lkp-pick"><label class="btn btn-ghost btn-sm">${ico('camera')}<span>Choose a picture</span><input type="file" accept="image/png,image/jpeg,image/webp" data-file="avatar" class="sr-only"></label><button type="button" class="hub-link" data-clear="avatar">Remove</button></div></div>
+          <div><p class="lkp-lab">Banner</p><p class="muted small">Wide, across the top of your page.</p>
+            <div class="lkp-pick"><label class="btn btn-ghost btn-sm">${ico('image')}<span>Choose a banner</span><input type="file" accept="image/png,image/jpeg,image/webp" data-file="banner" class="sr-only"></label><button type="button" class="hub-link" data-clear="banner">Remove</button></div></div></div>
+        <p class="lkp-note">Keep pictures friendly: keepers of every age see them. Don't show your face if you are under 18, or anything personal like your school or address. Pictures are made smaller and saved without hidden details (such as where a photo was taken).</p>
+        <label>Keeper name <small>(3 to 16 characters; your name in the game too)</small><input name="name" minlength="3" maxlength="16" required autocomplete="nickname" value="${esc(p.display_name || '')}"></label>
+        <label>Pronouns <small>(optional, for example she/her, he/him, they/them)</small><input name="pronouns" maxlength="24" value="${esc(p.pronouns || '')}"></label>
+        <fieldset class="lkp-acc"><legend>Colour</legend>${Object.entries(ACCENT).map(([k2, c]) => `<label title="${k2}"><input type="radio" name="accent" value="${k2}" ${(p.accent || 'gold') === k2 ? 'checked' : ''}><span style="--c:${c}"></span><b class="sr-only">${k2}</b></label>`).join('')}</fieldset>
+        <label>About you <small>(300 characters)</small><textarea name="bio" maxlength="300" rows="3">${esc(p.bio || '')}</textarea></label>
+        <label>Discord name <small>(optional: so friends can find you)</small><input name="discord" maxlength="40" value="${esc(p.discord || '')}"></label>
+        <label class="hub-check"><input type="checkbox" name="show" ${p.show_profile ? 'checked' : ''}> Show my profile to other keepers (your page, your name and picture in the community, the leaderboard)</label>
+        <div class="hub-actions"><button class="btn btn-primary" type="submit">Save profile</button><a class="btn btn-ghost" href="#/k/${me.id}">View my page</a></div>
+      </form>
+      <aside class="lkp-preview" aria-label="Preview"><p class="lkp-lab">Preview</p><section class="card lkp" data-preview></section></aside></div>`;
+    const f = body.querySelector('form'), pv = body.querySelector('[data-preview]');
+    const draw = () => { const v = Object.fromEntries(new FormData(f)); pv.innerHTML = profileHead({ name: v.name, pronouns: v.pronouns, accent: v.accent, bio: v.bio, roles, badges }, pics); };
+    f.addEventListener('input', draw); draw();
+    for (const inp of body.querySelectorAll('[data-file]')) inp.onchange = async () => { const which = inp.dataset.file, file = inp.files[0]; if (!file) return;
+      try { const blob = which === 'avatar' ? await squash(file, 320, 320) : await squash(file, 1500, 500); pending[which] = blob; if (pics[which] && pics[which].startsWith('blob:')) URL.revokeObjectURL(pics[which]); pics[which] = URL.createObjectURL(blob); draw(); say(f, which === 'avatar' ? 'Picture ready: save to keep it.' : 'Banner ready: save to keep it.', true); }
+      catch (e) { say(f, e.message); } inp.value = ''; };
+    for (const b of body.querySelectorAll('[data-clear]')) b.onclick = () => { pending[b.dataset.clear] = null; pics[b.dataset.clear] = null; draw(); };
+    f.onsubmit = async ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(f)), btn = f.querySelector('[type=submit]'); btn.disabled = true;
+      try {
+        const row = { display_name: String(v.name || '').trim(), pronouns: String(v.pronouns || '').trim().slice(0, 24) || null, accent: v.accent || null, bio: String(v.bio || '').trim().slice(0, 300) || null, discord: String(v.discord || '').trim().slice(0, 40) || null, show_profile: !!v.show };
+        if (row.display_name.length < 3) throw new Error('Names need 3 to 16 characters.');
+        const old = [], up = async (which, blob) => { const path = `${me.id}/profile/${which}-${Date.now()}.webp`; const { error } = await sb.storage.from('community').upload(path, blob, { contentType: blob.type, cacheControl: '31536000', upsert: false }); if (error) throw new Error('The picture was not saved: ' + error.message); return path; };
+        for (const which of ['avatar', 'banner']) if (which in pending) { const col = 'web_' + which; if (p[col]) old.push(p[col]); row[col] = pending[which] ? await up(which, pending[which]) : null; }
+        if (row.display_name === p.display_name) delete row.display_name;
+        const { error } = await sb.from('profiles').update(row).eq('id', me.id); if (error) throw new Error(error.message);
+        if (old.length) sb.storage.from('community').remove(old).then(() => {}, () => {});
+        names.delete(me.id); await loadMe(); location.hash = '#/k/' + me.id;
+      } catch (e) { say(f, 'Not saved: ' + e.message); btn.disabled = false; } };
+  }
+  // ----- the posts you saved -----
+  async function savedPosts() {
+    const body = shell('saved', '<p class="muted">Loading...</p>'); title('<b>Saved</b> <small>Only you see this list</small>');
+    const { data } = await sb.from('community_saves').select('post_id, created_at, community_posts(id, title, category, created_at, replies, author)').order('created_at', { ascending: false }).limit(100);
+    const list = (data || []).map(x => x.community_posts).filter(Boolean); await people(list.map(p => p.author));
+    body.innerHTML = list.map(p => `<a class="lkc-row" href="#/p/${p.id}"><span>${esc(p.title)}</span><small>${esc((byCat(p.category) || { name: p.category }).name)} · ${esc((names.get(p.author) || { name: 'A keeper' }).name)} · ${ago(p.created_at)}</small></a>`).join('') || '<p class="muted">Nothing saved yet. Use Save on a post to keep it here.</p>';
   }
   function compose(chId) {
     if (!me) { location.href = 'account.html?next=community.html'; return; }
@@ -526,6 +616,8 @@
     if ((m = path.match(/^\/s\/([a-z]+)$/))) { const ch = byCat(m[1]); if (ch) { location.replace('#/c/' + ch.id); return; } } // (links from 0.30)
     if ((m = path.match(/^\/p\/(\d+)$/))) return showPost(+m[1]);
     if ((m = path.match(/^\/k\/([0-9a-f-]{36})$/))) return showKeeper(m[1]);
+    if (path === '/me') return editProfile();
+    if (path === '/saved' && me) return savedPosts();
     if ((m = path.match(/^\/new(?:\/([a-z0-9-]+))?$/))) return compose(m[1]);
     if (path === '/tickets') return tickets();
     if (path === '/tickets/new') return newTicket((hsh.match(/[?&]cat=([a-z]+)/) || [])[1]);
@@ -538,7 +630,7 @@
     const { data } = await sb.from('community_channels').select('*').order('sort'); channels = data || [];
     await loadMembers(); await loadNotifications(); heartbeat();
     route(); window.addEventListener('hashchange', route);
-    setInterval(() => { loadMembers().then(() => { const p = root.querySelector('.lkc-people'); if (p) p.innerHTML = `<p class="lkc-grp">Online now · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 28)}<span>${esc(names.get(m.id).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}`; }); }, 60000);
+    setInterval(() => { loadMembers().then(() => { const p = root.querySelector('.lkc-people'); if (p) p.innerHTML = `<p class="lkc-grp"><span>Online now</span> · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 28)}<span>${esc((names.get(m.id) || m).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}`; }); }, 60000);
   }
 
   // ---------- start ----------

@@ -27,8 +27,11 @@ const PAGES = ['index.html', 'downloads.html', 'news.html', 'community.html', 's
     for (const m of src.matchAll(/\bt\('((?:[^'\\]|\\.)*)'\)/g)) extra.push(m[1].replace(/\\'/g, "'"));
     if (f === 'assets/hub.js') for (const m of src.matchAll(/>([^<>{}$`\\]{3,})</g)) { const x = norm(m[1]); if (/[A-Za-z]{3,}/.test(x) && !/^[\s.,:;·()|-]+$/.test(x)) extra.push(x); } }
   for (const s of extra) if (!all.has(s)) all.set(s, 'script');
+  // an icon with a label (a menu link, a channel): assets/i18n.js translates the label on its own, so only the label is kept
+  for (const k of [...all.keys()]) { const bare = k.replace(/<svg\b[\s\S]*?<\/svg>/g, '').replace(/<span class="(lkc-ico|sr-only)">[^<]*<\/span>/g, m => /sr-only/.test(m) ? m.replace(/<[^>]+>/g, '') : '').replace(/^<span>([^<]*)<\/span>$/, '$1').trim();
+    if (bare !== k && !/</.test(bare)) { all.delete(k); if (bare && !all.has(bare)) all.set(bare, 'label'); } }
   // not texts: checksums, sizes, numbers, bits of script, and lines with live values (versions, status times)
-  const JUNK = [/^[0-9a-f]{12}/, /^[\d.,]+ ?(MB|KB|GB)$/, /^[\d,.+]+ Lumens$/, /'\);|= '|const |=>/, /^&nbsp;$/, /data-version/, /\(\d+ ms\)/, /^<b>\d+\.\d+\.\d+<\/b>/, /^[\d.]+$/];
+  const JUNK = [/^[0-9a-f]{12}/, /^[\d.,]+ ?(MB|KB|GB)$/, /^[\d,.+]+ Lumens$/, /'\);|= '|const |=>/, /^&nbsp;$/, /data-version/, /\(\d+ ms\)/, /^<b>\d+\.\d+\.\d+<\/b>/, /^[\d.]+$/, /^[A-Z][a-z]{2} \d{1,2}, \d{4}$/, /^<span>[^<]+<\/span> (· \d+|<b>\d+<\/b>)$/];
   const out = {}; for (const k of [...all.keys()].sort()) if (!JUNK.some(r => r.test(k))) out[k] = k;
   fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, 'en.json'), JSON.stringify(out, null, 1) + '\n');
   const words = Object.keys(out).join(' ').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;

@@ -5,14 +5,32 @@
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const icon = (n, cls = '') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
-  /* ---------- header: menu on small screens, a solid bar once scrolled ---------- */
-  const head = $('.site-head'), btn = $('.menu-btn'), nav = $('#site-nav');
-  if (btn && nav) {
-    const set = open => { nav.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open)); btn.querySelector('use').setAttribute('href', open ? '#i-close' : '#i-menu'); };
-    btn.addEventListener('click', () => set(!nav.classList.contains('open')));
-    nav.addEventListener('click', e => { if (e.target.closest('a')) set(false); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('open')) { set(false); btn.focus(); } });
+  /* ---------- header (0.30.1): More and the language/currency panel open below their buttons; below 1080px wide (a
+     tablet, a phone, or a zoomed-in window) everything is in the side menu. Escape or a click outside closes them. ---------- */
+  const head = $('.site-head'), btn = $('.menu-btn'), drawer = $('#drawer');
+  const pops = $$('[aria-controls="more-menu"], [aria-controls="lc-pop"]');
+  const shut = (except) => pops.forEach(b => { if (b !== except && b.getAttribute('aria-expanded') === 'true') { b.setAttribute('aria-expanded', 'false'); $('#' + b.getAttribute('aria-controls')).hidden = true; } });
+  pops.forEach(b => b.addEventListener('click', () => { const p = $('#' + b.getAttribute('aria-controls')), open = p.hidden; shut(b); p.hidden = !open; b.setAttribute('aria-expanded', String(open));
+    if (open) { const first = p.querySelector('a, button'); if (first && b.matches('[aria-controls="more-menu"]')) first.focus({ preventScroll: true }); } }));
+  document.addEventListener('click', e => { if (!e.target.closest('.more, .lc')) shut(); });
+  if (btn && drawer) {
+    const set = open => { drawer.hidden = !open; btn.setAttribute('aria-expanded', String(open)); document.documentElement.style.overflow = open ? 'hidden' : '';
+      if (open) $('.dr-close', drawer).focus(); else btn.focus({ preventScroll: true }); };
+    btn.addEventListener('click', () => set(true));
+    drawer.addEventListener('click', e => { if (e.target === drawer || e.target.closest('.dr-close') || e.target.closest('a')) set(false); });
+    drawer.addEventListener('keydown', e => { if (e.key !== 'Tab') return; const f = $$('a, button', drawer).filter(x => x.offsetParent), a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } });
+    addEventListener('resize', () => { if (!drawer.hidden && getComputedStyle(btn).display === 'none') set(false); });
+    document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!drawer.hidden) set(false); else { const o = pops.find(b => b.getAttribute('aria-expanded') === 'true'); if (o) { shut(); o.focus(); } } });
   }
+  // the links fold into the side menu when they don't fit beside the brand and the buttons
+  const hin = $('.head-in'), navEl = $('#site-nav');
+  if (hin && navEl) { const root = document.documentElement; let busy = false;
+    const fit = () => { if (busy) return; busy = true; root.classList.remove('head-fold');
+      if (getComputedStyle(navEl).display !== 'none') { const tools = $('.head-tools', hin), over = hin.scrollWidth > hin.clientWidth + 1 || navEl.getBoundingClientRect().right > tools.getBoundingClientRect().left - 8; root.classList.toggle('head-fold', over); if (over) shut(); }
+      busy = false; };
+    fit(); addEventListener('resize', fit); if (document.fonts) document.fonts.ready.then(fit);
+    new MutationObserver(fit).observe(navEl, { subtree: true, characterData: true, childList: true }); }
   const onScroll = () => head && head.classList.toggle('scrolled', scrollY > 8);
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
 

@@ -67,12 +67,16 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
         if (!ok) dead.push('no #' + hash + ' in ' + u); } }
     report(`every link inside the site works (${internal.length} links)`, !dead.length, dead);
 
-    // the menu on a phone, and Escape closes it
+    // the side menu on a phone (0.30.1), and Escape closes it; on a wide screen More and the language panel open and close
     { const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage(); await p.goto(BASE);
-      const closed0 = await p.isHidden('#site-nav'); await p.click('.menu-btn'); const open = await p.isVisible('#site-nav a[href="downloads.html"]');
-      const exp = await p.getAttribute('.menu-btn', 'aria-expanded'); await p.keyboard.press('Escape'); const closed1 = await p.isHidden('#site-nav');
+      const closed0 = await p.isHidden('#drawer'); await p.click('.menu-btn'); const open = await p.isVisible('#drawer a[href="downloads.html"]');
+      const exp = await p.getAttribute('.menu-btn', 'aria-expanded'); const langs = await p.$$eval('#drawer [data-lang]', x => x.length); await p.keyboard.press('Escape'); const closed1 = await p.isHidden('#drawer');
       const focus = await p.evaluate(() => document.activeElement.className);
-      report('the phone menu opens, says so, and Escape closes it and returns focus to the button', closed0 && open && exp === 'true' && closed1 && /menu-btn/.test(focus), { closed0, open, exp, closed1, focus }); }
+      report('the phone menu opens, says so, lists the 8 languages, and Escape closes it and returns focus to the button', closed0 && open && exp === 'true' && langs === 8 && closed1 && /menu-btn/.test(focus), { closed0, open, exp, langs, closed1, focus }); }
+    { const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage(); await p.goto(BASE);
+      await p.click('.more-btn'); const more = await p.isVisible('#more-menu a[href="press.html"]'); await p.click('.lc-btn'); const moreShut = await p.isHidden('#more-menu'), lc = await p.isVisible('#lc-pop [data-lang="ja"]');
+      await p.keyboard.press('Escape'); const lcShut = await p.isHidden('#lc-pop'), links = await p.$$eval('#site-nav > a', x => x.length);
+      report('the wide header: four links, More opens its links, the language and currency panel opens, one at a time, Escape closes', more && moreShut && lc && lcShut && links === 4, { more, moreShut, lc, lcShut, links }); }
 
     // the gallery lightbox, by keyboard
     { const p = await (await b.newContext({ viewport: { width: 1280, height: 800 } })).newPage(); await p.goto(BASE);

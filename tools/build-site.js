@@ -49,15 +49,41 @@ const ICONS = {
   tv: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="12.5" rx="2"/><path d="M8 21h8" stroke-linecap="round"/></g>',
   news: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7.5 9h6M7.5 12.5h6M7.5 16h4" stroke-linecap="round"/></g>',
   help: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2.2-2.5 4"/><circle cx="12" cy="17.6" r=".6" fill="currentColor"/></g>',
+  user: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></g>',
+  chev: '<path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  image: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3.5 17l5-5 4 4 3-3 5 5"/></g>',
+  box: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></g>',
+  chat: '<path d="M4 5.5h16v10.5H10l-5 4v-4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  home: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></g>',
+  star: '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  hash: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4L7.5 20M16.5 4l-2 16M4.5 9h15M4 15h15"/></g>',
+  megaphone: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l7 4.5v-13L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6M7.5 14l1 5h2.5l-1-4.5"/></g>',
+  list: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 6.5h11M8.5 12h11M8.5 17.5h11"/><circle cx="4.5" cy="6.5" r=".9" fill="currentColor"/><circle cx="4.5" cy="12" r=".9" fill="currentColor"/><circle cx="4.5" cy="17.5" r=".9" fill="currentColor"/></g>',
+  bell: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></g>',
+  bookmark: '<path d="M6.5 3.5h11v17L12 16.5l-5.5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  flag: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 21V4"/><path d="M5.5 4.5h11l-2 4 2 4h-11"/></g>',
+  reply: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6L4 11.5 9.5 17"/><path d="M4.5 11.5H14a6 6 0 0 1 6 6v1"/></g>',
+  trash: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/></g>',
+  ban: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></g>',
+  edit: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z"/><path d="M13 7l4 4"/></g>',
+  share: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.8l6.6-4M8.7 13.2l6.6 4"/></g>',
+  camera: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8h4l1.5-2.5h6L16.5 8h4v11.5h-17z"/><circle cx="12" cy="13.5" r="3.5"/></g>',
 };
 const sprite = () => `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</defs></svg>`;
 
-const NAV = [['index.html#features', 'Features', 'features'], ['index.html#gallery', 'Gallery', 'gallery'], ['downloads.html', 'Downloads', 'downloads'], ['news.html', 'News', 'news'], ['community.html', 'Community', 'community'], ['store.html', 'Store', 'store'], ['support.html', 'Support', 'support'], ['account.html', 'Account', 'account']];
+// 0.30.1 (approved 8 October): four links always shown, the rest under More; on tablets and phones a side menu, in groups
+const NAV = [['community.html', 'Community', 'community', 'chat'], ['news.html', 'News', 'news', 'news'], ['store.html', 'Store', 'store', 'bag'], ['downloads.html', 'Downloads', 'downloads', 'download']];
+const MORE = [['index.html#features', 'Features', 'features', 'spark'], ['index.html#gallery', 'Gallery', 'gallery', 'image'], ['support.html', 'Support &amp; FAQ', 'support', 'help'], ['press.html', 'Press kit', 'press', 'box']];
+const DRAWER = [['Play', [['play/', 'Play free', 'play', 'play'], ['downloads.html', 'Downloads', 'downloads', 'download']]],
+  ['Keepers', [NAV[0], NAV[1], NAV[2], ['account.html', 'Account', 'account', 'user']]], ['About the game', MORE]];
 
 function layout(meta, body) {
   const url = SITE + (meta.path === 'index.html' ? '' : meta.path), img = SITE + (meta.image || 'assets/img/og.png');
   const title = meta.path === 'index.html' ? meta.title : `${meta.title} · Lantern Keeper`;
-  const nav = NAV.map(([href, label, id]) => `<a href="${href}"${meta.nav === id ? ' aria-current="page"' : ''}>${label}</a>`).join('');
+  const cur = id => meta.nav === id ? ' aria-current="page"' : '', ic = n => `<svg aria-hidden="true"><use href="#i-${n}"/></svg>`;
+  const nav = NAV.map(([href, label, id]) => `<a href="${href}"${cur(id)}>${label}</a>`).join('');
+  const more = MORE.map(([href, label, id, i]) => `<a href="${href}"${cur(id)}>${ic(i)}<span>${label}</span></a>`).join(''), moreOn = MORE.some(m => m[2] === meta.nav);
+  const drawer = DRAWER.map(([h, items]) => `<p class="dr-h">${h}</p>${items.map(([href, label, id, i]) => `<a href="${href}"${cur(id)}>${ic(i)}<span>${label}</span></a>`).join('')}`).join('');
   const ld = meta.path === 'index.html' ? `\n<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoGame', name: 'Lantern Keeper', url: SITE, image: SITE + 'assets/img/og.png', description: meta.description, genre: ['Roguelite', 'Tower defense', 'Idle'], gamePlatform: ['Web browser', 'Windows', 'macOS', 'Linux', 'Android', 'iOS'], applicationCategory: 'Game', operatingSystem: 'Windows, macOS, Linux, Android, iOS, Web', playMode: ['SinglePlayer', 'CoOp', 'MultiPlayer'], author: { '@type': 'Organization', name: 'Exenova', email: 'l4nternkeeper@gmail.com' }, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } })}</script>` : '';
   return `<!doctype html>
 <html lang="en">
@@ -91,11 +117,22 @@ ${sprite()}
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-head" id="top">
   <div class="wrap head-in">
-    <a class="brand" href="./" aria-label="Lantern Keeper, home"><img src="assets/img/icon-64.png" alt="" width="36" height="36">Lantern Keeper</a>
-    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav"><svg aria-hidden="true"><use href="#i-menu"/></svg><span class="sr-only">Menu</span></button>
-    <nav class="nav" id="site-nav" aria-label="Main">${nav}<a class="btn btn-primary btn-sm" href="play/"><svg aria-hidden="true"><use href="#i-play"/></svg>Play free</a></nav>
+    <a class="brand" href="./" aria-label="Lantern Keeper, home"><img src="assets/img/icon-64.png" alt="" width="36" height="36"><span>Lantern Keeper</span></a>
+    <nav class="nav" id="site-nav" aria-label="Main">${nav}<div class="more"><button class="more-btn" type="button" aria-expanded="false" aria-controls="more-menu"${moreOn ? ' data-on' : ''}><span>More</span>${ic('chev')}</button><div class="pop more-pop" id="more-menu" hidden>${more}</div></div></nav>
+    <div class="head-tools">
+      <div class="lc"><button class="lc-btn" type="button" aria-expanded="false" aria-controls="lc-pop" aria-label="Language and currency" translate="no">${ic('globe')}<b data-lc-lang>EN</b><i aria-hidden="true">·</i><b data-lc-cur>$</b></button><div class="pop lc-pop" id="lc-pop" hidden></div></div>
+      <a class="icon-btn head-acct" href="account.html" aria-label="Account"${cur('account')}>${ic('user')}</a>
+      <a class="btn btn-primary btn-sm head-play" href="play/">${ic('play')}<span>Play free</span></a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="drawer">${ic('menu')}<span class="sr-only">Menu</span></button>
+    </div>
   </div>
 </header>
+<div class="drawer" id="drawer" hidden><div class="dr-panel" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="dr-top"><a class="brand" href="./"><img src="assets/img/icon-64.png" alt="" width="32" height="32"><span>Lantern Keeper</span></a><button class="icon-btn dr-close" type="button">${ic('close')}<span class="sr-only">Close</span></button></div>
+  <nav aria-label="Menu">${drawer}</nav>
+  <p class="dr-h">Language</p><div class="chips" data-lc-langs translate="no"></div>
+  <p class="dr-h">Currency</p><div class="chips" data-lc-curs translate="no"></div>
+</div></div>
 <main id="main">
 ${body.trim()}
 </main>

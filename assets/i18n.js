@@ -37,6 +37,7 @@
     for (const a of ['placeholder', 'aria-label', 'title', 'alt']) { const v = el.getAttribute(a); if (!v || !hasWords(v)) continue;
       const src = el['__lk_' + a] || (el['__lk_' + a] = v); if (COLLECT) collected.add(norm(src)); else if (dict[norm(src)]) el.setAttribute(a, dict[norm(src)]); }
   }
+  function texts(el) { const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); for (let n = w.nextNode(); n; n = w.nextNode()) { const key = norm(n.nodeValue); if (hasWords(key) && dict[key]) n.nodeValue = n.nodeValue.replace(key, dict[key]); } }
   function walk(root) {
     if (!root || root.nodeType !== 1 || LEGAL && !root.closest('.site-head, .site-foot, .lkb, .lkb-btn')) { if (root && root.nodeType === 1 && LEGAL) for (const x of root.querySelectorAll('.site-head, .site-foot, .lkb, .lkb-btn')) walk(x); return; }
     if (root.closest(SKIP)) return;
@@ -44,11 +45,14 @@
     const visit = el => {
       if (el.nodeType !== 1 || el.matches(SKIP)) return;
       if (el.matches(BLOCKY) && leaf(el)) {
+        if (el.__lkOut != null && el.innerHTML !== el.__lkOut) { el.__lkSrc = null; el.__lkV = 0; } // (a script changed it since: that is the new original)
         const src = el.__lkSrc != null ? el.__lkSrc : el.innerHTML, key = norm(src);
         if (!hasWords(key.replace(/<[^>]+>/g, ''))) return;
         if (COLLECT) { collected.add(key); return; }
         if (el.__lkV === ver) return; el.__lkSrc = src; el.__lkV = ver;
-        const tr = dict[key]; if (tr && tr !== key) el.innerHTML = clean(tr); else if (el.innerHTML !== src) el.innerHTML = src;
+        const tr = dict[key]; if (tr && tr !== key) el.innerHTML = clean(tr);
+        else { if (el.innerHTML !== src) el.innerHTML = src; texts(el); } // (no whole-block translation: each text in it on its own, e.g. a button with an icon)
+        el.__lkOut = el.innerHTML;
         return;
       }
       for (const n of [...el.childNodes]) {
@@ -59,14 +63,32 @@
     };
     visit(root);
   }
-  // the picker, in the footer and the menu
+  // the language and currency panel (0.30.1, approved 8 October): in the header on wide screens, in the side menu on
+  // tablets and phones. The currencies are the ones the store can charge; the store and the account use the choice.
+  // (texts other scripts show, for tools/i18n-extract.js: t('Philippine peso') t('US dollar') t('Download for Windows') t('Download for Mac')
+  //  t('Download for Linux') t('Download for Android') t('Get it on iPhone'))
+  const CURS = [['PHP', '₱', 'Philippine peso'], ['USD', '$', 'US dollar']];
+  const curNow = () => { try { const c = localStorage.getItem('lk-currency'); if (CURS.some(x => x[0] === c)) return c; } catch (e) { /* none */ }
+    let ph = false; try { ph = Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Manila' || /-PH$/i.test(navigator.language); } catch (e) { /* none */ } return ph ? 'PHP' : 'USD'; };
   function picker() {
-    const SHORT = { en: 'EN', fil: 'FIL', es: 'ES', 'pt-BR': 'PT', id: 'ID', ja: '日本', ko: '한국', 'zh-CN': '中文', fr: 'FR', de: 'DE', vi: 'VI', th: 'ไทย' };
-    const make = short => { const s = document.createElement('select'); s.className = 'lang-pick'; s.setAttribute('aria-label', 'Language'); s.setAttribute('translate', 'no');
-      s.innerHTML = LANGS.map(([c, n]) => `<option value="${c}" ${c === lang ? 'selected' : ''}${short ? ` title="${n}"` : ''}>${short ? SHORT[c] || c : n}</option>`).join('');
-      s.onchange = () => { try { localStorage.setItem('lk-lang', s.value); } catch (e) { /* this visit */ } location.reload(); }; return s; };
-    const foot = document.querySelector('.site-foot .foot-bottom') || document.querySelector('.site-foot'); if (foot) { const w = document.createElement('label'); w.className = 'lang-wrap'; w.setAttribute('translate', 'no'); w.innerHTML = '<span aria-hidden="true">🌐</span>'; w.append(make()); foot.append(w); }
-    const nav = document.querySelector('.site-head .nav'); if (nav) { const w = document.createElement('div'); w.className = 'lang-wrap lang-head'; w.setAttribute('translate', 'no'); w.append(make(true)); nav.append(w); }
+    const SHORT = { en: 'EN', fil: 'FIL', es: 'ES', 'pt-BR': 'PT', id: 'ID', ja: '日本', ko: '한국', 'zh-CN': '中文' }, cur = curNow();
+    const setLang = c => { if (c === lang) return; try { localStorage.setItem('lk-lang', c); } catch (e) { /* this visit */ } location.reload(); };
+    const setCur = c => { if (c === curNow()) return; try { localStorage.setItem('lk-currency', c); } catch (e) { /* this visit */ } if (/(store|account)\.html$/.test(location.pathname)) location.reload(); else draw(); };
+    const L = document.querySelector('[data-lc-lang]'), C = document.querySelector('[data-lc-cur]'), pop = document.getElementById('lc-pop');
+    function draw() {
+      const c = curNow(); if (L) L.textContent = SHORT[lang] || lang; if (C) C.textContent = (CURS.find(x => x[0] === c) || CURS[1])[1];
+      if (pop) pop.innerHTML = `<h3>${t('Language')}</h3><div class="lc-grid" translate="no">${LANGS.map(([k, n]) => `<button type="button" class="lc-opt" lang="${k}" data-lang="${k}" aria-pressed="${k === lang}">${n}</button>`).join('')}</div>
+        <div class="lc-sep"></div><h3>${t('Currency')}</h3><div class="lc-grid lc-curs" translate="no">${CURS.map(([k, s, n]) => `<button type="button" class="lc-opt" data-cur="${k}" aria-pressed="${k === c}" title="${t(n)}"><b>${s}</b><small>${k}</small></button>`).join('')}</div>
+        <p class="lc-note">${t('Prices show in your currency. GCash and bank transfer are in pesos.')}</p>`;
+      const dl = document.querySelector('[data-lc-langs]'), dc = document.querySelector('[data-lc-curs]');
+      if (dl) dl.innerHTML = LANGS.map(([k, n]) => `<button type="button" lang="${k}" data-lang="${k}" aria-pressed="${k === lang}">${n}</button>`).join('');
+      if (dc) dc.innerHTML = CURS.map(([k, s]) => `<button type="button" data-cur="${k}" aria-pressed="${k === c}">${s} ${k}</button>`).join('');
+    }
+    draw();
+    document.addEventListener('click', e => { const b = e.target.closest('[data-lang], [data-cur]'); if (!b || !b.closest('#lc-pop, .chips')) return; if (b.dataset.lang) setLang(b.dataset.lang); else setCur(b.dataset.cur); });
+    // the footer keeps a short list too (the bottom of a long page)
+    const foot = document.querySelector('.site-foot .foot-bottom'); if (foot) { const w = document.createElement('div'); w.className = 'foot-lang'; w.setAttribute('translate', 'no');
+      w.innerHTML = LANGS.map(([k, n]) => `<button type="button" lang="${k}" data-lang="${k}" aria-pressed="${k === lang}">${n}</button>`).join(''); w.addEventListener('click', e => { const b = e.target.closest('[data-lang]'); if (b) setLang(b.dataset.lang); }); foot.append(w); }
   }
   async function start() {
     document.documentElement.lang = lang;
@@ -85,6 +107,6 @@
     new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) queued.add(n); else if (n.nodeType === 3 && n.parentElement) queued.add(n.parentElement);
       if (!timer) timer = requestAnimationFrame(() => { timer = 0; const list = [...queued]; queued = new Set(); for (const n of list) if (n.isConnected) walk(n); }); }).observe(document.body, { childList: true, subtree: true });
   }
-  window.LKI18N = { t, lang: () => lang, LANGS, collect: () => (walk(document.body), [...collected]) };
+  window.LKI18N = { t, lang: () => lang, LANGS, CURS, cur: curNow, collect: () => (walk(document.body), [...collected]) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
