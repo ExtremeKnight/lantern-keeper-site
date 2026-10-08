@@ -30,15 +30,15 @@
   }
   // ---------- the panel ----------
   const css = document.createElement('style');
-  css.textContent = `.lkb-btn{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:999px;border:1px solid rgba(255,207,102,.5);background:#121a3a;color:#ffcf66;font:700 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  css.textContent = `.lkb-btn{position:fixed;left:18px;bottom:18px;z-index:70;display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:999px;border:1px solid rgba(255,207,102,.5);background:#121a3a;color:#ffcf66;font:700 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45)}
   .lkb-btn:hover{background:#18224a}.lkb-btn svg{width:20px;height:20px}
-  .lkb{position:fixed;right:18px;bottom:78px;z-index:71;padding:0;margin:0;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100vh - 110px));display:flex;flex-direction:column;background:#0d1430;border:1px solid #34407a;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.55);overflow:hidden;font:15px/1.5 system-ui,sans-serif;color:#e8eaf6}
+  .lkb{position:fixed;left:18px;bottom:78px;z-index:71;padding:0;margin:0;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100vh - 110px));display:flex;flex-direction:column;background:#0d1430;border:1px solid #34407a;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.55);overflow:hidden;font:15px/1.5 system-ui,sans-serif;color:#e8eaf6}
   .lkb[hidden]{display:none}.lkb-top{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#121a3a;border-bottom:1px solid #26305a}.lkb-top b{flex:1}.lkb-top small{display:block;color:#8a91b8;font-weight:400}
   .lkb-x{border:0;background:none;color:#b3b9d8;font-size:22px;cursor:pointer;padding:0 4px}.lkb-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
   .lkb-m{max-width:88%;padding:10px 12px;border-radius:14px;background:#18224a;align-self:flex-start;white-space:pre-line}.lkb-m.me{align-self:flex-end;background:#ffcf66;color:#1d1405}
   .lkb-m a{color:#ffcf66}.lkb-m b.q{display:block;margin-bottom:4px;color:#fff}.lkb-chips{display:flex;flex-wrap:wrap;gap:6px}.lkb-chip{border:1px solid #34407a;background:none;color:#e8eaf6;border-radius:999px;padding:6px 10px;font:13px system-ui,sans-serif;cursor:pointer}.lkb-chip:hover{border-color:#ffcf66;color:#ffcf66}
   .lkb-in{display:flex;gap:8px;padding:10px;border-top:1px solid #26305a}.lkb-in input{flex:1;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid #34407a;background:#0a0f24;color:#e8eaf6;font:inherit}.lkb-in button{border:0;border-radius:12px;padding:0 14px;background:#ffcf66;color:#1d1405;font-weight:700;cursor:pointer}
-  .lkb-note{padding:0 14px 10px;color:#8a91b8;font-size:12px}@media (max-width:520px){.lkb{right:8px;left:8px;width:auto;bottom:72px}.lkb-btn{right:12px;bottom:12px}}`;
+  .lkb-note{padding:0 14px 10px;color:#8a91b8;font-size:12px}@media (max-width:520px){.lkb{right:8px;left:8px;width:auto;bottom:72px}.lkb-btn{left:12px;bottom:12px}}`;
   document.head.append(css);
   const btn = document.createElement('button'); btn.className = 'lkb-btn'; btn.type = 'button'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'lkbPanel');
   btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M8 5h8l-1 3H9zM7 8h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"/><path d="M12 12v4"/></svg>${t('Help')}`;

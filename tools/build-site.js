@@ -144,12 +144,13 @@ ${body.trim()}
         <p>An idle roguelite lighthouse defense game by Exenova. Free to play, no ads, nothing that changes how you play is ever sold.</p>
       </div>
       <div><h2>Play</h2><ul><li><a href="play/">In your browser</a></li><li><a href="downloads.html">Downloads</a></li><li><a href="index.html#platforms">Platforms</a></li></ul></div>
-      <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li></ul></div>
+      <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li><li><a href="pitch.html">Presentation</a></li></ul></div>
       <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a></li></ul></div>
     </div>
     <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site. Signing in keeps your sign-in in this browser; the sign-in form loads hCaptcha's human check.</span></div>
   </div>
 </footer>
+<script src="assets/site-edit.js" defer></script>
 <script src="assets/i18n.js" defer></script>
 <script src="assets/site.js" defer></script>
 <script src="assets/bot.js" defer></script>
@@ -166,6 +167,8 @@ for (const f of fs.readdirSync(PAGES).filter(f => f.endsWith('.html'))) {
   fs.writeFileSync(path.join(ROOT, meta.path), layout(meta, src.slice(m[0].length)));
   built.push(meta);
 }
+// 0.30.1: the pitch presentation, rebuilt from the home page and the news at every build (tools/build-pitch.js)
+built.push({ path: require('./build-pitch')().path });
 // the sitemap (every page except the 404)
 const today = new Date().toISOString().slice(0, 10);
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${built.filter(b => b.path !== '404.html' && !b.noindex).map(b => `  <url><loc>${SITE}${b.path === 'index.html' ? '' : b.path}</loc><lastmod>${today}</lastmod></url>`).join('\n')}\n  <url><loc>${SITE}play/</loc><lastmod>${today}</lastmod></url>\n</urlset>\n`);

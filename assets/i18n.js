@@ -112,6 +112,7 @@
       dict = {}; for (const [k, v] of Object.entries(file)) dict[norm(k)] = v;
       over.then(list => { if (!list.length) return; for (const o of list) dict[norm(o.key)] = o.value; ver++; walk(document.body); });
     }
+    readyOk();
     if (!COLLECT) picker();
     if (LEGAL && lang !== 'en') { const n = document.createElement('p'); n.className = 'legal-note'; n.textContent = t('This page is in English: the English version is the one that counts.'); const m = document.querySelector('main, .page'); if (m) m.prepend(n); }
     walk(document.body);
@@ -120,6 +121,7 @@
     new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) queued.add(n); else if (n.nodeType === 3 && n.parentElement) queued.add(n.parentElement);
       if (!timer) timer = requestAnimationFrame(() => { timer = 0; const list = [...queued]; queued = new Set(); for (const n of list) if (n.isConnected) walk(n); }); }).observe(document.body, { childList: true, subtree: true });
   }
-  window.LKI18N = { t, lang: () => lang, LANGS, CURS, cur: curNow, money, setCur: c => { try { localStorage.setItem('lk-currency', c); } catch (e) { /* this visit */ } }, collect: () => (walk(document.body), [...collected]) };
+  let readyOk; const ready = new Promise(r => { readyOk = r; }); // (when the language file is in: for scripts that draw their own words, such as the presentation)
+  window.LKI18N = { t, ready, setLang: c => { try { localStorage.setItem('lk-lang', c); } catch (e) { /* this visit */ } location.reload(); }, lang: () => lang, LANGS, CURS, cur: curNow, money, setCur: c => { try { localStorage.setItem('lk-currency', c); } catch (e) { /* this visit */ } }, collect: () => (walk(document.body), [...collected]) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

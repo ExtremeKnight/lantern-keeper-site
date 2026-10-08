@@ -18,7 +18,7 @@
   const ago = d => { const m = (Date.now() - Date.parse(d)) / 6e4; return m < 1 ? 'just now' : m < 60 ? Math.floor(m) + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : day(d); };
   const ROLE = { owner: 'Owner', developer: 'Developer', moderator: 'Moderator', contributor: 'Contributor', subscriber: 'Club', supporter: 'Supporter', veteran: 'Veteran', player: 'Player' };
   const roleChips = roles => (roles || []).filter(r => r !== 'player').map(r => `<span class="role role-${r}">${ROLE[r] || esc(r)}</span>`).join('');
-  let me = null, myRoles = [], myProfile = null;
+  let me = null, myRoles = [], myProfile = null, myPerms = new Set();
 
   async function call(fn, body) {
     const { data: s } = await sb.auth.getSession(), t = s && s.session && s.session.access_token;
@@ -26,11 +26,13 @@
     const b = await r.json().catch(() => ({})); if (!r.ok) throw new Error(b.error || 'Something went wrong (' + r.status + '). Try again.'); return b;
   }
   async function loadMe() {
-    const { data } = await sb.auth.getUser(); me = data && data.user || null; myRoles = []; myProfile = null;
-    if (me) { const [r, p] = await Promise.all([sb.rpc('roles_of', { p_user: me.id }), sb.from('profiles').select('*').eq('id', me.id).maybeSingle()]); myRoles = r.data || ['player']; myProfile = p.data; }
+    const { data } = await sb.auth.getUser(); me = data && data.user || null; myRoles = []; myProfile = null; myPerms = new Set();
+    if (me) { const [r, p, q] = await Promise.all([sb.rpc('roles_all', { p_user: me.id }).then(x => x.error ? sb.rpc('roles_of', { p_user: me.id }) : x), sb.from('profiles').select('*').eq('id', me.id).maybeSingle(), sb.rpc('my_perms')]); myRoles = r.data || ['player']; myProfile = p.data; myPerms = new Set(q.data || []); }
   }
   const isStaff = () => myRoles.some(r => ['owner', 'developer', 'moderator'].includes(r));
   const isTeam = () => myRoles.some(r => ['owner', 'developer'].includes(r));
+  // 0.30.1: what this account may do comes from the permissions the owners set (the server checks it again)
+  const can = (...ps) => ps.some(p => myPerms.has(p));
   function modal(html, onReady) {
     const back = h(`<div class="hub-modal" role="dialog" aria-modal="true"><div class="hub-dlg">${html}<button class="hub-x" type="button" aria-label="Close">×</button></div></div>`);
     const close = () => { back.remove(); document.removeEventListener('keydown', key); };
@@ -219,7 +221,7 @@
       <section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${p.web_avatar ? `<img src="${esc(CFG.url + '/storage/v1/object/public/community/' + p.web_avatar)}" alt="">` : esc((p.display_name || '?').slice(0, 1))}</div><div>
         <h2>${esc(p.display_name || 'Keeper')}</h2><p>${roleChips(myRoles)} <span class="muted">Joined ${day(p.created_at || me.created_at)} · Friend code ${esc(p.friend_code || '-')}</span></p></div></div>
         <div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${(w.data && w.data.lumens) || 0}</b> Lumens</span><span><b>${looks + packs.length + lanterns}</b> paid looks and packs</span></div>
-        <p>${isStaff() ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
+        <p>${can('dashboard.open') ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
       <section class="card"><h2>Profile</h2><p class="muted small">Your picture, banner, name and colour show in the community and on your page. Your in-game avatar, frame and title are changed in the game (Profile).</p><div data-profile-editor></div></section>
       <section class="card"><h2>Supporter status</h2>
         ${c.data ? subPanel(c.data, store.products.find(x => x.kind === 'club') || { usd_cents: 0, php_cents: 0 }) + `<p><a href="store.html">${renewing(c.data) ? 'Manage or cancel the subscription' : member ? 'Renew monthly' : 'Join again'}</a></p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
@@ -261,7 +263,7 @@
   const who = id => { const n = names.get(id) || { name: 'A keeper', roles: [] }; const staffRoles = (n.roles || []).filter(r => ['owner', 'developer', 'moderator'].includes(r)); // (a hidden profile shows only staff roles: never whether someone paid)
     return n.shown ? `<a href="#/k/${id}" class="hub-who">${esc(n.name)}</a> ${roleChips(n.roles)}` : `<span class="hub-who">${esc(n.name)}</span> ${roleChips(staffRoles)}`; };
   const textHtml = (t, team) => esc(t).replace(/\n/g, '<br>').replace(/@([A-Za-z0-9_.'-]{3,16})/g, '<b class="lkc-mention">@$1</b>').replace(team ? /(https:\/\/[^\s<]+)/g : /$^/, '<a href="$1" rel="noopener nofollow" target="_blank">$1</a>');
-  const canPost = ch => !ch ? !!me : ch.post_role === 'team' ? isTeam() : ch.post_role === 'staff' ? isStaff() : ch.post_role === 'club' ? isStaff() || myRoles.includes('subscriber') : !!me;
+  const canPost = ch => !ch ? !!me : ch.post_role === 'team' ? can('posts.publish') : ch.post_role === 'staff' ? can('posts.publish', 'events.post', 'moderation') : ch.post_role === 'club' ? isStaff() || myRoles.includes('subscriber') : !!me;
   const canRead = ch => ch.read_role !== 'club' || isStaff() || myRoles.includes('subscriber');
   const chan = id => channels.find(c => c.id === id), byCat = cat => channels.find(c => c.category === cat);
   const setLive = sub => { if (live) { sb.removeChannel(live); live = null; } live = sub || null; };
@@ -337,7 +339,7 @@
     const box = body.querySelector('.lkc-msgs');
     const line = m => { const r = m.reply_to && msgs.find(x => x.id === m.reply_to), mine = me && m.author === me.id, mentioned = me && (m.mentions || []).includes(me.id);
       return `<div class="lkc-msg${mentioned ? ' me' : ''}${m.status !== 'visible' ? ' gone' : ''}" data-m="${m.id}">${avatar(m.author)}<div>${r ? `<p class="lkc-quote">↪ ${esc((names.get(r.author) || { name: 'A keeper' }).name)}: ${esc(r.body.slice(0, 80))}</p>` : ''}<p class="lkc-meta">${who(m.author)} <small>${ago(m.created_at)}${m.edited_at ? ' · edited' : ''}${m.status !== 'visible' ? ' · ' + esc(m.status) : ''}</small></p><p class="lkc-text">${textHtml(m.body, (names.get(m.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p></div>
-        <span class="lkc-acts">${me && canPost(ch) ? `<button data-reply="${m.id}" aria-label="Reply" title="Reply">${ico('reply')}</button>` : ''}${mine ? `<button data-del="${m.id}" aria-label="Delete" title="Delete">${ico('trash')}</button>` : me ? `<button data-rep="${m.id}" aria-label="Report" title="Report">${ico('flag')}</button>` : ''}${isStaff() && !mine ? `<button data-hide="${m.id}" aria-label="Hide" title="Hide">${ico('ban')}</button>` : ''}</span></div>`; };
+        <span class="lkc-acts">${me && canPost(ch) ? `<button data-reply="${m.id}" aria-label="Reply" title="Reply">${ico('reply')}</button>` : ''}${mine ? `<button data-del="${m.id}" aria-label="Delete" title="Delete">${ico('trash')}</button>` : me ? `<button data-rep="${m.id}" aria-label="Report" title="Report">${ico('flag')}</button>` : ''}${can('moderation') && !mine ? `<button data-hide="${m.id}" aria-label="Hide" title="Hide">${ico('ban')}</button>` : ''}</span></div>`; };
     const draw = () => { box.innerHTML = msgs.length ? msgs.map(line).join('') : '<p class="muted lkc-empty">No messages yet: say hello!</p>'; box.scrollTop = box.scrollHeight; wire(); };
     const wire = () => {
       for (const b of box.querySelectorAll('[data-reply]')) b.onclick = () => { replyTo = +b.dataset.reply; const m = msgs.find(x => x.id === replyTo), rp = body.querySelector('.lkc-replying'); rp.hidden = false; rp.innerHTML = `Replying to ${esc((names.get(m.author) || { name: '' }).name)} <button type="button" aria-label="Stop replying">✕</button>`; rp.querySelector('button').onclick = () => { replyTo = null; rp.hidden = true; }; body.querySelector('textarea').focus(); };
@@ -396,10 +398,10 @@
         ${p.poll ? `<div class="hub-poll">${p.poll.map((o, i) => { const n = (votes || []).filter(v => v.choice === i).length, pc = total ? Math.round(n / total * 100) : 0; return `<button class="hub-opt${myVote && myVote.choice === i ? ' on' : ''}" data-vote="${i}" ${myVote || !me || p.locked ? 'disabled' : ''}><span style="width:${myVote || !me ? pc : 0}%"></span><b>${esc(o)}</b>${myVote || !me ? ` <small>${pc}% (${n})</small>` : ''}</button>`; }).join('')}<p class="muted small">${total} vote${total === 1 ? '' : 's'}${!me ? ' · sign in to vote' : myVote ? ' · you voted' : ''}</p></div>` : ''}
         <div class="hub-reacts">${REACT.map(([k, e]) => { const n = (reacts || []).filter(r => r.kind === k).length, on = me && (reacts || []).some(r => r.kind === k && r.user_id === me.id); return `<button class="hub-react${on ? ' on' : ''}" data-react="${k}" ${me ? '' : 'disabled'} aria-pressed="${!!on}" aria-label="${k}">${e} ${n || ''}</button>`; }).join('')}</div>
         <p class="hub-tools">${me ? `<button class="hub-link" data-save aria-pressed="${saved}">${saved ? 'Saved' : 'Save'}</button> · ` : ''}<button class="hub-link" data-share>Copy link</button>${own(p) ? ' · <button class="hub-link" data-edit>Edit</button> <button class="hub-link" data-del>Delete</button>' : ''}${me && !own(p) ? `<button class="hub-link" data-report>Report</button>` : ''}
-        ${isStaff() ? ` · <button class="hub-link" data-mod="pinned:${!p.pinned}">${p.pinned ? 'Unpin' : 'Pin'}</button> <button class="hub-link" data-mod="locked:${!p.locked}">${p.locked ? 'Reopen' : 'Close replies'}</button> <button class="hub-link" data-mod="status:${p.status === 'visible' ? 'hidden' : 'visible'}">${p.status === 'visible' ? 'Hide' : 'Show'}</button>${!p.published && isTeam() ? ' <button class="hub-link" data-mod="published:true">Publish</button>' : ''}${p.state ? ` <select data-state aria-label="State">${['open', 'planned', 'in progress', 'done', 'fixed', 'not planned'].map(s => `<option ${s === p.state ? 'selected' : ''}>${s}</option>`).join('')}</select>` : ''}` : ''}</p></article>
+        ${can('moderation') ? ` · <button class="hub-link" data-mod="pinned:${!p.pinned}">${p.pinned ? 'Unpin' : 'Pin'}</button> <button class="hub-link" data-mod="locked:${!p.locked}">${p.locked ? 'Reopen' : 'Close replies'}</button> <button class="hub-link" data-mod="status:${p.status === 'visible' ? 'hidden' : 'visible'}">${p.status === 'visible' ? 'Hide' : 'Show'}</button>${!p.published && can('posts.publish') ? ' <button class="hub-link" data-mod="published:true">Publish</button>' : ''}${p.state ? ` <select data-state aria-label="State">${['open', 'planned', 'in progress', 'done', 'fixed', 'not planned'].map(s => `<option ${s === p.state ? 'selected' : ''}>${s}</option>`).join('')}</select>` : ''}` : ''}</p></article>
       <h3 class="hub-h">${(replies || []).length} repl${(replies || []).length === 1 ? 'y' : 'ies'}</h3>
       ${(replies || []).map(r => `<div class="card hub-reply${r.status !== 'visible' ? ' hidden-r' : ''}"><div class="lkc-msg plain">${avatar(r.author)}<div><p class="lkc-meta">${who(r.author)} <small>${ago(r.created_at)}${r.edited_at ? ' · edited' : ''}${r.status !== 'visible' ? ' · ' + esc(r.status) : ''}</small></p><p class="hub-body">${textHtml(r.body, (names.get(r.author) || { roles: [] }).roles.some(x => x === 'owner' || x === 'developer'))}</p></div></div>
-        <p class="hub-tools">${own(r) ? `<button class="hub-link" data-rdel="${r.id}">Delete</button>` : me ? `<button class="hub-link" data-rrep="${r.id}">Report</button>` : ''}${isStaff() ? ` <button class="hub-link" data-rmod="${r.id}:${r.status === 'visible' ? 'hidden' : 'visible'}">${r.status === 'visible' ? 'Hide' : 'Show'}</button>` : ''}</p></div>`).join('')}
+        <p class="hub-tools">${own(r) ? `<button class="hub-link" data-rdel="${r.id}">Delete</button>` : me ? `<button class="hub-link" data-rrep="${r.id}">Report</button>` : ''}${can('moderation') ? ` <button class="hub-link" data-rmod="${r.id}:${r.status === 'visible' ? 'hidden' : 'visible'}">${r.status === 'visible' ? 'Hide' : 'Show'}</button>` : ''}</p></div>`).join('')}
       ${p.locked ? '<p class="muted">Replies are closed.</p>' : me ? `<form class="hub-form card" data-reply><label>Your reply<textarea name="body" maxlength="2000" rows="3" required></textarea></label><button class="btn btn-primary" type="submit">Reply</button></form>` : '<p><a href="account.html?next=community.html">Sign in</a> to reply.</p>'}`;
     const act = async (b, after) => { try { await call('community', b); (after || (() => showPost(id)))(); } catch (e) { modal(`<h2>Not done</h2><p>${esc(e.message)}</p>`); } };
     const $$ = s => body.querySelectorAll(s), $1 = s => body.querySelector(s);
@@ -543,7 +545,7 @@
       <label>Text<textarea name="body" maxlength="5000" rows="8"></textarea></label>
       <label>A picture <small>(optional: PNG, JPEG or WebP, up to 3 MB)</small><input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
       <label>A poll <small>(optional: one choice per line, 2 to 6)</small><textarea name="poll" rows="3" maxlength="400"></textarea></label>
-      ${isStaff() ? `<fieldset class="lkc-team"><legend>Team options</legend>
+      ${can('posts.publish', 'events.post') ? `<fieldset class="lkc-team"><legend>Team options</legend>
         <label>Version <small>(devlogs: for example 0.30)</small><input name="version" maxlength="10" placeholder="0.30"></label>
         <div class="hub-row"><label>Starts <small>(events, giveaways)</small><input name="starts_at" type="datetime-local"></label><label>Ends<input name="ends_at" type="datetime-local"></label></div>
         <label>Prize <small>(giveaways)</small><input name="prize" maxlength="200"></label>
@@ -559,7 +561,7 @@
         if (file && file.size) { if (file.size > 3 * 1048576) throw new Error('Use a picture under 3 MB.'); const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
           image = `${me.id}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}.${ext}`; const up = await sb.storage.from('community').upload(image, file, { contentType: file.type }); if (up.error) throw up.error; }
         const poll = String(fd.get('poll') || '').split('\n').map(s => s.trim()).filter(Boolean), c = chan(fd.get('channel'));
-        const team = isStaff() ? { version: fd.get('version') || undefined, starts_at: fd.get('starts_at') || undefined, ends_at: fd.get('ends_at') || undefined, prize: fd.get('prize') || undefined, publish_at: fd.get('publish_at') || undefined, published: fd.get('draft') ? false : undefined } : {};
+        const team = can('posts.publish', 'events.post') ? { version: fd.get('version') || undefined, starts_at: fd.get('starts_at') || undefined, ends_at: fd.get('ends_at') || undefined, prize: fd.get('prize') || undefined, publish_at: fd.get('publish_at') || undefined, published: fd.get('draft') ? false : undefined } : {};
         const r = await call('community', Object.assign({ action: 'post', category: c.category, title: fd.get('title'), body: fd.get('body'), image, poll: poll.length ? poll : undefined }, team));
         location.hash = '#/p/' + r.post;
       } catch (err) { say(f, err.message || String(err)); btn.disabled = false; }
@@ -653,7 +655,7 @@
     else if (PAGE === 'account') renderAccount();
     else if (PAGE === 'community') startCommunity();
     else if (PAGE === 'admin') { // 0.30.1: the dashboard (assets/admin.js) gets the sign-in and the helpers
-      const api = { sb, CFG, call, modal, say, esc, day, ago, h, me, myRoles, myProfile, isStaff, isTeam, isOwner: () => myRoles.includes('owner'), roleChips, signIn: () => { location.href = 'account.html?next=admin.html'; } };
+      const api = { sb, CFG, call, modal, say, esc, day, ago, h, me, myRoles, myProfile, myPerms, can, isStaff, isTeam, isOwner: () => myRoles.includes('owner'), roleChips, signIn: () => { location.href = 'account.html?next=admin.html'; } };
       const go = () => window.LKAdmin ? window.LKAdmin(root, api) : setTimeout(go, 50); go();
     }
   });

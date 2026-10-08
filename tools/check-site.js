@@ -38,6 +38,7 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
       await p.goto(BASE + pg, { waitUntil: 'networkidle' });
       await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 600) { scrollTo(0, y); await new Promise(r => setTimeout(r, 30)); } scrollTo(0, 0); });
       await p.waitForLoadState('networkidle');
+      await p.waitForFunction(() => [...document.images].every(i => !i.getAttribute('src') || i.complete), null, { timeout: 10000 }).catch(() => null); // (the pictures the scrolling asked for: networkidle was already reached once, so it doesn't wait for them)
       // lazy images may still be decoding on a busy machine: wait for them to finish (a broken one still fails below)
       await p.waitForFunction(() => [...document.images].every(i => i.closest('dialog:not([open])') || i.complete), null, { timeout: 15000 }).catch(() => {});
       const r = await p.evaluate(() => ({
@@ -105,6 +106,20 @@ const PLAT = { windows: 'Win32', android: 'Linux armv8l', iphone: 'iPhone', mac:
       report(`News lists every update (${n}) and the home page the latest three`, n >= 10 && h === 3, { n, h });
       const res = await p.goto(BASE + 'no/such/page'); const nf = await p.evaluate(() => ({ h1: document.querySelector('h1').textContent, css: getComputedStyle(document.body).backgroundColor, logo: document.querySelector('.brand img').naturalWidth }));
       report('a missing page shows the styled 404 page (even deep in the site)', res.status() === 404 && /Lost in the fog/.test(nf.h1) && nf.css === 'rgb(10, 15, 36)' && nf.logo > 0, Object.assign({ status: res.status() }, nf)); }
+    // the pitch presentation: the version from news.json, every slide fits a computer and a phone, translated, no errors
+    for (const [w, h, lang] of [[1280, 720, 'en'], [390, 844, 'ja'], [390, 844, 'fil']]) {
+      const ctx = await b.newContext({ viewport: { width: w, height: h }, reducedMotion: 'reduce' }), p = await ctx.newPage(), errs = [];
+      p.on('pageerror', e => errs.push(String(e)));
+      await ctx.addInitScript(l => { try { localStorage.setItem('lk-lang', l); } catch (e) { /* none */ } }, lang);
+      await p.goto(BASE + 'pitch.html', { waitUntil: 'networkidle' }); await p.click('[data-start="self"]');
+      const r = await p.evaluate(async () => { const out = []; for (let i = 0; i < LKPitch.slides; i++) { LKPitch.go(i, true); await new Promise(x => setTimeout(x, 120)); const s = document.querySelectorAll('.ps-slide')[i]; if (s.scrollHeight - s.clientHeight > 2) out.push(i + 1); }
+        return { over: out, wide: document.documentElement.scrollWidth > innerWidth, slides: LKPitch.slides, badge: (document.querySelector('.ps-badge') || {}).textContent || '', count: document.querySelector('.ps-count').textContent }; });
+      const news = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', 'news.json'), 'utf8')), v = (news.latest || news.items[0].version).replace(/\.0$/, '');
+      const untranslated = lang !== 'en' && /^Slide \d+ of /.test(r.count);
+      report(`the pitch presentation (${lang}, ${w}px): ${r.slides} slides, version ${v}, every slide fits, nothing wider than the screen`, !errs.length && !r.over.length && !r.wide && r.badge.includes(v) && !untranslated, Object.assign({ errs }, r));
+      await ctx.close(); }
+    { const miss = require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'pitch-strings.js')], { encoding: 'utf8' });
+      report('the pitch presentation is translated into every language', miss.status === 0, miss.stdout.trim()); }
     // the legal pages: the same words as before
     for (const [file, env] of [['privacy-policy.html', 'OLD_PRIVACY'], ['terms.html', 'OLD_TERMS']]) {
       if (!process.env[env]) continue;

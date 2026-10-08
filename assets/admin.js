@@ -20,17 +20,19 @@ window.LKAdmin = function (root, A) {
   const nm = id => id ? `<a href="community.html#/k/${id}" target="_blank" rel="noopener" title="${esc(mails.get(id) || '')}">${esc(names.get(id) || 'A keeper')}</a>${mails.get(id) ? ` <span class="adm-mailto">${esc(mails.get(id))}</span>` : ''}` : '<i>deleted account</i>';
 
   if (!A.me) { root.innerHTML = '<section class="card"><h2>The dashboard</h2><p>Sign in with a team or moderator account.</p><button class="btn btn-primary" data-in>Sign in</button></section>'; root.querySelector('[data-in]').onclick = A.signIn; return; }
-  if (!A.isStaff()) { root.innerHTML = '<section class="card"><h2>Not for this account</h2><p>The dashboard is for the Lantern Keeper team and moderators.</p></section>'; return; }
-  const team = A.isTeam(), owner = A.isOwner();
+  const can = A.can; // 0.30.1: what this account may open comes from the permissions page (the server checks again)
+  if (!can('dashboard.open')) { root.innerHTML = '<section class="card"><h2>Not for this account</h2><p>The dashboard is for the Lantern Keeper team and moderators.</p></section>'; return; }
+  const team = can('payments.view'), owner = A.isOwner();
 
-  // section: [id, label, who may open it, draw]
+  // section: [id, label, the permissions that open it (any one), draw]
   const SECTIONS = [
-    ['overview', 'Overview', 'staff', overview], ['payments', 'Payments', 'team', payments], ['subs', 'Subscriptions', 'team', subs],
-    ['tickets', 'Tickets', 'staff', tickets], ['moderation', 'Reports and mutes', 'staff', moderation], ['people', 'People and roles', 'team', peoplePage],
-    ['posts', 'News, devlogs, events', 'team', posts], ['announce', 'In-game announcements', 'team', announce], ['content', 'Site sections', 'team', content],
-    ['faq', 'FAQ and chatbot', 'team', faq], ['store', 'Products and prices', 'team', store], ['emails', 'Email templates', 'team', emails],
-    ['campaigns', 'Email campaigns', 'team', campaigns], ['translations', 'Translations', 'team', translations], ['rewards', 'Rewards and gifts', 'team', rewards],
-  ].filter(s => s[2] === 'staff' || team);
+    ['overview', 'Overview', ['dashboard.open'], overview], ['payments', 'Payments', ['payments.view', 'payments.settings'], payments], ['subs', 'Subscriptions', ['subs.view'], subs],
+    ['tickets', 'Tickets', ['tickets.handle'], tickets], ['moderation', 'Reports and mutes', ['moderation'], moderation], ['people', 'People and roles', ['people.view'], peoplePage],
+    ['perms', 'Permissions', ['perms.manage'], permsPage], ['site', 'Website', ['site.edit', 'site.settings'], sitePage],
+    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['content', 'Notices (old)', ['site.edit'], content],
+    ['faq', 'FAQ and chatbot', ['faq.edit'], faq], ['store', 'Products and prices', ['prices.edit', 'payments.settings'], store], ['emails', 'Email templates', ['emails.templates', 'emails.approve'], emails],
+    ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
+  ].filter(s => can(...s[2]));
   root.innerHTML = `<div class="adm"><nav class="adm-nav" aria-label="Dashboard sections"><p class="adm-who">${esc((A.myProfile && A.myProfile.display_name) || A.me.email)} ${A.roleChips(A.myRoles)}</p>
     ${SECTIONS.map(([id, label]) => `<a href="#${id}" data-s="${id}">${label}</a>`).join('')}</nav><section class="adm-main" id="admMain" tabindex="-1"></section></div>`;
   const main = root.querySelector('#admMain');
@@ -168,9 +170,75 @@ window.LKAdmin = function (root, A) {
     for (const b of el.querySelectorAll('[data-mute]')) b.onclick = () => muteBox(b.dataset.mute);
     for (const b of el.querySelectorAll('[data-ban]')) b.onclick = () => modal(`<h2>Ban ${esc(names.get(b.dataset.ban))}</h2><form class="hub-form"><label>Days (0 lifts a ban)<input name="days" type="number" min="0" max="3650" value="7"></label><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">A banned account can't sign in until then. Their purchases stay theirs.</p>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); call('admin', { action: 'ban', user: b.dataset.ban, days: +new FormData(f).get('days') }).then(() => { close(); route(); }, x => say(f, x.message)); }; });
-    for (const b of el.querySelectorAll('[data-roles]')) b.onclick = () => { const p = data.find(x => x.id === b.dataset.roles), has = r => (p.roles || []).includes(r);
-      modal(`<h2>Roles: ${esc(p.name || p.email)}</h2><div class="adm-roles">${[['moderator', 'Moderator: tickets, reports, mutes, hides posts'], ['contributor', 'Contributor: a credit on their profile'], ['developer', 'Developer: the whole dashboard (owners only)'], ['owner', 'Owner: also approves emails and gives roles (owners only)']].map(([r, txt]) => `<label class="hub-check"><input type="checkbox" data-r="${r}" ${has(r) ? 'checked' : ''} ${(r === 'developer' || r === 'owner') && !owner ? 'disabled' : ''}> ${txt}</label>`).join('')}</div><p class="muted small">Supporter, Club and Veteran come from purchases and play; they can't be set here.</p>`, d => {
-        for (const c of d.querySelectorAll('[data-r]')) c.onchange = () => call('admin', { action: 'role', user: p.id, role: c.dataset.r, on: c.checked }).then(r => { p.roles = r.roles; say(d, 'Saved.', true); }, x => { c.checked = !c.checked; say(d, x.message); }); }); };
+    for (const b of el.querySelectorAll('[data-roles]')) b.onclick = () => rolesBox(data.find(x => x.id === b.dataset.roles)).catch(err);
+  }
+
+  // ---------- roles of one person, their own permissions ----------
+  const BUILT = [['owner', 'Owner'], ['developer', 'Developer'], ['moderator', 'Moderator'], ['contributor', 'Contributor'], ['subscriber', 'Supporter Club'], ['supporter', 'Supporter'], ['veteran', 'Veteran'], ['player', 'Every keeper']];
+  const GIVEN = { moderator: 'Moderator', contributor: 'Contributor', developer: 'Developer (owners only)', owner: 'Owner (owners only)' };
+  async function rolesBox(p) {
+    const pm = can('perms.manage'), none = Promise.resolve({ data: [] });
+    const [{ data: custom }, { data: mine }, { data: cat }, { data: grid }, { data: over }] = await Promise.all([sb.from('custom_roles').select('*').order('name'), sb.from('user_roles').select('role').eq('user_id', p.id),
+      pm ? sb.from('perm_catalog').select('*').order('sort') : none, pm ? sb.from('role_perms').select('*') : none, pm ? sb.from('user_perms').select('*').eq('user_id', p.id) : none]);
+    const has = r => (p.roles || []).includes(r) || (mine || []).some(x => x.role === r), canRoles = can('people.roles');
+    const fromRoles = k => has('owner') || (grid || []).some(g => g.perm === k && (has(g.role) || g.role === 'player'));
+    const ov = k => { const o = (over || []).find(x => x.perm === k); return o ? (o.allow ? 'allow' : 'deny') : ''; };
+    modal(`<h2>Roles: ${esc(p.name || p.email)}</h2><div class="adm-roles">${Object.entries(GIVEN).map(([r, txt]) => `<label class="hub-check"><input type="checkbox" data-r="${r}" ${has(r) ? 'checked' : ''} ${!canRoles || ((r === 'developer' || r === 'owner') && !owner) ? 'disabled' : ''}> ${txt}</label>`).join('')}
+      ${(custom || []).map(c => `<label class="hub-check"><input type="checkbox" data-r="custom:${esc(c.key)}" ${has(c.key) ? 'checked' : ''} ${canRoles ? '' : 'disabled'}> ${esc(c.name)} <small class="muted">(custom role)</small></label>`).join('')}</div>
+      <p class="muted small">Supporter, Club and Veteran come from purchases and play; they can't be set here. What each role may do is on the Permissions page.</p>
+      ${pm ? `<details class="adm-own"><summary>This person's own permissions</summary><p class="muted small">"From their roles" follows the Permissions page. Allow or Deny here wins over their roles, for this person only.${has('owner') ? ' Owners can always do everything.' : ''}</p>
+        <div class="adm-table">${(cat || []).map(c => `<div class="adm-row adm-permrow"><span><b>${esc(c.label)}</b><br><small>${esc(c.grp)}</small></span>
+          <select data-ov="${esc(c.key)}" aria-label="${esc(c.label)}" ${has('owner') ? 'disabled' : ''}><option value="">From their roles (${fromRoles(c.key) ? 'yes' : 'no'})</option><option value="allow" ${ov(c.key) === 'allow' ? 'selected' : ''}>Allow</option><option value="deny" ${ov(c.key) === 'deny' ? 'selected' : ''}>Deny</option></select></div>`).join('')}</div></details>` : ''}`, d => {
+      for (const c of d.querySelectorAll('[data-r]')) c.onchange = () => call('admin', { action: 'role', user: p.id, role: c.dataset.r, on: c.checked }).then(r => { p.roles = r.roles; say(d, 'Saved.', true); }, x => { c.checked = !c.checked; say(d, x.message); });
+      for (const s of d.querySelectorAll('[data-ov]')) s.onchange = async () => { const k = s.dataset.ov, v = s.value;
+        const { error: e2 } = v ? await sb.from('user_perms').upsert({ user_id: p.id, perm: k, allow: v === 'allow' }) : await sb.from('user_perms').delete().eq('user_id', p.id).eq('perm', k);
+        if (e2) say(d, e2.message); else say(d, 'Saved.', true); }; });
+  }
+
+  // ---------- permissions: what every role may do; custom roles ----------
+  async function permsPage(el) {
+    const [{ data: cat, error }, { data: custom }, { data: grid }] = await Promise.all([sb.from('perm_catalog').select('*').order('sort'), sb.from('custom_roles').select('*').order('name'), sb.from('role_perms').select('*')]); if (error) throw error;
+    const cols = [...BUILT, ...(custom || []).map(c => [c.key, c.name, true])], on = new Set((grid || []).map(g => g.role + '|' + g.perm)), want = new Set(on);
+    const groups = [...new Set(cat.map(c => c.grp))];
+    el.innerHTML = head('Permissions', 'What each role may see, change and do. Owners can always do everything, so nobody can lock the owners out. One person can also be allowed or denied something from People and roles.', `<span class="adm-acts"><button class="btn btn-ghost btn-sm" data-newrole>New role</button><button class="btn btn-primary btn-sm" data-review disabled>Review changes</button></span>`)
+      + `<div class="adm-grid" role="region" aria-label="Permissions by role" tabindex="0"><table><thead><tr><th scope="col">Permission</th>${cols.map(([k, n, c]) => `<th scope="col">${esc(n)}${c ? `<br><button class="hub-link" data-rename="${esc(k)}">Rename</button> <button class="hub-link" data-delrole="${esc(k)}">Delete</button>` : ''}</th>`).join('')}</tr></thead><tbody>
+        ${groups.map(g => `<tr class="adm-grp"><th colspan="${cols.length + 1}" scope="rowgroup">${esc(g)}</th></tr>${cat.filter(c => c.grp === g).map(c => `<tr><th scope="row"><b>${esc(c.label)}</b><small>${esc(c.description || '')}</small></th>${cols.map(([k, n]) => `<td><input type="checkbox" aria-label="${esc(n)}: ${esc(c.label)}" data-cell="${esc(k)}|${esc(c.key)}" ${k === 'owner' || on.has(k + '|' + c.key) ? 'checked' : ''} ${k === 'owner' ? 'disabled' : ''}></td>`).join('')}</tr>`).join('')}`).join('')}
+      </tbody></table></div><p class="muted small">"Every keeper" is anyone signed in. Saved changes take effect straight away, everywhere; the server checks every permission again.</p>`;
+    const rv = el.querySelector('[data-review]'), diff = () => ({ add: [...want].filter(x => !on.has(x)), del: [...on].filter(x => !want.has(x)) });
+    for (const c of el.querySelectorAll('[data-cell]')) c.onchange = () => { c.checked ? want.add(c.dataset.cell) : want.delete(c.dataset.cell); c.closest('td').classList.toggle('adm-changed', c.checked !== on.has(c.dataset.cell));
+      const x = diff(), n = x.add.length + x.del.length; rv.disabled = !n; rv.textContent = n ? `Review ${n} change${n === 1 ? '' : 's'}` : 'Review changes'; };
+    const label = x => { const [r, k] = x.split('|'); return `${esc((cols.find(c => c[0] === r) || [r, r])[1])}: ${esc((cat.find(c => c.key === k) || {}).label || k)}`; };
+    rv.onclick = () => { const x = diff(); confirmBox('Save these permission changes?', `${x.add.length ? `<p><b>Allowed</b></p><ul>${x.add.map(a => `<li>${label(a)}</li>`).join('')}</ul>` : ''}${x.del.length ? `<p><b>Taken away</b></p><ul>${x.del.map(a => `<li>${label(a)}</li>`).join('')}</ul>` : ''}<p class="muted small">Everyone with these roles gets the change straight away.</p>`, async () => {
+      if (x.add.length) { const { error: e2 } = await sb.from('role_perms').insert(x.add.map(a => { const [role, perm] = a.split('|'); return { role, perm }; })); if (e2) throw e2; }
+      for (const a of x.del) { const [role, perm] = a.split('|'); const { error: e2 } = await sb.from('role_perms').delete().eq('role', role).eq('perm', perm); if (e2) throw e2; }
+      route(); }, 'Save'); };
+    const roleForm = c => modal(`<h2>${c ? 'Rename role' : 'New role'}</h2><form class="hub-form"><label>Name<input name="name" minlength="2" maxlength="40" required value="${esc(c ? c.name : '')}" placeholder="For example: Editor, Support, Community helper"></label><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">${c ? '' : 'A new role can do nothing until you tick what it may do. Give it to people from People and roles.'}</p>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const name = new FormData(f).get('name').trim();
+        let key = c ? c.key : name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 26); if (!/^[a-z]/.test(key)) key = 'r-' + key; if (key.length < 2 || BUILT.some(x => x[0] === key)) key += '-role';
+        const { error: e2 } = c ? await sb.from('custom_roles').update({ name }).eq('key', c.key) : await sb.from('custom_roles').insert({ key, name });
+        if (e2) say(f, /duplicate/i.test(e2.message) ? 'A role with that name already exists.' : e2.message); else { close(); route(); } }; });
+    el.querySelector('[data-newrole]').onclick = () => roleForm(null);
+    for (const b of el.querySelectorAll('[data-rename]')) b.onclick = () => roleForm(custom.find(c => c.key === b.dataset.rename));
+    for (const b of el.querySelectorAll('[data-delrole]')) b.onclick = () => { const c = custom.find(x => x.key === b.dataset.delrole); confirmBox(`Delete the role ${esc(c.name)}?`, '<p>Everyone who has it loses it, and what it allowed. People keep their other roles.</p>', async () => {
+      await sb.from('role_perms').delete().eq('role', c.key); const { error: e2 } = await sb.from('custom_roles').delete().eq('key', c.key); if (e2) throw e2; route(); }, 'Delete'); };
+  }
+
+  // ---------- the website: edit any page in place, the site settings, every change with undo ----------
+  const SITE_PAGES = [['index.html', 'Home'], ['news.html', 'News'], ['community.html', 'Community'], ['store.html', 'Store'], ['support.html', 'Support and FAQ'], ['downloads.html', 'Downloads'], ['press.html', 'Press kit'], ['pitch.html', 'Presentation'], ['account.html', 'Account'], ['privacy-policy.html', 'Privacy Policy'], ['terms.html', 'Terms of Service'], ['404.html', 'Page not found']];
+  async function sitePage(el) {
+    const [{ data: rows, error }, { data: log }] = await Promise.all([sb.from('site_edits').select('page, key, lang, kind, updated_at'), sb.from('site_edit_log').select('*').order('at', { ascending: false }).limit(30)]); if (error) throw error;
+    const count = p => (rows || []).filter(r => r.page === p).length;
+    await people((log || []).map(x => x.by));
+    el.innerHTML = head('Website', 'Change any page without code: open a page in the editor, then click any text, link, button or picture. Sections can be moved, hidden, restyled or added. Every change can be undone.')
+      + (can('site.edit') ? `<h3>Pages</h3><div class="adm-pages">${SITE_PAGES.map(([p, n]) => `<div class="card adm-tile"><b>${esc(n)}</b><span>${count(p) ? count(p) + ' change' + (count(p) === 1 ? '' : 's') : 'As designed'}</span><span class="adm-acts"><a class="btn btn-primary btn-sm" href="${p}?edit">Edit</a>${count(p) ? `<button class="btn btn-ghost btn-sm" data-wipe="${p}">Reset</button>` : ''}</span></div>`).join('')}</div>
+        <p class="muted small">The header, menu and footer are the same on every page: change them on any page. ${count('*') - (rows || []).filter(r => r.page === '*' && r.kind === 'settings').length} change(s) there.</p>` : '')
+      + (can('site.settings') ? '<h3>Site settings</h3><div class="card" data-settings><p class="muted">Loading...</p></div>' : '')
+      + `<h3>Latest changes</h3><div class="adm-table">${(log || []).map(x => `<div class="adm-row"><span><b>${esc(x.page === '*' ? 'Every page' : x.page)}</b> · ${esc(x.kind || '')}${x.lang ? ' · ' + esc(x.lang) : ''}<br><small>${esc(String((x.after || x.before || {}).html || (x.after || x.before || {}).src || x.key).replace(/<[^>]+>/g, '').slice(0, 120))}</small></span><span><small>${x.after ? (x.before ? 'Changed' : 'Added') : 'Removed'} by ${nm(x.by)}</small></span><span><small>${when(x.at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-undo="${x.id}">Undo</button></span></div>`).join('') || '<p class="muted">No changes yet.</p>'}</div>`;
+    const box = el.querySelector('[data-settings]');
+    if (box) { const go = () => window.LKSiteEdit && LKSiteEdit.settings() ? LKSiteEdit.reload().then(() => LKSiteEdit.settingsForm(box, sb, () => { say(box, 'Saved for every page.', true); })) : setTimeout(go, 100); go(); }
+    for (const b of el.querySelectorAll('[data-wipe]')) b.onclick = () => confirmBox(`Reset ${esc(b.dataset.wipe)}?`, '<p>Every change made on this page goes, and it looks as designed again. Each one stays in the history, so it can be brought back.</p>', async () => { const { error: e2 } = await sb.from('site_edits').delete().eq('page', b.dataset.wipe); if (e2) throw e2; route(); }, 'Reset');
+    for (const b of el.querySelectorAll('[data-undo]')) b.onclick = () => { const x = log.find(y => y.id === +b.dataset.undo); confirmBox('Undo this change?', `<p>${x.before ? 'It goes back to what it was before.' : 'It is taken off again.'}</p>`, async () => {
+      const q = x.before ? await sb.from('site_edits').upsert({ page: x.page, key: x.key, lang: x.lang, kind: x.kind, value: x.before }) : await sb.from('site_edits').delete().eq('page', x.page).eq('key', x.key).eq('lang', x.lang); if (q.error) throw q.error; route(); }, 'Undo'); };
   }
 
   // ---------- posts: news, devlogs (by version), events, giveaways; drafts and schedules ----------
@@ -262,9 +330,9 @@ window.LKAdmin = function (root, A) {
   async function emails(el, [key]) {
     const { data, error } = await sb.from('email_templates').select('*').order('grp').order('key'); if (error) throw error;
     if (key) return emailEdit(el, data.find(t => t.key === key));
-    el.innerHTML = head('Email templates', `The automatic emails. Each one is sent only once an owner approves it; a change needs approving again.${owner ? '' : ' (Only an owner can approve.)'}`)
+    el.innerHTML = head('Email templates', `The automatic emails. Each one is sent only once an owner approves it; a change needs approving again.${can('emails.approve') ? '' : ' (Your account can not approve.)'}`)
       + `<div class="adm-table">${data.map(t => `<a class="adm-row adm-link" href="#emails/${esc(t.key)}"><span><b>${esc(t.name)}</b><br><small>${esc(t.subject)}</small></span><span><small>${esc(t.grp)}</small></span><span class="adm-state ${t.approved ? 'st-paid' : 'st-review'}">${t.approved ? 'Approved' : 'Not approved: not sent'}</span><span><small>${ago(t.updated_at)}</small></span></a>`).join('')}</div>`
-      + (owner ? `<p><button class="btn btn-ghost btn-sm" data-all>Approve every template</button></p>` : '');
+      + (can('emails.approve') ? `<p><button class="btn btn-ghost btn-sm" data-all>Approve every template</button></p>` : '');
     const all = el.querySelector('[data-all]'); if (all) all.onclick = () => confirmBox('Approve every email?', `<p>${data.filter(t => !t.approved).length} templates start being sent when what they are for happens (a payment, a ticket...).</p>`, async () => { const { error: e2 } = await sb.from('email_templates').update({ approved: true }).eq('approved', false); if (e2) throw e2; route(); }, 'Approve all');
   }
   async function emailEdit(el, t) {
@@ -276,7 +344,7 @@ window.LKAdmin = function (root, A) {
         <label>Heading<input name="heading" maxlength="140" value="${esc(t.heading)}"></label><label>Text <small>(a blank line starts a paragraph; lines like "Amount: {{amount}}" become the details card; "• " lines a list)</small><textarea name="body" rows="12" maxlength="6000">${esc(t.body)}</textarea></label>
         <div class="hub-row"><label>Button text<input name="button_label" maxlength="40" value="${esc(t.button_label || '')}"></label><label>Button link<input name="button_link" maxlength="300" value="${esc(t.button_link || '')}"></label></div>
         <label>Colour<select name="tone">${['info', 'success', 'warning', 'danger'].map(x => `<option ${t.tone === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
-        <div class="hub-actions"><button class="btn btn-primary" type="submit">Save</button>${owner && !t.approved ? '<button class="btn btn-ghost" type="button" data-approve>Approve: start sending</button>' : ''}${owner && t.approved ? '<button class="btn btn-ghost" type="button" data-unapprove>Stop sending</button>' : ''}</div></form>
+        <div class="hub-actions"><button class="btn btn-primary" type="submit">Save</button>${can('emails.approve') && !t.approved ? '<button class="btn btn-ghost" type="button" data-approve>Approve: start sending</button>' : ''}${can('emails.approve') && t.approved ? '<button class="btn btn-ghost" type="button" data-unapprove>Stop sending</button>' : ''}</div></form>
         <div><p class="muted small">Preview with sample values</p><iframe class="adm-mail" title="Email preview"></iframe></div></div>`;
     const f = el.querySelector('[data-tpl]'), frame = el.querySelector('iframe');
     const draw = () => { const v = Object.fromEntries(new FormData(f)), r = renderEmail(Object.assign({}, t, v), EMAIL_SAMPLES, { unsubLink: '#' }); frame.srcdoc = r.html; };
