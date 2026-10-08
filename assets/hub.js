@@ -220,12 +220,7 @@
         <h2>${esc(p.display_name || 'Keeper')}</h2><p>${roleChips(myRoles)} <span class="muted">Joined ${day(p.created_at || me.created_at)} · Friend code ${esc(p.friend_code || '-')}</span></p></div></div>
         <div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${(w.data && w.data.lumens) || 0}</b> Lumens</span><span><b>${looks + packs.length + lanterns}</b> paid looks and packs</span></div>
         <p>${isStaff() ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
-      <section class="card"><h2>Profile</h2><p><a class="btn btn-primary btn-sm" href="community.html#/me">Edit your profile: picture, banner, name, colour</a></p><form class="hub-form" data-profile>
-        <label>About you <small>(shown on your public page, 300 characters)</small><textarea name="bio" maxlength="300" rows="3">${esc(p.bio || '')}</textarea></label>
-        <label>Discord name <small>(optional: shown so friends can find you)</small><input name="discord" maxlength="40" value="${esc(p.discord || '')}"></label>
-        <label class="hub-check"><input type="checkbox" name="show" ${p.show_profile ? 'checked' : ''}> Show my profile to other keepers (your public page, the community and the leaderboard)</label>
-        <button class="btn btn-primary" type="submit">Save</button></form>
-        <p class="muted small">Your in-game avatar, frame and title are changed in the game (Profile).</p></section>
+      <section class="card"><h2>Profile</h2><p class="muted small">Your picture, banner, name and colour show in the community and on your page. Your in-game avatar, frame and title are changed in the game (Profile).</p><div data-profile-editor></div></section>
       <section class="card"><h2>Supporter status</h2>
         ${c.data ? subPanel(c.data, store.products.find(x => x.kind === 'club') || { usd_cents: 0, php_cents: 0 }) + `<p><a href="store.html">${renewing(c.data) ? 'Manage or cancel the subscription' : member ? 'Renew monthly' : 'Join again'}</a></p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
         ${packs.length ? `<p>Packs: ${packs.map(esc).join(', ')}</p>` : '<p class="muted">No supporter packs yet.</p>'}${lanterns ? `<p>Club lanterns kept: ${lanterns}</p>` : ''}</section>
@@ -238,9 +233,7 @@
       <section class="card"><h2>Purchase history</h2>${(o.data || []).length ? `<div class="hub-orders">${o.data.map(orderRow).join('')}</div>` : '<p class="muted">No web store purchases yet.</p>'}
         <p class="muted small">Purchases made in the Google Play version show in the game (Shop > Supporter).</p></section>`;
     root.querySelector('[data-out]').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); await loadMe(); renderAccount(); };
-    const pf = root.querySelector('[data-profile]'); pf.onsubmit = async ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(pf));
-      const { error } = await sb.from('profiles').update({ bio: String(v.bio || '').trim().slice(0, 300) || null, discord: String(v.discord || '').trim().slice(0, 40) || null, show_profile: !!v.show }).eq('id', me.id);
-      say(pf, error ? 'Not saved: ' + error.message : 'Saved.', !error); if (!error) await loadMe(); };
+    profileEditor(root.querySelector('[data-profile-editor]'), () => setTimeout(renderAccount, 600));
     const mf = root.querySelector('[data-mail]'); mf.onsubmit = async ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(mf));
       const row = { user_id: me.id, email_updates: !!v.email_updates, email_events: !!v.email_events, email_friends: !!v.email_friends, email_promos: md.adult ? !!v.email_promos : false, updated_at: new Date().toISOString() };
       const { error } = await sb.from('comm_prefs').upsert(row); say(mf, error ? 'Not saved: ' + error.message : 'Saved.', !error); };
@@ -477,17 +470,28 @@
     const blob = await new Promise(r => c.toBlob(r, 'image/webp', .86)) || await new Promise(r => c.toBlob(r, 'image/jpeg', .88));
     if (!blob) throw new Error('That picture could not be prepared.'); return blob;
   }
+  // Animated pictures and banners (GIF) are a Supporter Club perk, like Discord Nitro: members and the team keep the
+  // GIF as it is (3 MB at most; it is shown cropped to fit); anyone else's GIF is saved as a still picture. The server
+  // checks this too (profiles_gif_guard).
+  const canAnimate = () => isStaff() || myRoles.includes('subscriber');
   async function editProfile() {
     if (!me) { const body = shell('me', ''); title('<b>Your profile</b>'); needSignIn(body, 'Sign in with your game account to set up your profile.', async () => { await loadMe(); heartbeat(); editProfile(); }); return; }
-    await loadMe(); const p = Object.assign({}, myProfile || {}); const body = shell('me', ''); title('<b>Edit your profile</b>');
-    const pics = { avatar: p.web_avatar ? pubUrl(p.web_avatar) : null, banner: p.web_banner ? pubUrl(p.web_banner) : null }, pending = {};
+    await loadMe(); const body = shell('me', ''); title('<b>Edit your profile</b>');
+    await profileEditor(body, () => { names.delete(me.id); location.hash = '#/k/' + me.id; });
+  }
+  // the editor itself, in the community (#/me) and on the account page
+  async function profileEditor(box, saved) {
+    const p = Object.assign({}, myProfile || {}), pageLink = PAGE === 'community' ? `#/k/${me.id}` : `community.html#/k/${me.id}`;
+    const pics = { avatar: p.web_avatar ? pubUrl(p.web_avatar) : null, banner: p.web_banner ? pubUrl(p.web_banner) : null }, pending = {}, anim = canAnimate();
     const roles = myRoles.filter(r => r !== 'player'), badgesQ = (await sb.rpc('keeper_page', { p_user: me.id })).data, badges = badgesQ ? badgesQ.badges : [];
-    body.innerHTML = `<div class="lkp-edit">
+    const accept = 'image/png,image/jpeg,image/webp,image/gif';
+    box.innerHTML = `<div class="lkp-edit">
       <form class="hub-form card lkp-form" novalidate>
         <div class="lkp-media"><div><p class="lkp-lab">Profile picture</p><p class="muted small">Square, shown everywhere you post.</p>
-            <div class="lkp-pick"><label class="btn btn-ghost btn-sm">${ico('camera')}<span>Choose a picture</span><input type="file" accept="image/png,image/jpeg,image/webp" data-file="avatar" class="sr-only"></label><button type="button" class="hub-link" data-clear="avatar">Remove</button></div></div>
+            <div class="lkp-pick"><label class="btn btn-ghost btn-sm">${ico('camera')}<span>Choose a picture</span><input type="file" accept="${accept}" data-file="avatar" class="sr-only"></label><button type="button" class="hub-link" data-clear="avatar">Remove</button></div></div>
           <div><p class="lkp-lab">Banner</p><p class="muted small">Wide, across the top of your page.</p>
-            <div class="lkp-pick"><label class="btn btn-ghost btn-sm">${ico('image')}<span>Choose a banner</span><input type="file" accept="image/png,image/jpeg,image/webp" data-file="banner" class="sr-only"></label><button type="button" class="hub-link" data-clear="banner">Remove</button></div></div></div>
+            <div class="lkp-pick"><label class="btn btn-ghost btn-sm">${ico('image')}<span>Choose a banner</span><input type="file" accept="${accept}" data-file="banner" class="sr-only"></label><button type="button" class="hub-link" data-clear="banner">Remove</button></div></div></div>
+        <p class="lkp-perk">${ico('star')}<span>${anim ? 'Supporter Club perk: your picture and banner can be animated (GIF, up to 3 MB).' : 'Animated pictures and banners (GIF) are a <a href="store.html">Supporter Club</a> perk. A GIF you choose now is saved as a still picture.'}</span></p>
         <p class="lkp-note">Keep pictures friendly: keepers of every age see them. Don't show your face if you are under 18, or anything personal like your school or address. Pictures are made smaller and saved without hidden details (such as where a photo was taken).</p>
         <label>Keeper name <small>(3 to 16 characters; your name in the game too)</small><input name="name" minlength="3" maxlength="16" required autocomplete="nickname" value="${esc(p.display_name || '')}"></label>
         <label>Pronouns <small>(optional, for example she/her, he/him, they/them)</small><input name="pronouns" maxlength="24" value="${esc(p.pronouns || '')}"></label>
@@ -495,26 +499,29 @@
         <label>About you <small>(300 characters)</small><textarea name="bio" maxlength="300" rows="3">${esc(p.bio || '')}</textarea></label>
         <label>Discord name <small>(optional: so friends can find you)</small><input name="discord" maxlength="40" value="${esc(p.discord || '')}"></label>
         <label class="hub-check"><input type="checkbox" name="show" ${p.show_profile ? 'checked' : ''}> Show my profile to other keepers (your page, your name and picture in the community, the leaderboard)</label>
-        <div class="hub-actions"><button class="btn btn-primary" type="submit">Save profile</button><a class="btn btn-ghost" href="#/k/${me.id}">View my page</a></div>
+        <div class="hub-actions"><button class="btn btn-primary" type="submit">Save profile</button><a class="btn btn-ghost" href="${pageLink}">View my page</a></div>
       </form>
       <aside class="lkp-preview" aria-label="Preview"><p class="lkp-lab">Preview</p><section class="card lkp" data-preview></section></aside></div>`;
-    const f = body.querySelector('form'), pv = body.querySelector('[data-preview]');
+    const f = box.querySelector('form'), pv = box.querySelector('[data-preview]');
     const draw = () => { const v = Object.fromEntries(new FormData(f)); pv.innerHTML = profileHead({ name: v.name, pronouns: v.pronouns, accent: v.accent, bio: v.bio, roles, badges }, pics); };
     f.addEventListener('input', draw); draw();
-    for (const inp of body.querySelectorAll('[data-file]')) inp.onchange = async () => { const which = inp.dataset.file, file = inp.files[0]; if (!file) return;
-      try { const blob = which === 'avatar' ? await squash(file, 320, 320) : await squash(file, 1500, 500); pending[which] = blob; if (pics[which] && pics[which].startsWith('blob:')) URL.revokeObjectURL(pics[which]); pics[which] = URL.createObjectURL(blob); draw(); say(f, which === 'avatar' ? 'Picture ready: save to keep it.' : 'Banner ready: save to keep it.', true); }
+    for (const inp of box.querySelectorAll('[data-file]')) inp.onchange = async () => { const which = inp.dataset.file, file = inp.files[0]; if (!file) return;
+      try { let blob, msg = which === 'avatar' ? 'Picture ready: save to keep it.' : 'Banner ready: save to keep it.';
+        if (file.type === 'image/gif' && anim) { if (file.size > 3 * 1048576) throw new Error('Animated pictures can be 3 MB at most.'); blob = file; msg = 'Animated ' + (which === 'avatar' ? 'picture' : 'banner') + ' ready: save to keep it.'; }
+        else { blob = which === 'avatar' ? await squash(file, 320, 320) : await squash(file, 1500, 500); if (file.type === 'image/gif') msg = 'Saved as a still picture: animated ones are a Supporter Club perk.'; }
+        pending[which] = blob; if (pics[which] && pics[which].startsWith('blob:')) URL.revokeObjectURL(pics[which]); pics[which] = URL.createObjectURL(blob); draw(); say(f, msg, true); }
       catch (e) { say(f, e.message); } inp.value = ''; };
-    for (const b of body.querySelectorAll('[data-clear]')) b.onclick = () => { pending[b.dataset.clear] = null; pics[b.dataset.clear] = null; draw(); };
+    for (const b of box.querySelectorAll('[data-clear]')) b.onclick = () => { pending[b.dataset.clear] = null; pics[b.dataset.clear] = null; draw(); };
     f.onsubmit = async ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(f)), btn = f.querySelector('[type=submit]'); btn.disabled = true;
       try {
         const row = { display_name: String(v.name || '').trim(), pronouns: String(v.pronouns || '').trim().slice(0, 24) || null, accent: v.accent || null, bio: String(v.bio || '').trim().slice(0, 300) || null, discord: String(v.discord || '').trim().slice(0, 40) || null, show_profile: !!v.show };
         if (row.display_name.length < 3) throw new Error('Names need 3 to 16 characters.');
-        const old = [], up = async (which, blob) => { const path = `${me.id}/profile/${which}-${Date.now()}.webp`; const { error } = await sb.storage.from('community').upload(path, blob, { contentType: blob.type, cacheControl: '31536000', upsert: false }); if (error) throw new Error('The picture was not saved: ' + error.message); return path; };
+        const old = [], up = async (which, blob) => { const gif = blob.type === 'image/gif', path = `${me.id}/profile/${which}-${Date.now()}.${gif ? 'gif' : 'webp'}`; const { error } = await sb.storage.from('community').upload(path, blob, { contentType: blob.type, cacheControl: '31536000', upsert: false }); if (error) throw new Error('The picture was not saved: ' + error.message); return path; };
         for (const which of ['avatar', 'banner']) if (which in pending) { const col = 'web_' + which; if (p[col]) old.push(p[col]); row[col] = pending[which] ? await up(which, pending[which]) : null; }
         if (row.display_name === p.display_name) delete row.display_name;
-        const { error } = await sb.from('profiles').update(row).eq('id', me.id); if (error) throw new Error(error.message);
+        const { error } = await sb.from('profiles').update(row).eq('id', me.id); if (error) throw new Error(/animated/i.test(error.message) ? 'Animated pictures are a Supporter Club perk.' : error.message);
         if (old.length) sb.storage.from('community').remove(old).then(() => {}, () => {});
-        names.delete(me.id); await loadMe(); location.hash = '#/k/' + me.id;
+        await loadMe(); say(f, 'Saved.', true); if (saved) saved();
       } catch (e) { say(f, 'Not saved: ' + e.message); btn.disabled = false; } };
   }
   // ----- the posts you saved -----
