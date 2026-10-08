@@ -1,7 +1,7 @@
 
 (() => {
 'use strict';
-const LK_VERSION = "0.30.0";
+const LK_VERSION = "0.30.1";
 const LK_PUSH = true;
 const LK_BUILD = "public";
 const LK_CLOUD = {"url":"https://odnjaegbkudwsfrwnjiy.supabase.co","key":"sb_publishable_IUdpT3MRtokyJD3SsNNF0Q_eZAovpor","privacyUrl":"https://lk.exenova.is-local.host/privacy-policy.html","termsUrl":"https://lk.exenova.is-local.host/terms.html","captcha":"40488912-dbd0-40ca-9726-be9e3f983e42","coop":""};
@@ -2418,7 +2418,7 @@ const defMeta = () => ({ v: SAVE_VERSION, embers: 0, best: 0, runs: 0, bossKills
   lv: { dmg: 0, hp: 0, rate: 0, tap: 0, gain: 0, still: 0, start: 0, reroll: 0, cap: 0 },
   settings: { muted: false, quiet: false, speed: 1, gfx: 'auto', shake: true, flash: true, nums: true, haptics: true, amb: true, music: true, dev: false, pvpReactOff: false,
     vol: { music: 60, sfx: 80, ui: 70, amb: 60 }, motion: 'auto', musicTrack: 'auto', // 0.19: volumes 0-100, reduced motion, menu music
-    res: 2, fx: 100, ambient: true, fps: 0, ui: 100, contrast: false, cvd: 'off', captions: false, capSize: 'm', capBg: true, hand: 'right', ctlSize: 100, ctlAlpha: 100, overscan: 0, insights: false, insightsAsked: false, ntGame: true, ntEvents: true, ntCommunity: true, ntPromos: false, ntSound: true, ntSystem: false, ntPush: false }, // 0.30: which notifications show (Important always) // 0.30: anonymous statistics, off until the player agrees // 0.25: display, access, touch
+    res: 2, fx: 100, ambient: true, fps: 0, ui: 100, contrast: false, cvd: 'off', captions: false, capSize: 'm', capBg: true, hand: 'right', ctlSize: 100, ctlAlpha: 100, overscan: 0, insights: false, insightsAsked: false, ntGame: true, ntEvents: true, ntCommunity: true, ntPromos: false, ntSound: true, ntSystem: false, ntPush: false, lang: '' }, // 0.30: which notifications show (Important always) // 0.30: anonymous statistics, off until the player agrees // 0.25: display, access, touch
   inv: {}, boostNext: [], // 0.22: the satchel, and boosts ready for the next PvE night
   tseq: 0, // 0.23: the Trade chest's change counter (only the server moves it)
   favs: [], seen: {}, heard: {}, // 0.26: pinned items, items ever found, music heard
@@ -2477,6 +2477,7 @@ function load() {
     if (st.vol && typeof st.vol === 'object') for (const k in ds.vol) ds.vol[k] = Math.round(num(st.vol[k], ds.vol[k], 0, 100));
     else { if (st.quiet) ds.vol.sfx = 35; if (st.music === false) ds.vol.music = 0; if (st.amb === false) ds.vol.amb = 0; } // saves before 0.19
     ds.motion = ['auto', 'reduce', 'full'].includes(st.motion) ? st.motion : 'auto';
+    ds.lang = typeof st.lang === 'string' && /^[a-z]{2,3}(-[A-Z]{2})?$/.test(st.lang) ? st.lang : ''; // 0.30.1: the language chosen in Settings ('' = the device's)
     if (st.input && typeof st.input === 'object') { // 0.24: controls (the actions are checked against the game's list in 11b-actions.js)
       const si = st.input, o = { keys: {}, pad: {} };
       for (const k of ['keys', 'pad']) if (si[k] && typeof si[k] === 'object') for (const id in si[k]) if (/^[A-Z_]{3,20}$/.test(id) && Array.isArray(si[k][id]))
@@ -2585,6 +2586,7 @@ function fmt(n) {
 }
 function earn(g, inRun = true) {
   if (!(g > 0)) return;
+  if (inRun && run && !run.pvp && typeof liveEmberMult === 'function') g *= liveEmberMult(); // (0.30.1: a live event's bonus, nights only)
   meta.embers += g; meta.stats.earned += g;
   if (inRun && run) run.embers += g;
 }
@@ -2838,6 +2840,91 @@ if (!HAS_SUPPORT) {
     for (const r of document.querySelectorAll('.setRow')) r.classList.toggle('hasSeg', [...r.children].some(c => c.classList.contains('seg')));
   }, 200);
 }
+
+/* ---- src\js\02e-i18n.js ---- */
+/* =====================================================================
+   0.30.1: the game in your language. Like the website (lantern-keeper-site/assets/i18n.js): texts are translated by
+   their English original, from i18n/<lang>.json next to the game (loaded only when another language is chosen, so
+   English costs nothing), with the team's changes from the dashboard (the translations table) on top when online.
+   Each block of text on screen (a button, a heading, a line...) is swapped as a whole, as it appears; what players
+   write (chat, names, posts) is never touched. Text drawn on the night's canvas stays English for now.
+   Settings > Display > Language; by default the device's language when the game has it.
+   ===================================================================== */
+const LANGS = [['en', 'English'], ['fil', 'Filipino'], ['es', 'Español'], ['pt-BR', 'Português (Brasil)'], ['id', 'Bahasa Indonesia'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '简体中文']];
+const I18n = (() => {
+  const SKIP = '[translate="no"], script, style, textarea, input, .chatList, .who, .pvpNames, .meName, .pfName, .soName, .bzPerson, .lbName, #lkSelPop .val';
+  const INLINE = new Set(['A', 'B', 'I', 'EM', 'STRONG', 'SMALL', 'SPAN', 'BR', 'CODE', 'KBD', 'SUP', 'SUB', 'ABBR', 'IMG', 'SVG', 'USE', 'TIME', 'MARK', 'S', 'U']);
+  const BLOCKY = 'h1,h2,h3,h4,h5,p,li,dt,dd,th,td,summary,label,button,a,small,figcaption,legend,option,span,b,strong,div';
+  const norm = s => s.replace(/\s+/g, ' ').trim(), hasWords = s => /[A-Za-z]{2,}/.test(s);
+  let dict = {}, ver = 1, lang = 'en', collecting = false; const collected = new Set();
+  // patterns: keys with {a}, {b}... ("Buy {a} for {b} embers") match any value; a value that is itself a known text is
+  // translated too (Coat, Hat, Bosses defeated...)
+  let pats = [];
+  const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function compile() { pats = Object.keys(dict).filter(k => /\{[a-e]\}/.test(k)).map(k => { const names = []; const re = new RegExp('^' + k.split(/(\{[a-e]\})/).map(p => /^\{[a-e]\}$/.test(p) ? (names.push(p), '(.+?)') : reEsc(p)).join('') + '$');
+    return { re, names, out: dict[k] }; }).sort((x, y) => y.re.source.length - x.re.source.length); }
+  function look(key) {
+    if (dict[key]) return dict[key];
+    for (const p of pats) { const m = key.match(p.re); if (!m) continue; let r = p.out; p.names.forEach((n, i) => { const v = m[i + 1]; r = r.split(n).join(dict[norm(v)] || v); }); return r; }
+    return null;
+  }
+  const leaf = el => [...el.children].every(c => INLINE.has(c.tagName.toUpperCase()) && leaf(c));
+  function clean(html) {
+    const tpl = document.createElement('template'); tpl.innerHTML = html;
+    for (const el of [...tpl.content.querySelectorAll('*')]) {
+      if (!INLINE.has(el.tagName.toUpperCase())) { el.replaceWith(...el.childNodes); continue; }
+      for (const a of [...el.attributes]) if (/^on/i.test(a.name) || (/^(href|src)$/i.test(a.name) && /^\s*javascript:/i.test(a.value))) el.removeAttribute(a.name);
+    }
+    return tpl.innerHTML;
+  }
+  function attrs(el) {
+    for (const a of ['placeholder', 'aria-label', 'title']) { const v = el.getAttribute(a); if (!v || !hasWords(v)) continue;
+      const src = el['__lk_' + a] || (el['__lk_' + a] = v); if (collecting) collected.add(norm(src)); else { const t = look(norm(src)); if (t) el.setAttribute(a, t); } }
+  }
+  function walk(root) {
+    if (!root || root.nodeType !== 1 || (lang === 'en' && !collecting) || root.closest(SKIP)) return;
+    attrs(root); for (const el of root.querySelectorAll('[placeholder],[aria-label],[title]')) if (!el.closest(SKIP)) attrs(el);
+    const visit = el => {
+      if (el.nodeType !== 1 || el.matches(SKIP) || el.tagName === 'CANVAS') return;
+      // (a block of text with only inline parts: swapped whole; the leaf test keeps buttons with handlers inside intact)
+      if (el.matches(BLOCKY) && leaf(el) && el.children.length < 8) {
+        const cur = el.innerHTML, mine = el.__lkOut != null && cur === el.__lkOut; // (mine: still the translation put there; else the game wrote it)
+        if (mine && el.__lkV === ver) return;
+        const src = mine ? el.__lkSrc : cur, key = norm(src);
+        if (!hasWords(key.replace(/<[^>]+>/g, ''))) return;
+        if (collecting) { collected.add(key); return; }
+        const tr = look(key);
+        if (tr && tr !== key) { el.__lkSrc = src; el.innerHTML = clean(tr); el.__lkOut = el.innerHTML; el.__lkV = ver; } else if (mine) { el.innerHTML = src; el.__lkSrc = el.__lkOut = null; }
+        return;
+      }
+      for (const n of [...el.childNodes]) {
+        if (n.nodeType === 3) { const v = n.nodeValue, key = norm(v); if (!hasWords(key)) continue; if (collecting) { collected.add(key); continue; } const tr = look(key); if (tr && tr !== key) n.nodeValue = v.replace(key, tr); }
+        else visit(n);
+      }
+    };
+    visit(root);
+  }
+  function pick() {
+    const s = meta && meta.settings && meta.settings.lang; if (s && LANGS.some(l => l[0] === s)) return s;
+    for (const n of navigator.languages || [navigator.language || 'en']) { const x = String(n).toLowerCase();
+      const hit = LANGS.find(l => l[0].toLowerCase() === x) || LANGS.find(l => l[0].split('-')[0] === x.split('-')[0]) || (/^(tl|fil)/.test(x) ? ['fil'] : null); if (hit) return hit[0]; }
+    return 'en';
+  }
+  async function start() {
+    lang = pick(); document.documentElement.lang = lang;
+    if (lang === 'en') return;
+    const over = LK_CLOUD && LK_CLOUD.url ? fetch(`${LK_CLOUD.url}/rest/v1/translations?select=key,value&lang=eq.${encodeURIComponent(lang)}`, { headers: { apikey: LK_CLOUD.key } }).then(r => r.ok ? r.json() : [], () => []) : Promise.resolve([]);
+    const file = await fetch(`i18n/${lang}.json`).then(r => r.ok ? r.json() : {}, () => ({}));
+    for (const [k, v] of Object.entries(file)) dict[norm(k)] = v; compile();
+    walk(document.body);
+    let queued = new Set(), timer = 0;
+    new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') { if (m.target.parentElement) queued.add(m.target.parentElement); continue; } for (const n of m.addedNodes) queued.add(n.nodeType === 1 ? n : n.parentElement); }
+      if (!timer) timer = requestAnimationFrame(() => { timer = 0; const list = [...queued]; queued = new Set(); for (const n of list) if (n && n.isConnected) walk(n.nodeType === 1 ? n : n.parentElement); }); })
+      .observe(document.body, { childList: true, subtree: true, characterData: true });
+    over.then(list => { if (!list.length) return; for (const o of list) dict[norm(o.key)] = o.value; compile(); ver++; walk(document.body); });
+  }
+  return { start, lang: () => lang, t: s => look(norm(s)) || s, collect() { collecting = true; walk(document.body); collecting = false; return [...collected]; } };
+})();
 
 /* ---- src\js\03-audio.js ---- */
 /* =====================================================================
@@ -3105,7 +3192,7 @@ const LOOKS = {
 };
 const LOOK_SLOTS = [['skin', 'Skin'], ['hat', 'Hat'], ['coat', 'Coat'], ['scarf', 'Scarf'], ['beam', 'Beam'], ['stripe', 'Tower']];
 const lookOf = slot => { const it = LOOKS[slot].find(l => l.id === meta.look[slot]); return it && lookOwned(slot, it) ? it : LOOKS[slot][0]; };
-const lookFree = (slot, it) => !it.price && !it.ach && !it.sku && !it.fest; // the first free item in each slot is always owned
+const lookFree = (slot, it) => !it.price && !it.ach && !it.sku && !it.fest && !it.ev; // the first free item in each slot is always owned
 const lookOwned = (slot, it) => it.sku ? entitled(it.sku) : lookFree(slot, it) || !!meta.look.owned[slot + ':' + it.id] || (it.ach && !!meta.ach[it.ach]);
 
 /* ---------- Regions ----------
@@ -3213,7 +3300,7 @@ function storeItems() {
   for (const k of KEEPERS) if (k.id !== 'keeper') out.push({ cat: 'keeper', key: 'k:' + k.id, name: k.name, sub: k.abName, desc: k.stats.join(', '), price: k.price, unlock: k.unlock, owned: !!meta.keepers.owned[k.id] });
   for (const l of LIGHTHOUSES) if (l.price) out.push({ cat: 'look', key: 'h:' + l.id, name: l.name, sub: 'Lighthouse', desc: l.desc, price: l.price, owned: lhOwned(l) });
   for (const c of CHARMS) out.push({ cat: 'charm', key: 'c:' + c.id, name: c.name, sub: 'Charm', desc: c.desc, price: c.price, unlock: c.unlock, owned: !!meta.charms.owned[c.id] });
-  for (const [slot, label] of LOOK_SLOTS) for (const it of LOOKS[slot]) if (!lookFree(slot, it) && !it.sku && !it.fest) out.push({ cat: 'look', key: 'l:' + slot + ':' + it.id, name: it.name, sub: label, col: it.col, price: it.price, ach: it.ach, owned: lookOwned(slot, it) });
+  for (const [slot, label] of LOOK_SLOTS) for (const it of LOOKS[slot]) if (!lookFree(slot, it) && !it.sku && !it.fest && !it.ev) out.push({ cat: 'look', key: 'l:' + slot + ':' + it.id, name: it.name, sub: label, col: it.col, price: it.price, ach: it.ach, owned: lookOwned(slot, it) });
   return out;
 }
 // One item a day is 25% off (same for everyone on the same date).
@@ -6427,6 +6514,7 @@ function recordRun(win, extra) { // called once when any night ends (not for rep
   if (win && mode9 === 'bossrush') R.bossRush++;
   meta.stats.time += run.time;
   festivalNight(); // 0.14 festivals: nights played count toward the festival's gift
+  liveEventNight(); // 0.30.1 live events: the same, with exact times
   const U = meta.stats.use, sec = Math.round(run.time); // favourites on the profile (0.13)
   if (run.wpn) U.w[run.wpn] = (U.w[run.wpn] || 0) + sec; if (run.kpr) U.k[run.kpr] = (U.k[run.kpr] || 0) + sec; if (run.exp) U.r[run.exp.region] = (U.r[run.exp.region] || 0) + sec;
   gainXp(run.wave * 10 + run.kills / 5 + run.bosses * 40 + (win ? 250 : 0) + (mode9 === 'daily' ? 100 : 0), true);
@@ -8013,6 +8101,7 @@ const collectionContents = c => [['Coat', c.coat.name], ['Hat', c.hat.name], ['S
 // Where a paid item comes from, in words (the Supporter Pack, a Lumen look, or a collection)
 function skuSource(sku) {
   if (sku === SKU.supporter) return 'Part of the Supporter Pack (Shop > Supporter).';
+  if (String(sku).startsWith('lk.event.')) return EVENT_SKU_HOW[sku] || 'An event reward.';
   if (String(sku).startsWith('lumen:col:')) { const c = COLK[sku.slice(10)]; return c ? `Part of the ${c.name} (Shop > Lumens).` : 'A Lumen collection.'; }
   if (String(sku).startsWith('lumen:')) return 'A premium look (Shop > Lumens).';
   return 'A paid item.';
@@ -8042,6 +8131,49 @@ BADGES.push(
 for (const t of [{ id: 'sup-dedicated', name: 'Lamplighter', how: 'Dedicated Supporter', ok: () => entitled(SKU.dedicated) },
   { id: 'sup-founder', name: 'Founder', how: 'Founder Supporter', ok: () => entitled(SKU.founder) },
   { id: 'sup-club', name: 'Club Keeper', how: 'A Supporter Club member', ok: () => entitled(SKU.club) }]) { TITLES.push(t); TTK[t.id] = t; }
+
+/* ---- src\js\07n-events.js ---- */
+/* =====================================================================
+   0.30.1: live events, with exact start and end times (unlike festivals, which follow the calendar every year).
+   Built into the game so they also work offline and for guests. Rewards are looks and recognition only; a bonus to
+   embers counts for nights against the fog (never PvP).
+   - Lanterns Rekindled (10-11 October 2026, Philippine time): +50% embers from nights; play 3 nights during the weekend
+     to keep the Rekindled lantern (on this device's save, and the account's cloud save when signed in).
+   - Show Us Your Lighthouse (the community contest, 10-17 October 2026): rewards on the account, given by the server
+     (entitlements): the Community Founder badge for everyone who posts, and for the three winners the Spotlight lantern
+     and the Featured Keeper title. Never sold.
+   ===================================================================== */
+const LIVE_EVENTS = [
+  { id: 'rekindled-2026', name: 'Lanterns Rekindled', from: Date.UTC(2026, 9, 9, 16, 0), to: Date.UTC(2026, 9, 11, 16, 0), // (00:00 Saturday to 23:59 Sunday, UTC+8)
+    text: '0.30 is here, so the light burns brighter this weekend: +50% embers from every night, and play 3 nights to keep the Rekindled lantern forever.',
+    embers: 1.5, nights: 3, look: ['beam', 'rekindled'] },
+];
+let liveOverride = null; // tests: an event id, or null for the real clock
+function liveEvent(t = Date.now()) {
+  if (liveOverride !== null) return LIVE_EVENTS.find(e => e.id === liveOverride) || null;
+  return LIVE_EVENTS.find(e => t >= e.from && t < e.to) || null;
+}
+const liveEmberMult = () => { const e = liveEvent(); return e && e.embers || 1; };
+const liveNights = e => (meta.live && meta.live[e.id]) || 0;
+// a night played (07d-keeper, after every run, like festivalNight): counts towards the event's look
+function liveEventNight() {
+  const e = liveEvent(); if (!e || !e.look || Replay.on) return;
+  meta.live = meta.live || {}; meta.live[e.id] = (meta.live[e.id] || 0) + 1;
+  if (meta.live[e.id] === e.nights) {
+    const [slot, id] = e.look; meta.look.owned[slot + ':' + id] = 1;
+    toastQ.push([`${e.name}: a gift`, `${LOOKS[slot].find(l => l.id === id).name} is yours to keep. Wear it on the Keeper screen.`, 5]);
+  }
+}
+function liveEventHow(id) { const e = LIVE_EVENTS.find(x => x.id === id); return e ? `An event gift: play ${e.nights} nights during ${e.name}.` : 'An event gift.'; }
+
+LOOKS.beam.push({ id: 'rekindled', name: 'Rekindled', col: '#ffb36b', rarity: 'epic', ev: 'rekindled-2026', desc: 'Lanterns Rekindled, October 2026: for keeping watch the weekend 0.30 came out.' });
+
+// the community contest's rewards (on the account)
+Object.assign(SKU, { spotlight: 'lk.event.spotlight-2026', commfounder: 'lk.event.community-founder' });
+const EVENT_SKU_HOW = { [SKU.spotlight]: 'A winner of Show Us Your Lighthouse (October 2026). Never sold.', [SKU.commfounder]: 'Posted in the community\'s first week (Show Us Your Lighthouse, October 2026).' };
+LOOKS.beam.push({ id: 'spotlight', name: 'Spotlight', col: '#fff6d8', rarity: 'legendary', sku: SKU.spotlight, desc: 'Show Us Your Lighthouse 2026: a winner\'s light. Never sold.' });
+BADGES.push({ id: 'commfounder', name: 'Community Founder', sku: SKU.commfounder, mark: '★' });
+for (const t of [{ id: 'featured', name: 'Featured Keeper', how: 'A winner of Show Us Your Lighthouse', ok: () => entitled(SKU.spotlight) }]) { TITLES.push(t); TTK[t.id] = t; }
 
 /* ---- src\js\08-picks.js ---- */
 /* =====================================================================
@@ -8322,6 +8454,10 @@ function renderSettings() {
   { const sel = $('#setTrack'), key = allTracks().map(k => k + (trackUnlocked(k) ? 1 : 0)).join(); if (sel.dataset.k !== key) { sel.dataset.k = key; // 0.27: every track you have unlocked
     sel.innerHTML = '<option value="auto">Take turns</option>' + allTracks().map(k => trackUnlocked(k) ? `<option value="${k}">${esc(trackName(k))}</option>` : `<option value="${k}" disabled>${esc(trackName(k))} (locked: ${esc(trackHow(k))})</option>`).join(''); } }
   $('#setTrack').value = st.musicTrack === 'menu' ? 'home' : st.musicTrack; $('#setMotion').value = st.motion;
+  { const sel = $('#setLang'); if (!sel.options.length) { // 0.30.1: the language (applied at once: the game reloads its screens in it)
+    sel.innerHTML = LANGS.map(([c, n]) => `<option value="${c}">${n}</option>`).join('');
+    sel.onchange = () => { meta.settings.lang = sel.value; save(); location.reload(); }; }
+    sel.value = I18n.lang(); }
   renderSaveBar($('#setSave'), setDraft);
   $('#rowFull').hidden = Platform.kind === 'android' || Platform.kind === 'ios'; renderInstall(); // 0.26
   { const ok = Insights.allowed(), b = document.querySelector('[data-set="insights"]'); $('#rowInsights').hidden = !(LK_CLOUD && LK_CLOUD.url); b.disabled = !ok; // 0.30
@@ -8569,7 +8705,7 @@ const kdDirty = () => !!kd && JSON.stringify(kd) !== JSON.stringify(kdSaved());
 function openKeeper() { kd = kdSaved(); kdSel = null; kdState = 'saved'; kdMsg = ''; kdDialog = null; renderKeeper(); show('keeper'); }
 // the look a draft shows (whole items, as another screen would draw it)
 const kdLookItems = (look) => ({ coatIt: lookItem('coat', look.coat), hatIt: lookItem('hat', look.hat), scarfIt: lookItem('scarf', look.scarf), skinIt: lookItem('skin', look.skin), beam: (lookItem('beam', look.beam) || LOOKS.beam[0]).col });
-const lookHow = (slot, it) => it.lumens ? `Premium: ${fmt(Lumens.price(slot, it.id) || it.lumens)} Lumens in the Shop.` : it.sku ? skuSource(it.sku) : it.fest ? 'A festival gift: keep the light through a festival.' : it.ach ? ` Earn "${(ACH.find(a => a.id === it.ach) || { name: it.ach }).name}".` : it.price ? 'In the Shop.' : '';
+const lookHow = (slot, it) => it.lumens ? `Premium: ${fmt(Lumens.price(slot, it.id) || it.lumens)} Lumens in the Shop.` : it.sku ? skuSource(it.sku) : it.fest ? 'A festival gift: keep the light through a festival.' : it.ev ? liveEventHow(it.ev) : it.ach ? ` Earn "${(ACH.find(a => a.id === it.ach) || { name: it.ach }).name}".` : it.price ? 'In the Shop.' : '';
 const thumbCache = new Map();
 function lookThumb(slot, it) { // this item on a keeper in plain clothes (and your skin tone), or on a small tower for stripes
   const key = slot + ':' + it.id + ':' + (kd ? kd.look.skin : ''); if (thumbCache.has(key)) return thumbCache.get(key);
@@ -8602,7 +8738,7 @@ function renderKeeper() {
   for (const b of document.querySelectorAll('#lookGrid .lookCard')) b.onclick = () => tryLook(kdSlot, b.dataset.id);
   // the chosen item: what it is, whether you have it, how to get it
   const it = kdSel && kdSel.slot === kdSlot ? lookItem(kdSlot, kdSel.id) : lookItem(kdSlot, kd.look[kdSlot]);
-  if (it) { const own = lookOwned(kdSlot, it), key = 'l:' + kdSlot + ':' + it.id, si = own || !it.price || it.fest || it.sku || it.ach ? null : storeItems().find(x => x.key === key), p = si ? itemPrice(si) : 0;
+  if (it) { const own = lookOwned(kdSlot, it), key = 'l:' + kdSlot + ':' + it.id, si = own || !it.price || it.fest || it.ev || it.sku || it.ach ? null : storeItems().find(x => x.key === key), p = si ? itemPrice(si) : 0;
     $('#lookDetail').innerHTML = `<div class="ldHead"><b>${esc(it.name)}</b><span class="rar" style="color:${LOOK_RARITY_COL[it.rarity]}">${it.rarity}</span></div><p>${esc(it.desc || '')}</p>
       <p class="ldHow">${own ? '✓ Yours' : '🔒 Not yours yet. ' + esc(lookHow(kdSlot, it))}${it.clash.length ? ` ⚠ ${it.clash.includes('hat') ? 'No hat can be worn with it.' : 'No muffler fits under it.'}` : ''}</p>
       ${si ? `<button class="btn small${kdBuyArm === key ? ' armed' : ''}" id="bLookBuy" ${meta.embers < p ? 'disabled' : ''}><span class="gem"></span>${kdBuyArm === key ? `Buy for ${fmt(p)}?` : fmt(p)}</button>` : ''}`;
@@ -9319,8 +9455,15 @@ function showEnding() {
 
 /* ---------- festival notice on the home screen ---------- */
 function renderFestival() {
-  const f = activeFestival(), el = $('#festival'); if (!el) return;
-  el.hidden = !f || mode !== 'home'; if (!f) return;
+  const f = activeFestival(), e = liveEvent(), el = $('#festival'); if (!el) return;
+  el.hidden = !(f || e) || mode !== 'home';
+  if (e) { // 0.30.1: a live event takes the line while it runs (a festival at the same time still counts its nights)
+    Notify.add({ id: 'live-' + e.id, cat: 'events', title: `${e.name} has begun`, body: e.text });
+    const n = liveNights(e), look = e.look && LOOKS[e.look[0]].find(l => l.id === e.look[1]), bonus = e.embers > 1 ? ` · +${Math.round((e.embers - 1) * 100)}% embers` : '';
+    el.textContent = `✦ ${e.name}${bonus}` + (look ? n >= e.nights ? ' · gift earned' : ` · ${e.nights - n} more night${e.nights - n === 1 ? '' : 's'} for the ${look.name} lantern` : '');
+    el.title = e.text; return;
+  }
+  if (!f) return;
   Notify.add({ id: 'fest-' + f.id + new Date().getFullYear(), cat: 'events', title: `${f.name} has begun`, body: f.text || '' }); // 0.30 (once per festival a year; the home screen's festival line already says it, so no toast)
   const n = meta.fest && meta.fest.id === f.id + new Date().getFullYear() ? meta.fest.nights : 0, [slot, id] = f.look, look = LOOKS[slot].find(l => l.id === id);
   el.textContent = n >= FEST_NIGHTS ? `✦ ${f.name} · gift earned` : `✦ ${f.name} · ${FEST_NIGHTS - n} more night${FEST_NIGHTS - n === 1 ? '' : 's'} for the ${look.name}`; // one short line; the story is in the title
@@ -10664,6 +10807,10 @@ const Notify = {
       const adult = Cloud.adult(); // (promotions: only for accounts that said they are 18 or over; the server holds them back too)
       for (const a of (data || []).reverse()) { if (a.category === 'promotions' && !adult) continue; this.add({ id: 'a' + a.id, cat: a.category, title: a.title, body: a.body, link: a.link, at: Date.parse(a.starts_at) || Date.now() }, a.category === 'important' || a.category === 'events'); }
     } catch (e) { /* offline: next time */ }
+    // 0.30.1: the website community's own notifications (mentions, replies, follows, answers to your tickets)
+    if (Cloud.user) try { const { data } = await Cloud.sb.from('community_notifications').select('id, title, link, created_at').eq('read', false).order('created_at', { ascending: false }).limit(10);
+      for (const c of (data || []).reverse()) this.add({ id: 'cn' + c.id, cat: 'community', title: c.title, body: 'In the community on the website.', link: c.link ? 'https://lk.exenova.is-local.host/' + String(c.link).replace(/^\/+/, '') : '', at: Date.parse(c.created_at) || Date.now() });
+    } catch (e) { /* the website's community isn't there (yet): nothing to show */ }
   },
   open() { this.fetch(true); this.tab = 'all'; renderNotices(); show('notices'); },
   markAll() { for (const n of this.items) n.read = true; this.store(); this.badge(); renderNotices(); },
@@ -12396,6 +12543,7 @@ function loop(now) {
 // Validate a saved night only now, after every file has loaded: validRun() checks against tables defined
 // throughout the game (upgrades, weapons, relics, daily modifiers). Doing it earlier silently dropped saves.
 normalizeLooks(); Object.assign(meta.look, resolveClashes(meta.look));
+I18n.start(); // 0.30.1: the chosen language (English needs nothing)
 for (const k in meta.inv) if (!ITK[k]) delete meta.inv[k]; meta.boostNext = meta.boostNext.filter(k => ITK[k] && ITK[k].cat === 'boost'); // 0.22: only known items // the wardrobe, once every file has added its items
 try { meta.run = validRun(meta.run); } catch (e) { console.error('saved night dropped:', e); meta.run = null; }
 if (cleanName(meta.profile.name).error) meta.profile.name = 'Keeper'; // names that break the rules fall back to the default
@@ -12460,7 +12608,7 @@ if (location.hash.includes('debug')) window.LK = { get meta() { return meta; }, 
   input: () => ({ Input, ACTIONS, ACTION_IDS, DEFAULT_KEYS, DEFAULT_PAD, PAD_NAMES, bindInput, menuScope, renderPrompts, promptText, openControls, padFamily, cfg: inputCfg }),
   lore: () => LORE,
   art: () => ({ weaponArt, charmArt, keeperPortrait, keeperArt, drawKeeperGear, WEAPONS, KEEPERS, CHARMS, WEAPON_ART, CHARM_ART, KEEPER_ART }),
-  identity: () => ({ catalog, pvpSnapshot, snapCanon, snapHash, snapFrom, snapLook, snapDiff, identityClaim, rulePasses, stageOf, fnv1a, SNAP_FIELDS, myLook, drawKeeperFig, drawTower, LOOKS, snapPicture }), checkAch: () => checkAch(), breakTick: () => { if (run && run.pvp) run.pvp.breakT = 0; pvpBreakTick(.01); }, pvpRecv: i => recvPvpReaction(i), ups: () => UPS, feats: () => ({ ach: ACH.length, chal: CHALS.length, families: FAMILIES.length, secrets: SECRETS.length, points: featPoints(), count: featCount(), showcase: featShowcase(), pin: featPin, run: h => featsRun(h), boss: e => featsBoss(e), chalDone: id => !!meta.feats.chal[id], cats: [...new Set(ACH.map(a => a.cat))], chalCats: [...new Set(CHALS.map(c => c.cat))], ids: () => ({ a: ACH.map(a => a.id), c: CHALS.map(c => c.id) }), today: () => featToday(), grant: id => chalGrant(CHALK[id]), unlocks: () => ({ kindled: FRAMES.find(f => f.id === 'kindled').ok(), beacon: FRAMES.find(f => f.id === 'beacon').ok(), challenger: TTK.challenger.ok(), champion: TTK.champion.ok(), bannerChal: BANNERS.find(b => b.id === 'challenger').ok() }), tiers: () => [ACH.map(a => a.tier), CHALS.map(c => c.tier)] }), living: () => ({ creatures: Object.keys(WORLD_CREATURES), bosses: WORLD_BOSSES.map(b => b.id), regions: WORLD_REGIONS.map(r => r.id), fest: id => { festOverride = id; }, activeFestival, festivalNight, unlockRegions, worldMech, victory: id => worldVictory(RGK[id], true), worldAfterVictory, landmarks: allLandmarks, drawFx: dt => drawWorldEffects(dt), traitsOf: t => TYPES[t].traits || [], ACTS }), coop2: () => ({ openRoute: () => openRoute(), vote: () => run && run.vote && { kind: run.vote.kind, t: run.vote.t, opts: run.vote.opts.map(o => o.id), votes: Object.assign({}, run.vote.votes) }, coopKeeper: (info, kid) => coopKeeper(info, KPK[kid] || KEEPERS[0]), keeperOf, laneN, laneOf, slotsIn, keeperPos, openTeamVote, resolveVote, coopSummary, linkMult, coopOn, hostK, TEAM_CARDS }), tides: () => ({ eventFor, mysteryOf, openEvent, openMerchant, merchantWares, wareCost, SYNERGIES, HAZARDS, nodeShown, regionThreat, renderCards: () => renderCards(), showPick: r => showPick(r), snap: () => snapshot(false), hazard(id) { run.hz = { id, warn: HAZARD_WARN, left: HAZARDS[id].dur }; } }), billing: () => Billing, setEntitlements: l => setEntitlements(l), showcase: () => showcase(), pf: () => ({ AVATARS, FRAMES, BANNERS, BADGES }), content: () => ({ sku: skuItems(), shop: SHOP.map(d => ({ k: d.k, base: d.base, g: d.g, max: d.max })), regions: REGIONS.map(r => r.id), graph: REGIONS.map(r => [r.id, r.req || [], r.reqAll ? 1 : 0]), weapons: WEAPONS.map(w => ({ id: w.id, rarity: w.rarity, unlock: w.unlock })), keepers: KEEPERS.map(k => ({ id: k.id, unlock: k.unlock })), charms: CHARMS.map(c => ({ id: c.id, unlock: c.unlock })), weaponCost: WEAPONS.flatMap(w => [1, 4, 9].map(l => [w.id, l, weaponLvCost(w, l)])), items: ITEMS.map(i => [i.id, i.cat, i.price || 0]) }), bosses: () => BOSSES, spawnBoss: def => spawn('boss', G.core.x, 120 * U, def), squallR: () => squallR(), emberWave: w => emberWave(w),
+  identity: () => ({ catalog, pvpSnapshot, snapCanon, snapHash, snapFrom, snapLook, snapDiff, identityClaim, rulePasses, stageOf, fnv1a, SNAP_FIELDS, myLook, drawKeeperFig, drawTower, LOOKS, snapPicture }), checkAch: () => checkAch(), breakTick: () => { if (run && run.pvp) run.pvp.breakT = 0; pvpBreakTick(.01); }, pvpRecv: i => recvPvpReaction(i), ups: () => UPS, feats: () => ({ ach: ACH.length, chal: CHALS.length, families: FAMILIES.length, secrets: SECRETS.length, points: featPoints(), count: featCount(), showcase: featShowcase(), pin: featPin, run: h => featsRun(h), boss: e => featsBoss(e), chalDone: id => !!meta.feats.chal[id], cats: [...new Set(ACH.map(a => a.cat))], chalCats: [...new Set(CHALS.map(c => c.cat))], ids: () => ({ a: ACH.map(a => a.id), c: CHALS.map(c => c.id) }), today: () => featToday(), grant: id => chalGrant(CHALK[id]), unlocks: () => ({ kindled: FRAMES.find(f => f.id === 'kindled').ok(), beacon: FRAMES.find(f => f.id === 'beacon').ok(), challenger: TTK.challenger.ok(), champion: TTK.champion.ok(), bannerChal: BANNERS.find(b => b.id === 'challenger').ok() }), tiers: () => [ACH.map(a => a.tier), CHALS.map(c => c.tier)] }), living: () => ({ creatures: Object.keys(WORLD_CREATURES), bosses: WORLD_BOSSES.map(b => b.id), regions: WORLD_REGIONS.map(r => r.id), fest: id => { festOverride = id; }, activeFestival, festivalNight, unlockRegions, worldMech, victory: id => worldVictory(RGK[id], true), worldAfterVictory, landmarks: allLandmarks, drawFx: dt => drawWorldEffects(dt), traitsOf: t => TYPES[t].traits || [], ACTS }), i18n: () => I18n, events: () => ({ set: id => { liveOverride = id; }, liveEvent, liveEventNight, liveEmberMult, LIVE_EVENTS, owned: (slot, id) => lookOwned(slot, LOOKS[slot].find(l => l.id === id)), how: (slot, id) => lookHow(slot, LOOKS[slot].find(l => l.id === id)), featured: () => TTK.featured.ok() }), coop2: () => ({ openRoute: () => openRoute(), vote: () => run && run.vote && { kind: run.vote.kind, t: run.vote.t, opts: run.vote.opts.map(o => o.id), votes: Object.assign({}, run.vote.votes) }, coopKeeper: (info, kid) => coopKeeper(info, KPK[kid] || KEEPERS[0]), keeperOf, laneN, laneOf, slotsIn, keeperPos, openTeamVote, resolveVote, coopSummary, linkMult, coopOn, hostK, TEAM_CARDS }), tides: () => ({ eventFor, mysteryOf, openEvent, openMerchant, merchantWares, wareCost, SYNERGIES, HAZARDS, nodeShown, regionThreat, renderCards: () => renderCards(), showPick: r => showPick(r), snap: () => snapshot(false), hazard(id) { run.hz = { id, warn: HAZARD_WARN, left: HAZARDS[id].dur }; } }), billing: () => Billing, setEntitlements: l => setEntitlements(l), showcase: () => showcase(), pf: () => ({ AVATARS, FRAMES, BANNERS, BADGES }), content: () => ({ sku: skuItems(), shop: SHOP.map(d => ({ k: d.k, base: d.base, g: d.g, max: d.max })), regions: REGIONS.map(r => r.id), graph: REGIONS.map(r => [r.id, r.req || [], r.reqAll ? 1 : 0]), weapons: WEAPONS.map(w => ({ id: w.id, rarity: w.rarity, unlock: w.unlock })), keepers: KEEPERS.map(k => ({ id: k.id, unlock: k.unlock })), charms: CHARMS.map(c => ({ id: c.id, unlock: c.unlock })), weaponCost: WEAPONS.flatMap(w => [1, 4, 9].map(l => [w.id, l, weaponLvCost(w, l)])), items: ITEMS.map(i => [i.id, i.cat, i.price || 0]) }), bosses: () => BOSSES, spawnBoss: def => spawn('boss', G.core.x, 120 * U, def), squallR: () => squallR(), emberWave: w => emberWave(w),
   unlockAll() { for (const r of REGIONS) meta.world.unlocked[r.id] = 1; for (const w of WEAPONS) { meta.arsenal.owned[w.id] = 1; meta.arsenal.lv[w.id] = meta.arsenal.lv[w.id] || 1; } for (const k of KEEPERS) meta.keepers.owned[k.id] = 1; save(); },
   weapon(id) { meta.arsenal.owned[id] = 1; meta.arsenal.lv[id] = meta.arsenal.lv[id] || 1; meta.arsenal.equip = id; },
   keeper(id) { meta.keepers.owned[id] = 1; meta.keepers.equip = id; },
@@ -12875,7 +13023,7 @@ const v = id => ($('#' + id) ? $('#' + id).value.trim() : '');
 const TERMS_VERSION = '1.6', PRIVACY_VERSION = '3.0', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
 const POLICY_KEY = 'lantern-keeper-policy', policyKey = () => 'p' + PRIVACY_VERSION + '/t' + TERMS_VERSION; // the versions this device has shown
 // When the policies change, account holders are told once, in the game, with what changed (Terms, section 10)
-const POLICY_NEWS = 'Privacy Policy 3.0 and Terms 1.6. Anonymous gameplay statistics, sent only if you agree (Settings > Privacy turns them off and deletes them), never with your name, email or account. New: the Notification Center; email choices by kind (Account > Emails; promotions only for players 18 or over); a check value beside your save; our web store (PayPal, GCash or bank transfer, sold by Shan Patrick V. Cruz as Exenova, refunds within 14 days); the Supporter Club, which renews every month with PayPal until you stop it; and the community on our website, where posts are public (under "A keeper" if your profile is hidden). Players under 18 need a parent’s permission to buy.';
+const POLICY_NEWS = 'Privacy Policy 3.0 and Terms 1.6. Anonymous gameplay statistics, sent only if you agree (Settings > Privacy turns them off and deletes them), never with your name, email or account. New: the Notification Center; email choices by kind (Account > Emails; promotions only for players 18 or over); a check value beside your save; our web store (PayPal, GCash or bank transfer, sold by Exenova, refunds within 14 days); the Supporter Club, which renews every month with PayPal until you stop it; and the community on our website, where posts are public (under "A keeper" if your profile is hidden). Players under 18 need a parent’s permission to buy.';
 function policyNotice() {
   if (Platform.load(POLICY_KEY) === policyKey() || !Cloud.signedIn() || mode !== 'home' || !$('#syncChoice').hidden) return; // told once on each device (never over the sync choice)
   const done = () => Platform.save(POLICY_KEY, policyKey());
@@ -13185,7 +13333,7 @@ function renderSupport() {
     box.append(el('div', { className: 'saveBtns' }, [r]));
   }
   if (supMsg) box.append(el('p', { className: 'acMsg', textContent: supMsg }));
-  box.append(el('p', { className: 'acNote', textContent: NO_STORE() ? 'What your account owns is kept with it and appears here when you sign in. Nothing that affects play is ever sold.' : WebStore.on() ? 'Paid with PayPal, a card, GCash or a bank transfer, sold by Shan Patrick V. Cruz (Exenova), and kept in your account, so it comes with you to every device. Nothing that affects play is ever sold.' : 'Purchases are made through Google Play and kept in your account, so they come with you to new devices. Nothing that affects play is ever sold.' }));
+  box.append(el('p', { className: 'acNote', textContent: NO_STORE() ? 'What your account owns is kept with it and appears here when you sign in. Nothing that affects play is ever sold.' : WebStore.on() ? 'Paid with PayPal, a card, GCash or a bank transfer, sold by Exenova, and kept in your account, so it comes with you to every device. Nothing that affects play is ever sold.' : 'Purchases are made through Google Play and kept in your account, so they come with you to new devices. Nothing that affects play is ever sold.' }));
   if (!signed) return;
   if (WebStore.on() && WebStore.orders.length) { const w = el('div'); w.innerHTML = webOrdersHtml(); wireWebOrders(w); box.append(w); } // 0.30
   box.append(el('h3', { className: 'sec', textContent: 'Purchase history' }));
@@ -13681,7 +13829,7 @@ function renderMarket(box) {
 /* =====================================================================
    0.30: the web store, on every platform without its own store billing: Windows, macOS, Linux, the web version and
    the Android app installed from the website (a Google Play build buys through Google Play, with Billing; the iPhone
-   app sells nothing). The same store is on the website (store.html). Seller: Shan Patrick V. Cruz (Exenova). Lumen
+   app sells nothing). The same store is on the website (store.html). Seller: Exenova. Lumen
    packs, the supporter packs (Supporter, Starter, Dedicated, Founder) and the Supporter Club, in pesos for players in
    the Philippines and US dollars for everyone else (the player can switch). Looks and recognition only.
    - PayPal (cards, PayPal balance): the server makes the order, PayPal's page opens in the browser, and the game checks
@@ -13715,10 +13863,10 @@ const WebStore = {
     const signed = Cloud.signedIn();
     const [p, s, c] = await Promise.all([Cloud.sb.from('store_products').select('*').eq('active', true).order('sort'),
       signed ? Cloud.sb.from('store_settings').select('gcash_name, gcash_number, gcash_qr, bank_details, manual_on').eq('id', 1).maybeSingle() : Promise.resolve({ data: null }),
-      signed ? Cloud.sb.from('club_members').select('until, status, paypal_sub, months').eq('user_id', Cloud.user.id).maybeSingle() : Promise.resolve({ data: null })]);
+      signed ? Cloud.sb.from('club_members').select('until, status, paypal_sub, months, currency, amount_cents, env').eq('user_id', Cloud.user.id).maybeSingle() : Promise.resolve({ data: null })]);
     if (!p.error) this.products = p.data || [];
     this.settings = s.data || null; this.club = c.data || null;
-    if (signed) { const { data } = await Cloud.sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, paid_at, reference').order('created_at', { ascending: false }).limit(20); this.orders = data || []; }
+    if (signed) { const { data } = await Cloud.sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, paid_at, reference, env').order('created_at', { ascending: false }).limit(20); this.orders = data || []; }
   },
   async call(body) { const r = await Cloud.call('store', body); if (r.status !== 200) throw new Error(r.body.error || 'The store could not be reached. Try again.'); return r.body; },
   // after a purchase: what the account owns now
@@ -13764,12 +13912,14 @@ setInterval(() => WebStore.watchReview(), 5 * 60e3);
 function webBuy(sku) {
   const p = WebStore.product(sku); if (!p) return toastQ.push(['Store', 'The store is still loading. Try again in a moment.', 3]);
   if (!Cloud.signedIn()) return openAccountFromShop();
-  const cur = WebStore.cur(), other = cur === 'PHP' ? 'USD' : 'PHP', manual = WebStore.settings && WebStore.settings.manual_on;
-  const what = p.kind === 'lumens' ? `${fmt(p.lumens)} Lumens, kept in your account.` : p.kind === 'club' ? 'One month in the Supporter Club (it does not renew by itself).' : 'Looks only, kept in your account on every device.';
-  appDialog({ title: `${p.label}: ${WebStore.price(sku)}`, text: `${what} Choose how to pay. Sold by Shan Patrick V. Cruz (Exenova); see the Terms for refunds. If you are under 18, ask a parent first.`,
+  const cur = WebStore.cur(), other = cur === 'PHP' ? 'USD' : 'PHP', s = WebStore.settings || {}, manual = !!s.manual_on;
+  const gcash = manual && !!(s.gcash_number || s.gcash_qr), bank = manual && !!s.bank_details;
+  const what = p.kind === 'lumens' ? `${fmt(p.lumens)} Lumens, kept in your account.` : p.kind === 'club' ? 'One month in the Supporter Club. It does not renew by itself.' : 'Looks only, kept in your account on every device.';
+  appDialog({ title: `${p.label}: ${WebStore.price(sku)}`, text: `${what} One-time payment. Choose how to pay. Sold by Exenova; see the Terms for refunds. If you are under 18, ask a parent first.`,
     buttons: [
       ...(p.kind !== 'club' ? [{ label: 'PayPal or card', primary: true, act: () => webPayPal(sku, cur) }] : []),
-      ...(manual ? [{ label: cur === 'PHP' ? 'GCash or bank transfer' : 'GCash or bank transfer (pesos)', primary: p.kind === 'club', act: () => webManual(sku) }] : []),
+      ...(gcash ? [{ label: cur === 'PHP' ? 'GCash' : 'GCash (in pesos)', primary: p.kind === 'club', act: () => webManual(sku, 'gcash') }] : []),
+      ...(bank ? [{ label: cur === 'PHP' ? 'Bank transfer' : 'Bank transfer (in pesos)', act: () => webManual(sku, 'bank') }] : []),
       { label: `Show in ${other === 'PHP' ? 'pesos' : 'US dollars'}`, ghost: true, act: () => { WebStore.setCur(other); if (!$('#store').hidden) renderStore(); webBuy(sku); } },
       { label: 'Cancel', ghost: true }] });
 }
@@ -13783,58 +13933,66 @@ async function webPayPal(sku, cur) {
   } catch (e) { toastQ.push(['Not started', e.message, 5]); }
 }
 function webPayPalWait(r) { WebStore.dlgClose = appDialog({ title: 'Finish paying on PayPal', html: '<span data-wsdlg></span>', text: 'When you have paid, come back here: it is added by itself.', buttons: [{ label: 'I have paid', primary: true, act: () => WebStore.check(r.order, false, r.subscription) }, { label: 'Close', ghost: true }] }); }
-// GCash or bank: the QR code (or the number), then the reference number and the name it was paid from; Pending until checked
-function webManual(sku) {
-  const s = WebStore.settings || {}, p = WebStore.product(sku), price = WebStore.price(sku, 'PHP');
-  let ref = '', payer = '', method = s.gcash_number || s.gcash_qr ? 'gcash' : 'bank';
-  const how = [s.gcash_qr ? `<img class="wsQr" src="${esc(s.gcash_qr)}" alt="GCash QR code to pay ${esc(price)}" width="220" height="220">` : '',
-    s.gcash_number ? `<p><b>GCash</b>: ${esc(s.gcash_number)}${s.gcash_name ? ' (' + esc(s.gcash_name) + ')' : ''}</p>` : '',
-    s.bank_details ? `<p><b>Bank transfer</b>: ${esc(s.bank_details)}</p>` : ''].join('');
-  appDialog({ title: `Pay ${price} by GCash or bank`, text: `1. ${s.gcash_qr ? 'Scan the QR code with GCash, or send' : 'Send'} exactly ${price}. 2. Enter the reference number from your receipt. 3. It shows as Pending until we check it (usually within a day); the game tells you when it is added.`,
-    html: `${how}<label class="fbText"><span>Paid with</span><select id="wsMethod">${s.gcash_number || s.gcash_qr ? '<option value="gcash">GCash</option>' : ''}${s.bank_details ? '<option value="bank">Bank transfer</option>' : ''}</select></label>
-      <label class="fbText"><span>Reference number</span><input id="wsRef" maxlength="64" autocomplete="off" inputmode="text"></label>
+// GCash (QR code or number) or a bank transfer, each its own choice: then the reference number and the payer's name; Pending until checked
+function webManual(sku, method) {
+  const s = WebStore.settings || {}, p = WebStore.product(sku), price = WebStore.price(sku, 'PHP'), g = method === 'gcash';
+  let ref = '', payer = '';
+  const how = g ? [s.gcash_qr ? `<img class="wsQr" src="${esc(s.gcash_qr)}" alt="GCash QR code to pay ${esc(price)}" width="220" height="220">` : '', s.gcash_number ? `<p><b>GCash number</b>: ${esc(s.gcash_number)}${s.gcash_name ? ' (' + esc(s.gcash_name) + ')' : ''}</p>` : ''].join('')
+    : `<p><b>Bank transfer to</b>: ${esc(s.bank_details || '')}</p>`;
+  appDialog({ title: `Pay ${price} by ${g ? 'GCash' : 'bank transfer'}`, text: `1. ${g ? (s.gcash_qr ? 'Scan the QR code with GCash, or send' : 'Send') : 'Transfer'} exactly ${price}. 2. Enter the reference number from your receipt. 3. It shows as Pending until we check it (usually within a day); the game tells you when it is added.`,
+    html: `${how}<label class="fbText"><span>Reference number</span><input id="wsRef" maxlength="64" autocomplete="off" inputmode="text"></label>
       <label class="fbText"><span>Name on the account you paid from (optional, helps us find it)</span><input id="wsPayer" maxlength="80" autocomplete="name"></label>`,
     buttons: [{ label: 'Submit payment', primary: true, act: async () => {
       try {
         const r = await WebStore.call({ action: 'manual', sku, currency: 'PHP', method, reference: ref, payer }); await WebStore.load(); if (!$('#store').hidden) renderStore();
-        appDialog({ title: 'Payment submitted', text: `${p ? p.label : 'Your order'} · ${price} · ${method === 'gcash' ? 'GCash' : 'Bank transfer'} · reference ${ref.trim()}. Status: Pending. We check it against our ${method === 'gcash' ? 'GCash' : 'bank'} history, usually within a day, and the game tells you when it is added. Order ${String(r.order).slice(0, 8)}.`, buttons: [{ label: 'OK', primary: true }] });
+        appDialog({ title: 'Payment submitted', html: webSummary({ label: p ? p.label : 'Your order', method, amount: price, status: 'Pending: being checked', ref: ref.trim(), order: String(r.order).slice(0, 8) }),
+          text: `We check it against our ${g ? 'GCash' : 'bank'} history, usually within a day, and the game tells you when it is added.`, buttons: [{ label: 'OK', primary: true }] });
       } catch (e) { toastQ.push(['Not submitted', e.message, 5]); } } }, { label: 'Cancel', ghost: true }] });
-  const i = $('#wsRef'), n = $('#wsPayer'), m = $('#wsMethod'); // (read as typed: the dialog empties itself before its buttons act)
-  if (i) { i.oninput = () => { ref = i.value; }; i.focus(); } if (n) n.oninput = () => { payer = n.value; }; if (m) m.onchange = () => { method = m.value; };
+  const i = $('#wsRef'), n = $('#wsPayer'); // (read as typed: the dialog empties itself before its buttons act)
+  if (i) { i.oninput = () => { ref = i.value; }; i.focus(); } if (n) n.oninput = () => { payer = n.value; };
 }
+// a payment's summary: product, method, currency and amount, status, reference
+const PAY_HOW = { paypal: 'PayPal', gcash: 'GCash', bank: 'Bank transfer', grant: 'Gift from the team' };
+const webSummary = x => `<dl class="paySum"><dt>Product</dt><dd>${esc(x.label)}</dd><dt>Payment</dt><dd>${esc(PAY_HOW[x.method] || x.method)}</dd><dt>Amount</dt><dd>${esc(x.amount)}</dd><dt>Status</dt><dd>${esc(x.status)}</dd>${x.ref ? `<dt>Reference</dt><dd>${esc(x.ref)}</dd>` : ''}${x.order ? `<dt>Order</dt><dd>${esc(x.order)}</dd>` : ''}</dl>`;
 // the Supporter Club: monthly by PayPal (renews until stopped), or a month at a time by GCash or bank
 async function webClub(cur) {
   try {
     const r = await WebStore.call({ action: 'club', currency: cur });
     Platform.openExternal(r.approve); WebStore.watch(r.order, r.subscription);
-    WebStore.dlgClose = appDialog({ title: 'Join on PayPal', html: '<span data-wsdlg></span>', text: `PayPal opened in your browser: ${r.currency === 'PHP' ? '₱' : '$'}${r.amount} a month until you stop it (Shop > Supporter, or in PayPal). When you have agreed, come back here: the Club is yours in a few seconds.`,
-      buttons: [{ label: 'I have joined', primary: true, act: () => WebStore.check(r.order, false, r.subscription) }, { label: 'Open PayPal again', act: () => { Platform.openExternal(r.approve); webPayPalWait(r); } }, { label: 'Close', ghost: true }] });
+    WebStore.dlgClose = appDialog({ title: 'Join on PayPal', html: '<span data-wsdlg></span>', text: `PayPal opened in your browser: ${r.currency === 'PHP' ? '₱' : '$'}${r.amount} every month until you stop it${r.starts ? `, starting ${new Date(r.starts).toLocaleDateString()} when your current month ends (nothing is charged twice)` : ''}. When you have agreed, come back here.`,
+      buttons: [{ label: 'I have agreed', primary: true, act: () => WebStore.check(r.order, false, r.subscription) }, { label: 'Open PayPal again', act: () => { Platform.openExternal(r.approve); webPayPalWait(r); } }, { label: 'Close', ghost: true }] });
   } catch (e) { toastQ.push(['Not started', e.message, 5]); }
 }
-const CLUB_PERKS = ['A new lantern each month to keep', 'The Supporter Club frame, badge and the Club Keeper title', 'The Subscriber role and supporter-only sections in the community', 'Early looks at what is coming, behind-the-scenes posts and polls', 'Your name in the credits'];
+const CLUB_PERKS = ['A new lantern each month to keep', 'The Supporter Club frame, badge and the Club Keeper title', 'The Club role and the Supporter Lounge in the community', 'Early looks at what is coming, behind-the-scenes posts and polls', 'Your name in the credits'];
 function renderClub(box) {
   if (!WebStore.on()) return;
-  const signed = Cloud.signedIn(), c = WebStore.club, member = WebStore.member(), cur = WebStore.cur();
-  const card = el('div', { className: 'support club' }, [el('h3', { textContent: 'Supporter Club' }), el('p', { textContent: 'For keepers who want to keep supporting the game every month. Recognition and looks only: never an advantage.' })]);
+  const signed = Cloud.signedIn(), c = WebStore.club, member = WebStore.member(), cur = WebStore.cur(), s = WebStore.settings || {};
+  const renewing = !!(c && c.paypal_sub && c.status === 'active' && member), day = d => new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const card = el('div', { className: 'support club' }, [el('h3', { textContent: 'Supporter Club' }), el('p', { textContent: 'A monthly membership for keepers who want to keep supporting the game. Recognition and looks only: never an advantage. Cancel any time.' })]);
   const ul = el('ul'); for (const t of CLUB_PERKS) ul.append(el('li', { textContent: t })); card.append(ul);
-  if (member) card.append(el('p', { className: 'own', textContent: `You are in the Club until ${new Date(c.until).toLocaleDateString()}${c.paypal_sub && c.status === 'active' ? ' (renews each month)' : ''}. Thank you!` }));
+  if (c) { // the subscription as it stands
+    const price = c.amount_cents ? (c.currency === 'PHP' ? '₱' : '$') + (c.amount_cents / 100).toFixed(2) : WebStore.price('lk.club.month', cur);
+    const status = !member ? 'Ended' : renewing ? 'Active, renews every month' : c.paypal_sub ? 'Cancelled: stays until the end of the paid month' : 'Active (paid month by month)';
+    const d = el('div'); d.innerHTML = `<dl class="paySum"><dt>Plan</dt><dd>Supporter Club${c.env && c.env !== 'live' ? ' <span class="testTag">Test</span>' : ''}</dd><dt>Price</dt><dd>${esc(price)} a month</dd><dt>Billing</dt><dd>${c.paypal_sub ? 'Monthly with PayPal' : 'One month at a time (GCash or bank)'}</dd><dt>Status</dt><dd>${esc(status)}</dd>${renewing ? `<dt>Next payment</dt><dd>${day(c.until)}</dd>` : member ? `<dt>Ends</dt><dd>${day(c.until)}</dd>` : `<dt>Ended</dt><dd>${day(c.until)}</dd>`}</dl>`;
+    card.append(d);
+  }
   const btns = el('div', { className: 'saveBtns' }); card.append(btns);
   if (!signed) { const b = el('button', { className: 'btn primary', textContent: 'Sign in to join' }); b.onclick = openAccountFromShop; btns.append(b); }
   else {
-    if (!(c && c.paypal_sub && c.status === 'active' && member)) { const b = el('button', { className: 'btn primary', textContent: `Join monthly · ${WebStore.price('lk.club.month', cur)}/month` }); b.onclick = () => webClub(cur); btns.append(b); }
-    if (WebStore.settings && WebStore.settings.manual_on) { const b = el('button', { className: 'btn', textContent: `One month by GCash · ${WebStore.price('lk.club.month', 'PHP')}` }); b.onclick = () => webManual('lk.club.month'); btns.append(b); }
-    if (c && c.paypal_sub && c.status === 'active') { const b = el('button', { className: 'btn ghost', textContent: 'Stop the monthly payment' });
-      b.onclick = () => appDialog({ title: 'Stop the monthly payment?', text: `Your membership stays until ${new Date(c.until).toLocaleDateString()}; the lanterns you received stay yours.`, buttons: [{ label: 'Stop it', danger: true, act: async () => { try { await WebStore.call({ action: 'club_cancel' }); await WebStore.load(); renderStore(); toastQ.push(['Stopped', 'No more monthly payments.', 4]); } catch (e) { toastQ.push(['Not stopped', e.message, 5]); } } }, { label: 'Keep it', primary: true }] });
+    if (!renewing) { const b = el('button', { className: 'btn primary', textContent: member ? `Renew monthly · ${WebStore.price('lk.club.month', cur)}/month (from ${day(c.until)})` : `Join monthly · ${WebStore.price('lk.club.month', cur)}/month` }); b.onclick = () => webClub(cur); btns.append(b); }
+    if (s.manual_on && (s.gcash_number || s.gcash_qr)) { const b = el('button', { className: 'btn', textContent: `One month by GCash · ${WebStore.price('lk.club.month', 'PHP')}` }); b.onclick = () => webManual('lk.club.month', 'gcash'); btns.append(b); }
+    if (s.manual_on && s.bank_details) { const b = el('button', { className: 'btn', textContent: `One month by bank transfer · ${WebStore.price('lk.club.month', 'PHP')}` }); b.onclick = () => webManual('lk.club.month', 'bank'); btns.append(b); }
+    if (renewing) { const b = el('button', { className: 'btn ghost', textContent: 'Cancel the subscription' });
+      b.onclick = () => appDialog({ title: 'Cancel your Supporter Club subscription?', text: `No more monthly payments. You stay a member until ${day(c.until)}, then the Club frame, badge and title end; the lanterns you received stay yours. You can join again any time.`, buttons: [{ label: 'Cancel the subscription', danger: true, act: async () => { try { await WebStore.call({ action: 'club_cancel' }); await WebStore.load(); renderStore(); toastQ.push(['Subscription cancelled', `You stay a member until ${day(c.until)}.`, 5]); } catch (e) { toastQ.push(['Not cancelled', e.message, 5]); } } }, { label: 'Keep it', primary: true }] });
       btns.append(b); }
   }
   box.append(card);
 }
-// the orders list (Shop > Supporter)
+// the orders list (Shop > Supporter): what, how, how much, status, reference; test payments labelled
+const ORDER_STATE = { created: 'Waiting for payment', review: 'Pending: being checked', paid: 'Completed', rejected: 'Not confirmed', refunded: 'Refunded', cancelled: 'Cancelled', expired: 'Not completed: nothing was charged' };
 function webOrdersHtml() {
   if (!WebStore.orders.length) return '';
-  const st = { created: 'Waiting for payment', review: 'Pending: being checked', paid: 'Completed', rejected: 'Not confirmed', refunded: 'Refunded', cancelled: 'Cancelled' };
-  const how = { paypal: 'PayPal', gcash: 'GCash', bank: 'Bank', grant: 'Gift from the team' };
-  return `<h3 class="sec">Web store orders</h3>${WebStore.orders.map(o => `<div class="purch"><span>${esc((WebStore.product(o.sku) || {}).label || o.sku)} · ${o.method === 'grant' ? '' : (o.currency === 'PHP' ? '₱' : '$') + (o.amount_cents / 100).toFixed(2) + ' · '}${how[o.method] || o.method}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span>${st[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}${o.status === 'created' && o.method === 'paypal' ? ` <button class="btn small" data-wscheck="${o.id}">Check</button>` : ''}</span></div>`).join('')}`;
+  return `<h3 class="sec">Web store orders</h3>${WebStore.orders.map(o => `<div class="purch"><span>${esc((WebStore.product(o.sku) || {}).label || o.sku)}${o.env && o.env !== 'live' ? ' <span class="testTag">Test</span>' : ''} · ${o.method === 'grant' ? '' : (o.currency === 'PHP' ? '₱' : '$') + (o.amount_cents / 100).toFixed(2) + ' ' + o.currency + ' · '}${PAY_HOW[o.method] || o.method}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span>${ORDER_STATE[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}${o.status === 'created' && o.method === 'paypal' ? ` <button class="btn small" data-wscheck="${o.id}">Check</button>` : ''}</span></div>`).join('')}`;
 }
 function wireWebOrders(box) { for (const b of box.querySelectorAll('[data-wscheck]')) b.onclick = () => WebStore.check(b.dataset.wscheck); }
 
@@ -15441,7 +15599,7 @@ const Duel = {
   },
   async refreshOut() { if (!this.out) return; const { data } = await Cloud.sb.rpc('duel_status', { rid: this.out.id }); if (data) this.answered(data); },
   async cancelOut() { const r = this.out; this.stopOut(); if (r) await Cloud.sb.rpc('duel_cancel', { rid: r.id }).then(() => {}, () => {}); },
-  stopOut() { clearInterval(this.poll); clearInterval(this.tick); this.poll = this.tick = 0; if (this.outClose) { const c = this.outClose; this.outClose = null; if (document.querySelector('#appDialog:not([hidden]) #appDlgT') && $('#appDlgT').textContent === 'Challenge sent') c(); } this.out = null; },
+  stopOut() { clearInterval(this.poll); clearInterval(this.tick); this.poll = this.tick = 0; if (this.outClose) { const c = this.outClose; this.outClose = null; if (document.querySelector('#appDialog:not([hidden]) #appDlgT') && ["Challenge sent", I18n.t('Challenge sent')].includes($('#appDlgT').textContent)) c(); } this.out = null; },
   async answered(r) { // my challenge was answered (or ran out)
     if (!this.out || r.id !== this.out.id || r.status === 'pending') return;
     const name = this.out.to_name; this.stopOut();
@@ -15468,7 +15626,7 @@ const Duel = {
     }, 500);
   },
   withdrawn(r) { if (this.inc && r.id === this.inc.id && r.status === 'cancelled') { const n = this.inc.from_name; this.stopInc(); toastQ.push(['Duel', `${n} withdrew the challenge.`]); } },
-  stopInc() { clearInterval(this.tick); this.tick = 0; if (this.incClose && document.querySelector('#appDialog:not([hidden])') && $('#appDlgT').textContent === 'Duel request') this.incClose(); this.incClose = null; this.inc = null; },
+  stopInc() { clearInterval(this.tick); this.tick = 0; if (this.incClose && document.querySelector('#appDialog:not([hidden])') && ["Duel request", I18n.t('Duel request')].includes($('#appDlgT').textContent)) this.incClose(); this.incClose = null; this.inc = null; },
   async respond(r, answer, quiet) {
     if (this.inc && this.inc.id === r.id) { this.inc = null; this.incClose = null; clearInterval(this.tick); }
     const { data, error } = await Cloud.sb.rpc('duel_respond', { rid: r.id, answer });
