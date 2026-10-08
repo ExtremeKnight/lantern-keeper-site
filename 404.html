@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="64x64" href="assets/img/icon-64.png">
 <link rel="apple-touch-icon" href="assets/img/icon-192.png">
 <link rel="preload" href="assets/fonts/Jersey10.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=0876d948c2">
+<link rel="stylesheet" href="assets/site.css?v=594be05504">
 <link rel="alternate" type="application/rss+xml" title="Lantern Keeper news (RSS)" href="feed.xml">
 <link rel="alternate" type="application/atom+xml" title="Lantern Keeper news (Atom)" href="atom.xml">
 <meta property="og:type" content="website">
@@ -47,15 +47,26 @@
   <p class="dr-h">Currency</p><div class="chips" data-lc-curs translate="no"></div>
 </div></div>
 <main id="main">
-<section class="hero" aria-labelledby="nf-title">
+<section class="hero nf" aria-labelledby="nf-title">
   <div class="hero-sky" aria-hidden="true"></div><div class="hero-stars" aria-hidden="true"></div>
-  <div class="wrap center">
-    <img src="assets/img/icon-192.png" width="120" height="120" alt="" style="margin:0 auto 20px;border-radius:24px">
+  <div class="wrap center nf-in">
+    <img class="nf-icon" src="assets/img/icon-192.png" width="120" height="120" alt="">
     <h1 id="nf-title">Lost in the fog</h1>
-    <p class="lede" style="margin:0 auto 26px">This page isn't here. The light still is.</p>
-    <div class="btn-row" style="justify-content:center"><a class="btn btn-primary" href="./">Back to the lighthouse</a><a class="btn btn-ghost" href="play/">Play the game</a></div>
+    <p class="lede nf-lede">This page isn't here. The light still is.</p>
+    <p class="nf-path" data-nf-path hidden><span>There is nothing at</span> <code translate="no"></code></p>
+    <div class="btn-row nf-btns"><a class="btn btn-primary" href="./">Back to the lighthouse</a><a class="btn btn-ghost" href="play/">Play the game</a></div>
+    <nav class="nf-links" aria-label="Where to go instead">
+      <a href="news.html">News</a><a href="community.html">Community</a><a href="downloads.html">Downloads</a><a href="store.html">Store</a><a href="support.html">Support &amp; FAQ</a>
+    </nav>
+    <p class="nf-report"><a data-nf-report href="mailto:l4nternkeeper@gmail.com?subject=A%20broken%20link">Tell us about this link</a></p>
   </div>
 </section>
+<script>
+  /* the address that was missed, shown as text (never as markup), and in the report email */
+  (function () { var p = location.pathname + location.search; if (!p || p === '/' || /404\.html$/.test(p)) return;
+    var box = document.querySelector('[data-nf-path]'); box.querySelector('code').textContent = decodeURIComponent(p).slice(0, 200); box.hidden = false;
+    var r = document.querySelector('[data-nf-report]'); r.href = 'mailto:l4nternkeeper@gmail.com?subject=' + encodeURIComponent('A broken link') + '&body=' + encodeURIComponent('This address did not work: ' + location.href + (document.referrer ? '\nI came from: ' + document.referrer : '')); })();
+</script>
 </main>
 <footer class="site-foot">
   <div class="wrap">
@@ -71,8 +82,8 @@
     <div class="foot-bottom"><span>© 2026 Exenova. Lantern Keeper.</span><span>No cookies, trackers or ads on this site. Signing in keeps your sign-in in this browser; the sign-in form loads hCaptcha's human check.</span></div>
   </div>
 </footer>
-<script src="assets/site-edit.js?v=c55563a0e9" defer></script>
-<script src="assets/i18n.js?v=71b37fe37e4c802d1915" defer></script>
+<script src="assets/site-edit.js?v=b5dce84136" defer></script>
+<script src="assets/i18n.js?v=71b37fe37e5e6975698e" defer></script>
 <script src="assets/site.js?v=7b747da60e" defer></script>
 <script src="assets/bot.js?v=ff5241c8e5" defer></script>
 </body>

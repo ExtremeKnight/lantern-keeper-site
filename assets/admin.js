@@ -34,15 +34,32 @@ window.LKAdmin = function (root, A) {
     ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
   ].filter(s => can(...s[2]));
   root.innerHTML = `<div class="adm"><nav class="adm-nav" aria-label="Dashboard sections"><p class="adm-who">${esc((A.myProfile && A.myProfile.display_name) || A.me.email)} ${A.roleChips(A.myRoles)}</p>
-    ${SECTIONS.map(([id, label]) => `<a href="#${id}" data-s="${id}">${label}</a>`).join('')}</nav><section class="adm-main" id="admMain" tabindex="-1"></section></div>`;
+    <label class="adm-pick"><span class="sr-only">Section</span><select data-pick>${SECTIONS.map(([id, label]) => `<option value="${id}" data-label="${esc(label)}">${label}</option>`).join('')}</select></label>
+    ${SECTIONS.map(([id, label]) => `<a href="#${id}" data-s="${id}">${label}<span class="adm-badge" data-badge="${id}" hidden></span></a>`).join('')}</nav><section class="adm-main" id="admMain" tabindex="-1"></section></div>`;
+  root.querySelector('[data-pick]').onchange = e => { location.hash = '#' + e.target.value; };
   const main = root.querySelector('#admMain');
   async function route() {
     const id = (location.hash.slice(1).split('/')[0]) || 'overview', s = SECTIONS.find(x => x[0] === id) || SECTIONS[0];
-    for (const a of root.querySelectorAll('[data-s]')) a.classList.toggle('on', a.dataset.s === s[0]);
+    for (const a of root.querySelectorAll('[data-s]')) { a.classList.toggle('on', a.dataset.s === s[0]); if (a.dataset.s === s[0]) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
+    root.querySelector('[data-pick]').value = s[0];
     main.innerHTML = '<p class="muted">Loading...</p>';
     try { await s[3](main, location.hash.slice(1).split('/').slice(1)); } catch (e) { main.innerHTML = `<p>Could not load: ${esc(e.message || e)}</p>`; }
   }
   window.addEventListener('hashchange', route); route();
+  // what waits for the team, on the menu (and the phone's dropdown): payments to check, open tickets, open reports
+  async function badges() {
+    const { data } = await sb.rpc('admin_overview'); if (!data) return;
+    const n = { payments: can('payments.view', 'payments.approve') ? data.pending_payments : 0, tickets: can('tickets.handle') ? data.open_tickets : 0, moderation: can('moderation') ? data.open_reports : 0 };
+    for (const [id, v] of Object.entries(n)) { const b = root.querySelector(`[data-badge="${id}"]`), o = root.querySelector(`[data-pick] option[value="${id}"]`);
+      if (b) { b.hidden = !v; b.textContent = v > 99 ? '99+' : v; b.setAttribute('aria-label', v + ' waiting'); } if (o) o.textContent = o.dataset.label + (v ? ` (${v})` : ''); }
+  }
+  badges().catch(() => {});
+  // lists refresh by themselves every minute while this tab is open (never while a dialog is open or something is being typed)
+  setInterval(() => {
+    if (document.hidden) return; badges().catch(() => {});
+    const [id, sub] = location.hash.slice(1).split('/'), typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#admMain input, #admMain textarea, #admMain select');
+    if (['overview', 'payments', 'tickets', 'moderation', 'subs'].includes(id || 'overview') && !(id === 'tickets' && sub) && !document.querySelector('.hub-modal') && !typing) route();
+  }, 60000);
   const head = (title, sub, extra = '') => `<div class="adm-head"><div><h2>${title}</h2>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${extra}</div>`;
   const confirmBox = (title, html, ok, label = 'Confirm') => modal(`<h2>${title}</h2>${html}<div class="hub-actions"><button class="btn btn-primary" data-ok>${label}</button><button class="btn btn-ghost" data-no>Cancel</button></div>`, (d, close) => {
     d.querySelector('[data-no]').onclick = close; d.querySelector('[data-ok]').onclick = async () => { d.querySelector('[data-ok]').disabled = true; try { await ok(); close(); } catch (e) { say(d, e.message || String(e)); d.querySelector('[data-ok]').disabled = false; } }; });
@@ -50,12 +67,25 @@ window.LKAdmin = function (root, A) {
   // ---------- overview ----------
   async function overview(el) {
     const { data, error } = await sb.rpc('admin_overview'); if (error) throw error;
-    const tile = (n, label, href) => `<a class="card adm-tile" href="${href}"><b>${esc(n)}</b><span>${label}</span></a>`;
-    el.innerHTML = head('Overview', 'Live numbers. Test and sandbox payments are not counted.') + `<div class="adm-tiles">
-      ${tile(data.players, 'Players', '#people')}${tile(data.new_week, 'New this week', '#people')}${tile(data.online, 'Online now', '#people')}${tile(data.club, 'Club members', '#subs')}
-      ${tile(data.pending_payments, 'Payments to check', '#payments')}${tile(data.open_tickets, 'Open tickets', '#tickets')}${tile(data.open_reports, 'Open reports', '#moderation')}
-      ${team ? tile(money(data.revenue_php, 'PHP'), 'Paid in pesos', '#payments/paid') + tile(money(data.revenue_usd, 'USD'), 'Paid in dollars', '#payments/paid') : ''}</div>`;
+    const tile = (n, label, href, warn) => `<a class="card adm-tile${warn ? ' adm-warn' : ''}" href="${href}"><b>${esc(n)}</b><span>${label}</span></a>`;
+    const [paid, tpl, camp, sw] = await Promise.all([
+      can('payments.view') ? sb.from('store_orders').select('currency, amount_cents').eq('status', 'paid').eq('env', 'live').neq('method', 'grant').limit(10000) : { data: null },
+      can('emails.approve') ? sb.from('email_templates').select('key', { count: 'exact', head: true }).eq('approved', false) : { count: null },
+      can('emails.send') ? sb.from('email_campaigns').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'sending']) : { count: null },
+      sb.from('game_switches').select('key, on, message')]);
+    const byCur = {}; for (const o of paid.data || []) byCur[o.currency] = (byCur[o.currency] || 0) + o.amount_cents;
+    const off = (sw.data || []).filter(x => x.key !== 'notice' && !x.on).map(x => x.key), notice = (sw.data || []).find(x => x.key === 'notice' && x.on);
+    const bar = window.LKSiteEdit && LKSiteEdit.settings() && LKSiteEdit.settings().bar;
+    el.innerHTML = head('Overview', 'Live numbers, refreshed every minute. Test and sandbox payments are not counted.')
+      + `<h3>Waiting for the team</h3><div class="adm-tiles">${tile(data.pending_payments, 'Payments to check', '#payments', data.pending_payments)}${tile(data.open_tickets, 'Open tickets', '#tickets', data.open_tickets)}${tile(data.open_reports, 'Open reports', '#moderation', data.open_reports)}
+        ${tpl.count != null ? tile(tpl.count, 'Email templates not approved (not sent)', '#emails', tpl.count) : ''}${camp.count != null ? tile(camp.count, 'Email campaigns scheduled or sending', '#campaigns') : ''}</div>
+      <h3>Players</h3><div class="adm-tiles">${tile(data.players, 'Players', '#people')}${tile(data.new_week, 'New this week', '#people')}${tile(data.online, 'Online now', '#people')}${tile(data.club, 'Supporter Club members', '#subs')}</div>
+      ${paid.data ? `<h3>Paid, all time</h3><div class="adm-tiles">${Object.keys(byCur).sort((a, b) => byCur[b] - byCur[a]).map(c => tile(money(byCur[c], c), 'Paid in ' + c, '#payments/paid')).join('') || '<p class="muted">Nothing paid yet.</p>'}</div>` : ''}
+      <h3>The game and the website now</h3><div class="adm-tiles">${tile(off.length ? off.length + ' off' : 'All on', off.length ? 'Switched off: ' + off.join(', ') : 'Game switches', can('game.switches') ? '#switches' : '#overview', off.length)}
+        ${tile(notice ? 'Shown' : 'None', notice ? 'Home screen message: ' + esc(notice.message.slice(0, 60)) : 'Home screen message', can('game.switches') ? '#switches' : '#overview', !!notice)}
+        ${tile(bar && bar.on ? 'On' : 'Off', bar && bar.on ? 'Website announcement bar: ' + esc(String(bar.text || '').replace(/<[^>]+>/g, '').slice(0, 60)) : 'Website announcement bar', can('site.settings') ? '#site' : '#overview')}</div>`;
   }
+
 
   // ---------- payments ----------
   const ORDER = { created: 'Waiting for payment', review: 'To check', paid: 'Paid', rejected: 'Rejected', refunded: 'Refunded', cancelled: 'Cancelled', expired: 'Expired (nothing charged)' };
@@ -68,14 +98,22 @@ window.LKAdmin = function (root, A) {
     await people((data || []).map(o => o.user_id)); const label = sku => ((prods || []).find(p => p.sku === sku) || { label: sku }).label;
     el.innerHTML = head('Payments', 'PayPal payments are confirmed by PayPal. GCash and bank payments wait here: check the reference and amount in your GCash or bank history, then approve or reject.',
       `<div class="adm-filters"><select data-st aria-label="Status">${['review', 'paid', 'created', 'rejected', 'refunded', 'expired', 'cancelled', 'all'].map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s === 'all' ? 'Every status' : ORDER[s]}</option>`).join('')}</select>
+      <input data-find placeholder="Reference, payer, account or item" aria-label="Search these payments" value="${esc(sessionStorage.getItem('adm-pq') || '')}">
       <select data-env aria-label="Live or test"><option value="live" ${env === 'live' ? 'selected' : ''}>Real payments</option><option value="test" ${env === 'test' ? 'selected' : ''}>Test payments</option><option value="sandbox" ${env === 'sandbox' ? 'selected' : ''}>PayPal sandbox</option><option value="all" ${env === 'all' ? 'selected' : ''}>All</option></select></div>`)
-      + `<div class="adm-table" role="table">${(data || []).map(o => `<div class="adm-row" role="row">
+      + `<p class="adm-count"><span data-shown></span> <button class="btn btn-ghost btn-sm" data-csv>Export these (CSV)</button></p><div class="adm-table" role="table">${(data || []).map(o => `<div class="adm-row" role="row" data-hay="${esc([label(o.sku), o.reference, o.payer_name, o.paypal_order, names.get(o.user_id), mails.get(o.user_id), o.id, o.note].filter(Boolean).join(' ').toLowerCase())}">
         <span><b>${esc(label(o.sku))}</b>${testTag(o.env)}<br><small>${nm(o.user_id)} · ${when(o.created_at)} · #${esc(o.id.slice(0, 8))}</small></span>
         <span>${o.method === 'grant' ? '<i>gift</i>' : esc(money(o.amount_cents, o.currency))}<br><small>${HOW[o.method] || esc(o.method)}${o.reference ? ' · ref <b>' + esc(o.reference) + '</b>' : ''}${o.payer_name ? ' · from ' + esc(o.payer_name) : ''}${o.paypal_order ? ' · PayPal ' + esc(o.paypal_order) : ''}</small>${o.note ? `<br><small class="muted">${esc(o.note)}</small>` : ''}</span>
         <span class="adm-state st-${o.status}">${ORDER[o.status] || esc(o.status)}</span>
         <span class="adm-acts">${o.status === 'review' ? `<button class="btn btn-primary btn-sm" data-ok="${o.id}">Approve</button><button class="btn btn-ghost btn-sm" data-no="${o.id}">Reject</button>` : ''}${o.status === 'paid' && o.method !== 'paypal' ? `<button class="btn btn-ghost btn-sm" data-ref="${o.id}">Refund</button>` : ''}</span></div>`).join('') || '<p class="muted">Nothing here.</p>'}</div>`;
     el.querySelector('[data-st]').onchange = e => { location.hash = '#payments/' + e.target.value; };
     el.querySelector('[data-env]').onchange = e => { sessionStorage.setItem('adm-env', e.target.value); route(); };
+    const rowsEl = [...el.querySelectorAll('.adm-row[data-hay]')], filter = () => { const q = el.querySelector('[data-find]').value.trim().toLowerCase(); sessionStorage.setItem('adm-pq', q); let n = 0;
+      for (const r of rowsEl) { const on = !q || r.dataset.hay.includes(q); r.hidden = !on; if (on) n++; } el.querySelector('[data-shown]').textContent = `${n} of ${rowsEl.length} shown`; return q; };
+    el.querySelector('[data-find]').oninput = filter; filter();
+    el.querySelector('[data-csv]').onclick = () => { const q = filter(), cell = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+      const list = (data || []).filter((o, i) => !rowsEl[i].hidden), lines = [['date', 'order', 'product', 'status', 'method', 'amount', 'currency', 'reference', 'payer', 'account', 'email', 'environment', 'note'].join(',')]
+        .concat(list.map(o => [o.created_at, o.id, label(o.sku), o.status, o.method, (o.amount_cents / 100).toFixed(2), o.currency, o.reference, o.payer_name, names.get(o.user_id), mails.get(o.user_id), o.env, o.note].map(cell).join(',')));
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv' })); a.download = `payments-${status}-${env}${q ? '-search' : ''}-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); };
     const find = id => data.find(o => o.id === id), sum = o => `<dl class="hub-sum"><dt>Product</dt><dd>${esc(label(o.sku))}</dd><dt>Amount</dt><dd>${esc(money(o.amount_cents, o.currency))}</dd><dt>Method</dt><dd>${HOW[o.method] || esc(o.method)}</dd><dt>Reference</dt><dd>${esc(o.reference || '-')}</dd><dt>Payer</dt><dd>${esc(o.payer_name || '-')}</dd><dt>Account</dt><dd>${esc(names.get(o.user_id) || '-')}</dd></dl>`;
     for (const b of el.querySelectorAll('[data-ok]')) b.onclick = () => { const o = find(b.dataset.ok); confirmBox('Approve this payment?', sum(o) + `<p>Only approve after you have found <b>${esc(money(o.amount_cents, o.currency))}</b> with this reference in your ${HOW[o.method]} history. The player gets the purchase at once.</p>`, () => call('store', { action: 'review', order: o.id, approve: true }).then(route), 'Approve: I found the payment'); };
     for (const b of el.querySelectorAll('[data-no]')) b.onclick = () => { const o = find(b.dataset.no); confirmBox('Reject this payment?', sum(o) + '<p>The player sees "Not confirmed" and can open a ticket. Nothing is given.</p>', () => call('store', { action: 'review', order: o.id, approve: false }).then(route), 'Reject'); };
@@ -116,7 +154,7 @@ window.LKAdmin = function (root, A) {
     const orders = t.user_id ? (await sb.from('store_orders').select('id, sku, status, amount_cents, currency, method, created_at, env').eq('user_id', t.user_id).order('created_at', { ascending: false }).limit(5)).data || [] : [];
     el.innerHTML = `<p><a href="#tickets">&larr; All tickets</a></p>` + head(`#${t.id} · ${esc(t.subject)}`, `${nm(t.user_id)} · ${esc(t.category)} · opened ${when(t.created_at)}`)
       + `<div class="adm-split"><div>${(msgs || []).map(m => `<div class="card adm-msg${m.internal ? ' internal' : m.author === t.user_id ? '' : ' staff'}"><p class="adm-meta"><b>${m.author === t.user_id ? 'Player' : esc(names.get(m.author) || 'Support')}</b>${m.internal ? ' · <b>internal note</b>' : ''} · ${when(m.created_at)}</p><p>${esc(m.body).replace(/\n/g, '<br>')}</p>${files[m.id] ? `<p><a href="${esc(files[m.id])}" target="_blank" rel="noopener">Attached file</a></p>` : ''}</div>`).join('')}
-        <form class="hub-form card" data-reply><label>Reply<textarea name="body" rows="5" maxlength="4000" required></textarea></label><label class="hub-check"><input type="checkbox" name="internal"> Internal note (only staff see it)</label><button class="btn btn-primary" type="submit">Send</button></form></div>
+        <form class="hub-form card" data-reply><label>Reply<textarea name="body" rows="5" maxlength="4000" required></textarea></label><label>Start from an FAQ answer <small>(optional)</small><select data-faq><option value="">Choose a question...</option></select></label><label class="hub-check"><input type="checkbox" name="internal"> Internal note (only staff see it)</label><button class="btn btn-primary" type="submit">Send</button></form></div>
         <aside class="card adm-side"><label>Status<select data-k="status">${Object.entries(TK).map(([k, v]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
           <label>Priority<select data-k="priority">${['low', 'normal', 'high', 'urgent'].map(p => `<option ${t.priority === p ? 'selected' : ''}>${p}</option>`).join('')}</select></label>
           <p>${t.assignee ? 'Assigned to ' + esc(names.get(t.assignee) || '') : 'Unassigned'} ${t.assignee !== A.me.id ? '<button class="btn btn-ghost btn-sm" data-me>Assign to me</button>' : ''}</p>
@@ -124,7 +162,11 @@ window.LKAdmin = function (root, A) {
     const upd = async patch => { const { error } = await sb.from('support_tickets').update(patch).eq('id', id); if (error) err(error); else ticket(el, id); };
     for (const s of el.querySelectorAll('[data-k]')) s.onchange = () => upd({ [s.dataset.k]: s.value });
     const me = el.querySelector('[data-me]'); if (me) me.onclick = () => upd({ assignee: A.me.id });
-    const f = el.querySelector('[data-reply]'); f.onsubmit = async e => { e.preventDefault(); const fd = new FormData(f);
+    const f = el.querySelector('[data-reply]');
+    sb.from('faq').select('id, question, answer, lang').eq('published', true).order('sort').limit(300).then(({ data: fq }) => { const sel = f.querySelector('[data-faq]'); if (!sel || !fq) return;
+      sel.innerHTML += fq.filter(x => !x.lang || x.lang === 'en').map(x => `<option value="${x.id}">${esc(x.question.slice(0, 90))}</option>`).join('');
+      sel.onchange = () => { const x = fq.find(y => y.id === +sel.value); if (!x) return; const ta = f.querySelector('textarea'); ta.value = (ta.value ? ta.value.trimEnd() + '\n\n' : '') + String(x.answer).replace(/<[^>]+>/g, ''); sel.value = ''; ta.focus(); }; });
+    f.onsubmit = async e => { e.preventDefault(); const fd = new FormData(f);
       const { error } = await sb.from('ticket_messages').insert({ ticket_id: id, author: A.me.id, body: String(fd.get('body')).trim(), internal: !!fd.get('internal') }); if (error) say(f, error.message); else ticket(el, id); };
   }
 
@@ -164,13 +206,27 @@ window.LKAdmin = function (root, A) {
       `<form class="adm-filters" data-q><input name="q" placeholder="Email, name or friend code" value="${esc(q)}" aria-label="Search people"><button class="btn btn-ghost btn-sm">Search</button></form>`)
       + `<div class="adm-table">${(data || []).map(p => `<div class="adm-row"><span><b>${esc(p.name || '(no name)')}</b> ${A.roleChips(p.roles)}<br><small>${esc(p.email || '')} · joined ${day(p.created_at)}${p.last_seen ? ' · seen ' + ago(p.last_seen) : ''}</small></span>
         <span><small>${p.paid_orders} paid order${p.paid_orders === 1 ? '' : 's'}${p.club_until && Date.parse(p.club_until) > Date.now() ? ' · Club until ' + day(p.club_until) : ''}${p.muted_until && Date.parse(p.muted_until) > Date.now() ? ' · <b>muted</b>' : ''}${p.banned_until && Date.parse(p.banned_until) > Date.now() ? ' · <b>banned until ' + day(p.banned_until) + '</b>' : ''}</small></span>
-        <span class="adm-acts"><button class="btn btn-ghost btn-sm" data-roles="${p.id}">Roles</button><button class="btn btn-ghost btn-sm" data-mute="${p.id}">Mute</button>${p.id !== A.me.id ? `<button class="btn btn-ghost btn-sm" data-ban="${p.id}">Ban</button>` : ''}</span></div>`).join('') || '<p class="muted">Nobody found.</p>'}</div>`;
+        <span class="adm-acts"><button class="btn btn-ghost btn-sm" data-who="${p.id}">Details</button><button class="btn btn-ghost btn-sm" data-roles="${p.id}">Roles</button><button class="btn btn-ghost btn-sm" data-mute="${p.id}">Mute</button>${p.id !== A.me.id ? `<button class="btn btn-ghost btn-sm" data-ban="${p.id}">Ban</button>` : ''}</span></div>`).join('') || '<p class="muted">Nobody found.</p>'}</div>`;
     el.querySelector('[data-q]').onsubmit = e => { e.preventDefault(); sessionStorage.setItem('adm-q', new FormData(e.target).get('q').trim()); route(); };
     for (const p of data || []) names.set(p.id, p.name || p.email);
     for (const b of el.querySelectorAll('[data-mute]')) b.onclick = () => muteBox(b.dataset.mute);
+    for (const b of el.querySelectorAll('[data-who]')) b.onclick = () => whoBox(data.find(x => x.id === b.dataset.who)).catch(err);
     for (const b of el.querySelectorAll('[data-ban]')) b.onclick = () => modal(`<h2>Ban ${esc(names.get(b.dataset.ban))}</h2><form class="hub-form"><label>Days (0 lifts a ban)<input name="days" type="number" min="0" max="3650" value="7"></label><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">A banned account can't sign in until then. Their purchases stay theirs.</p>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); call('admin', { action: 'ban', user: b.dataset.ban, days: +new FormData(f).get('days') }).then(() => { close(); route(); }, x => say(f, x.message)); }; });
     for (const b of el.querySelectorAll('[data-roles]')) b.onclick = () => rolesBox(data.find(x => x.id === b.dataset.roles)).catch(err);
+  }
+
+  // ---------- one person: orders, tickets, what they own, mutes ----------
+  async function whoBox(p) {
+    const [o, t, en, mu] = await Promise.all([can('payments.view') ? sb.from('store_orders').select('id, sku, status, method, amount_cents, currency, env, created_at').eq('user_id', p.id).order('created_at', { ascending: false }).limit(15) : { data: null },
+      can('tickets.handle') ? sb.from('support_tickets').select('id, subject, status, updated_at').eq('user_id', p.id).order('updated_at', { ascending: false }).limit(10) : { data: null },
+      sb.from('entitlements').select('sku, source, granted_at, revoked_at').eq('user_id', p.id).order('granted_at', { ascending: false }).limit(60), sb.from('mutes').select('until, reason').eq('user_id', p.id).maybeSingle()]);
+    const list = (title, rows, fn) => rows ? `<h3>${title}</h3>${rows.length ? `<ul class="adm-list">${rows.map(fn).join('')}</ul>` : '<p class="muted small">None.</p>'}` : '';
+    modal(`<h2>${esc(p.name || p.email || 'A keeper')}</h2><p class="muted small">${esc(p.email || '')} · joined ${day(p.created_at)}${p.last_seen ? ' · seen ' + ago(p.last_seen) : ''} · <a href="community.html#/k/${p.id}" target="_blank" rel="noopener">public page</a></p>
+      ${mu.data && Date.parse(mu.data.until) > Date.now() ? `<p><b>Muted</b> until ${when(mu.data.until)}: ${esc(mu.data.reason || '')}</p>` : ''}
+      ${list('Orders', o.data, x => `<li>${esc(x.sku)} · ${x.method === 'grant' ? 'gift' : esc(money(x.amount_cents, x.currency))} · ${esc(ORDER[x.status] || x.status)}${x.env !== 'live' ? ' (test)' : ''} · ${day(x.created_at)}</li>`)}
+      ${list('Tickets', t.data, x => `<li><a href="#tickets/${x.id}" data-close>#${x.id} ${esc(x.subject)}</a> · ${esc(TK[x.status] || x.status)} · ${ago(x.updated_at)}</li>`)}
+      ${list('What they own', en.data, x => `<li>${esc(x.sku)} · ${esc(x.source || '')} · ${day(x.granted_at)}${x.revoked_at ? ' · <b>taken back</b>' : ''}</li>`)}`, (d, close) => { for (const a of d.querySelectorAll('[data-close]')) a.addEventListener('click', close); });
   }
 
   // ---------- roles of one person, their own permissions ----------
@@ -233,9 +289,12 @@ window.LKAdmin = function (root, A) {
       + (can('site.edit') ? `<h3>Pages</h3><div class="adm-pages">${SITE_PAGES.map(([p, n]) => `<div class="card adm-tile"><b>${esc(n)}</b><span>${count(p) ? count(p) + ' change' + (count(p) === 1 ? '' : 's') : 'As designed'}</span><span class="adm-acts"><a class="btn btn-primary btn-sm" href="${p}?edit">Edit</a>${count(p) ? `<button class="btn btn-ghost btn-sm" data-wipe="${p}">Reset</button>` : ''}</span></div>`).join('')}</div>
         <p class="muted small">The header, menu and footer are the same on every page: change them on any page. ${count('*') - (rows || []).filter(r => r.page === '*' && r.kind === 'settings').length} change(s) there.</p>` : '')
       + (can('site.settings') ? '<h3>Site settings</h3><div class="card" data-settings><p class="muted">Loading...</p></div>' : '')
-      + `<h3>Latest changes</h3><div class="adm-table">${(log || []).map(x => `<div class="adm-row"><span><b>${esc(x.page === '*' ? 'Every page' : x.page)}</b> · ${esc(x.kind || '')}${x.lang ? ' · ' + esc(x.lang) : ''}<br><small>${esc(String((x.after || x.before || {}).html || (x.after || x.before || {}).src || x.key).replace(/<[^>]+>/g, '').slice(0, 120))}</small></span><span><small>${x.after ? (x.before ? 'Changed' : 'Added') : 'Removed'} by ${nm(x.by)}</small></span><span><small>${when(x.at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-undo="${x.id}">Undo</button></span></div>`).join('') || '<p class="muted">No changes yet.</p>'}</div>`;
+      + `<h3>Latest changes</h3><div class="adm-table adm-log">${(log || []).map((x, i) => `<div class="adm-row"><span><b>${esc(x.page === '*' ? 'Every page' : x.page)}</b> · ${esc(x.kind || '')}${x.lang ? ' · ' + esc(x.lang) : ''}<br><small>${esc(String((x.after || x.before || {}).html || (x.after || x.before || {}).src || x.key).replace(/<[^>]+>/g, '').slice(0, 120))}</small></span><span><small>${x.after ? (x.before ? 'Changed' : 'Added') : 'Removed'} by ${nm(x.by)}</small></span><span><small>${when(x.at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-undo="${x.id}">Undo</button></span></div>`.replace('<div class="adm-row">', `<div class="adm-row"${i >= 10 ? ' hidden data-more' : ''}>`)).join('') || '<p class="muted">No changes yet.</p>'}</div>${(log || []).length > 10 ? `<p><button class="btn btn-ghost btn-sm" data-showall>Show all ${(log || []).length}</button></p>` : ''}`;
+    const sa = el.querySelector('[data-showall]'); if (sa) sa.onclick = () => { for (const r of el.querySelectorAll('[data-more]')) r.hidden = false; sa.remove(); };
     const box = el.querySelector('[data-settings]');
-    if (box) { const go = () => window.LKSiteEdit && LKSiteEdit.settings() ? LKSiteEdit.reload().then(() => LKSiteEdit.settingsForm(box, sb, () => { say(box, 'Saved for every page.', true); })) : setTimeout(go, 100); go(); }
+    if (box) { let tries = 0; const go = () => { // (assets/site-edit.js loads with the page: wait for it a little, then say what went wrong)
+      if (!(window.LKSiteEdit && LKSiteEdit.settingsForm && LKSiteEdit.settings())) { if (++tries < 80) return setTimeout(go, 100); box.innerHTML = '<p>The site settings could not load. Reload the page; if it stays, the site editor script is missing.</p>'; return; }
+      LKSiteEdit.reload().then(() => LKSiteEdit.settingsForm(box, sb, () => { say(box, 'Saved for every page.', true); })).catch(e => { box.innerHTML = `<p>The site settings could not load: ${esc(e.message || e)}</p>`; }); }; go(); }
     for (const b of el.querySelectorAll('[data-wipe]')) b.onclick = () => confirmBox(`Reset ${esc(b.dataset.wipe)}?`, '<p>Every change made on this page goes, and it looks as designed again. Each one stays in the history, so it can be brought back.</p>', async () => { const { error: e2 } = await sb.from('site_edits').delete().eq('page', b.dataset.wipe); if (e2) throw e2; route(); }, 'Reset');
     for (const b of el.querySelectorAll('[data-undo]')) b.onclick = () => { const x = log.find(y => y.id === +b.dataset.undo); confirmBox('Undo this change?', `<p>${x.before ? 'It goes back to what it was before.' : 'It is taken off again.'}</p>`, async () => {
       const q = x.before ? await sb.from('site_edits').upsert({ page: x.page, key: x.key, lang: x.lang, kind: x.kind, value: x.before }) : await sb.from('site_edits').delete().eq('page', x.page).eq('key', x.key).eq('lang', x.lang); if (q.error) throw q.error; route(); }, 'Undo'); };

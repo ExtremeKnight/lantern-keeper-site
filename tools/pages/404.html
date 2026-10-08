@@ -1,10 +1,21 @@
 <!--{"title": "Lost in the fog", "description": "This page could not be found.", "nav": "", "path": "404.html", "base": "/"}-->
-<section class="hero" aria-labelledby="nf-title">
+<section class="hero nf" aria-labelledby="nf-title">
   <div class="hero-sky" aria-hidden="true"></div><div class="hero-stars" aria-hidden="true"></div>
-  <div class="wrap center">
-    <img src="assets/img/icon-192.png" width="120" height="120" alt="" style="margin:0 auto 20px;border-radius:24px">
+  <div class="wrap center nf-in">
+    <img class="nf-icon" src="assets/img/icon-192.png" width="120" height="120" alt="">
     <h1 id="nf-title">Lost in the fog</h1>
-    <p class="lede" style="margin:0 auto 26px">This page isn't here. The light still is.</p>
-    <div class="btn-row" style="justify-content:center"><a class="btn btn-primary" href="./">Back to the lighthouse</a><a class="btn btn-ghost" href="play/">Play the game</a></div>
+    <p class="lede nf-lede">This page isn't here. The light still is.</p>
+    <p class="nf-path" data-nf-path hidden><span>There is nothing at</span> <code translate="no"></code></p>
+    <div class="btn-row nf-btns"><a class="btn btn-primary" href="./">Back to the lighthouse</a><a class="btn btn-ghost" href="play/">Play the game</a></div>
+    <nav class="nf-links" aria-label="Where to go instead">
+      <a href="news.html">News</a><a href="community.html">Community</a><a href="downloads.html">Downloads</a><a href="store.html">Store</a><a href="support.html">Support &amp; FAQ</a>
+    </nav>
+    <p class="nf-report"><a data-nf-report href="mailto:l4nternkeeper@gmail.com?subject=A%20broken%20link">Tell us about this link</a></p>
   </div>
 </section>
+<script>
+  /* the address that was missed, shown as text (never as markup), and in the report email */
+  (function () { var p = location.pathname + location.search; if (!p || p === '/' || /404\.html$/.test(p)) return;
+    var box = document.querySelector('[data-nf-path]'); box.querySelector('code').textContent = decodeURIComponent(p).slice(0, 200); box.hidden = false;
+    var r = document.querySelector('[data-nf-report]'); r.href = 'mailto:l4nternkeeper@gmail.com?subject=' + encodeURIComponent('A broken link') + '&body=' + encodeURIComponent('This address did not work: ' + location.href + (document.referrer ? '\nI came from: ' + document.referrer : '')); })();
+</script>

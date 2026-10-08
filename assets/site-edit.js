@@ -166,7 +166,7 @@
     .then(r => r.ok ? r.json() : null).then(rows => { if (!Array.isArray(rows)) return; store.set(CACHE, rows); apply(rows); return rows; }).catch(() => null);
   const ready = load();
 
-  window.LKSiteEdit = { PAGE, STYLES, THEME, clean, settings: () => settings, reload: () => load(), sections: () => sections, blocks: () => blocks };
+  window.LKSiteEdit = { PAGE, STYLES, THEME, clean, settings: () => settings, reload: () => load(), sections: () => sections, blocks: () => blocks, settingsForm }; // (settingsForm: the dashboard uses it outside the editor too)
 
   // ---------- 3. the editor, for accounts allowed to change the site ----------
   let wantEdit = /[?&]edit\b/.test(location.search); try { if (wantEdit) sessionStorage.setItem('lk-edit', '1'); else wantEdit = sessionStorage.getItem('lk-edit') === '1'; } catch (e) { /* private mode */ }
@@ -368,5 +368,4 @@
       const { error } = await sb.from('site_edits').upsert({ page: '*', key: 'settings', lang: '', kind: 'settings', value }); if (error) return err(box, error);
       await load(); if (done) done(); else { const t = document.createElement('p'); t.className = 'lke-toast'; t.textContent = 'Saved for every page.'; document.body.append(t); setTimeout(() => t.remove(), 2600); } };
   }
-  window.LKSiteEdit.settingsForm = settingsForm;
 })();
