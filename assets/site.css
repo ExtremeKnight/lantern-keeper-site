@@ -736,3 +736,4 @@ a.platform:hover { border-color: var(--gold); color: var(--text); }
 /* very small phones (320px, or a phone zoomed in): hCaptcha's box is a fixed 303px, so it is shown a little smaller */
 .hub-form, .hub-auth, .hub-auth label { min-width: 0; }
 @media (max-width: 380px) { .hub-cap { width: 100%; height: 68px; overflow: hidden; } .hub-cap > * { transform: scale(.85); transform-origin: 0 0; } .card { padding-left: 14px; padding-right: 14px; } }
+.adm-prof { display: flex; gap: 6px; margin: 4px 0; } .adm-prof img { border-radius: 8px; object-fit: cover; border: 1px solid var(--line2); }
