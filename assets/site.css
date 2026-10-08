@@ -602,3 +602,11 @@ a.platform:hover { border-color: var(--gold); color: var(--text); }
   .adm-acts { justify-content: flex-start; }
 }
 .adm-mailto { color: var(--dim); font-size: .85em; }
+
+/* ---------- languages (0.30.1) ---------- */
+.site-head .nav a { white-space: nowrap; }
+.lang-wrap { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.lang-pick { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line2); background: var(--surface); color: var(--text); font: inherit; font-size: .85rem; cursor: pointer; }
+.lang-head .lang-pick { padding: 4px 6px; font-size: .8rem; }
+.site-foot .lang-wrap { margin-top: 12px; }
+.legal-note { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--line2); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: .92rem; }
