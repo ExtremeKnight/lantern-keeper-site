@@ -1,0 +1,24 @@
+<!--{"title": "Leaderboards", "description": "Lantern Keeper leaderboards: today's daily challenge and this week's Endless night, the best keepers and their results.", "nav": "leaderboards", "path": "leaderboards.html"}-->
+<div class="page-head">
+  <div class="wrap">
+    <span class="kicker">Leaderboards</span>
+    <h1>The best keepers</h1>
+    <p>Today's daily challenge (everyone gets the same region, weapon, keeper and seed) and this week's Endless night. Play signed in and your best result appears here. Keepers who hide their profile show as "A keeper".</p>
+  </div>
+</div>
+<div class="page">
+  <div class="wrap">
+    <div class="boards" data-boards>
+      <div class="board-tabs" role="tablist" aria-label="Leaderboard">
+        <button type="button" role="tab" aria-selected="true" data-board="daily">Today's daily</button>
+        <button type="button" role="tab" aria-selected="false" data-board="daily-1">Yesterday's daily</button>
+        <button type="button" role="tab" aria-selected="false" data-board="endless">Endless this week</button>
+        <button type="button" role="tab" aria-selected="false" data-board="endless-1">Endless last week</button>
+      </div>
+      <p class="muted board-note" data-board-note></p>
+      <div class="board-table" data-board-list role="tabpanel"><p class="muted">Loading the leaderboard…</p></div>
+    </div>
+    <p class="small muted">Boards use the day and the week in UTC. Results are checked by the server, and moderators can take off one that isn't fair play.</p>
+  </div>
+</div>
+<script src="assets/boards.js" defer></script>

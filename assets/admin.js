@@ -29,7 +29,7 @@ window.LKAdmin = function (root, A) {
     ['overview', 'Overview', ['dashboard.open'], overview], ['device', 'Phone app and alerts', ['dashboard.open'], devicePage], ['payments', 'Payments', ['payments.view', 'payments.settings'], payments], ['subs', 'Subscriptions', ['subs.view'], subs], ['sales', 'Sales', ['payments.view'], sales],
     ['tickets', 'Tickets', ['tickets.handle'], tickets], ['moderation', 'Reports and mutes', ['moderation'], moderation], ['people', 'People and roles', ['people.view'], peoplePage], ['activity', 'Activity log', ['activity.view'], activity],
     ['perms', 'Permissions', ['perms.manage'], permsPage], ['site', 'Website', ['site.edit', 'site.settings'], sitePage],
-    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['switches', 'Game switches', ['game.switches'], switchesPage],
+    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['switches', 'Game switches', ['game.switches'], switchesPage], ['gevents', 'Game events', ['events.game'], gameEvents],
     ['faq', 'FAQ and chatbot', ['faq.edit'], faq], ['store', 'Products and prices', ['prices.edit', 'payments.settings'], store], ['emails', 'Email templates', ['emails.templates', 'emails.approve'], emails],
     ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
   ].filter(s => can(...s[2]));
@@ -292,6 +292,29 @@ window.LKAdmin = function (root, A) {
     const test = el.querySelector('[data-alerts-test]'); if (test) test.onclick = () => call('team-push', { action: 'test' }).then(r => modal(`<h2>${r.sent ? 'Sent' : 'Not sent'}</h2><p>${r.sent} of your ${r.devices} device${r.devices === 1 ? '' : 's'} got it.</p>`), err);
   }
 
+  // ---------- game events: scheduled from here, no release needed (an ember bonus, a message on every home screen) ----------
+  async function gameEvents(el) {
+    const { data, error } = await sb.from('game_events').select('*').order('starts_at', { ascending: false }).limit(60); if (error) throw error;
+    const now = Date.now(), state = e => !e.published ? 'Draft' : Date.parse(e.ends_at) < now ? 'Ended' : Date.parse(e.starts_at) > now ? 'Scheduled' : 'Running now';
+    el.innerHTML = head('Game events', 'A weekend of bonus embers, a celebration, a community night: scheduled here, they reach every player without a new version (the game checks every few minutes, and keeps the last list for offline play). Ember bonuses count for nights against the fog, never PvP, and are at most double. Gifts of looks still come with a release.', '<button class="btn btn-primary btn-sm" data-new>New event</button>')
+      + `<div class="adm-table">${(data || []).map(e => `<div class="adm-row"><span><b>${esc(e.name)}</b>${e.embers > 1 ? ` · +${Math.round((e.embers - 1) * 100)}% embers` : ''}<br><small>${esc(e.text.slice(0, 160))}</small></span><span><small>${when(e.starts_at)} → ${when(e.ends_at)}</small></span><span class="adm-state ${state(e) === 'Running now' ? 'st-paid' : state(e) === 'Draft' ? 'st-review' : ''}">${state(e)}</span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-ed="${esc(e.id)}">Edit</button><button class="btn btn-ghost btn-sm" data-del="${esc(e.id)}">Delete</button></span></div>`).join('') || '<p class="muted">No events yet.</p>'}</div>`;
+    const edit = e => modal(`<h2>${e ? 'Edit' : 'New'} event</h2><form class="hub-form"><label>Name <small>(shown on every home screen)</small><input name="name" minlength="3" maxlength="60" required value="${esc(e ? e.name : '')}"></label>
+      <label>Message <small>(when it begins, in the Notification Center)</small><textarea name="text" rows="3" maxlength="300">${esc(e ? e.text : '')}</textarea></label>
+      <div class="hub-row"><label>Starts<input type="datetime-local" name="starts_at" required value="${local(e ? e.starts_at : new Date(Date.now() + 864e5))}"></label><label>Ends<input type="datetime-local" name="ends_at" required value="${local(e ? e.ends_at : new Date(Date.now() + 3 * 864e5))}"></label></div>
+      <label>Ember bonus <small>(nights against the fog only)</small><select name="embers">${[[1, 'None'], [1.25, '+25%'], [1.5, '+50%'], [1.75, '+75%'], [2, 'Double']].map(([v, l]) => `<option value="${v}" ${e && +e.embers === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="hub-check"><input type="checkbox" name="published" ${!e || e.published ? 'checked' : ''}> Published (players see it at its start time)</label><button class="btn btn-primary" type="submit">Review</button></form>
+      <p class="muted small">Times are your own (${esc(Intl.DateTimeFormat().resolvedOptions().timeZone || 'local')}); players see the event at the same moment wherever they are.</p>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(f));
+        const row = { name: v.name.trim(), text: v.text.trim(), starts_at: iso(v.starts_at), ends_at: iso(v.ends_at), embers: +v.embers, published: !!v.published };
+        if (Date.parse(row.ends_at) <= Date.parse(row.starts_at)) return say(f, 'It has to end after it starts.');
+        if (!e) row.id = (row.name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'event') + '-' + new Date(row.starts_at).toISOString().slice(0, 10);
+        close(); confirmBox(row.published ? 'Schedule this event for every player?' : 'Save as a draft?', `<dl class="hub-sum"><dt>Name</dt><dd>${esc(row.name)}</dd><dt>When</dt><dd>${when(row.starts_at)} → ${when(row.ends_at)}</dd><dt>Ember bonus</dt><dd>${row.embers > 1 ? '+' + Math.round((row.embers - 1) * 100) + '%' : 'none'}</dd><dt>Message</dt><dd>${esc(row.text || '-')}</dd></dl>`,
+          async () => { const { error: e2 } = e ? await sb.from('game_events').update(row).eq('id', e.id) : await sb.from('game_events').insert(row); if (e2) throw new Error(/duplicate/i.test(e2.message) ? 'An event with that name starts that day already.' : e2.message); route(); }, row.published ? 'Schedule' : 'Save draft'); }; });
+    el.querySelector('[data-new]').onclick = () => edit(null);
+    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(data.find(x => x.id === b.dataset.ed));
+    for (const b of el.querySelectorAll('[data-del]')) b.onclick = () => { const e = data.find(x => x.id === b.dataset.del); confirmBox(`Delete ${esc(e.name)}?`, '<p>It disappears from the game within a few minutes (a running bonus stops then).</p>', async () => { const { error: e2 } = await sb.from('game_events').delete().eq('id', e.id); if (e2) throw e2; route(); }, 'Delete'); };
+  }
+
   // ---------- the activity log: who did what, and when ----------
   const ACT = { 'payment.approved': 'approved a payment', 'payment.rejected': 'rejected a payment', 'payment.refunded': 'refunded a payment', 'gift.given': 'gave a gift', 'gift.revoked': 'took a gift back',
     'role.given': 'gave a role', 'role.taken': 'took a role', 'role.custom.insert': 'made a custom role', 'role.custom.update': 'renamed a custom role', 'role.custom.delete': 'deleted a custom role',
@@ -303,7 +326,8 @@ window.LKAdmin = function (root, A) {
     'faq.insert': 'added an FAQ answer', 'faq.update': 'changed an FAQ answer', 'faq.delete': 'removed an FAQ answer', 'translation.insert': 'added a translation', 'translation.update': 'changed a translation', 'translation.delete': 'removed a translation',
     'chat.slow': 'slowed a game chat channel', 'chat.lock': 'locked or opened a game chat channel', 'moderation.game-chat.removed': 'removed a game chat message' };
   const actName = a => ACT[a] || (a.startsWith('campaign.') ? 'email campaign: ' + a.slice(9) : a.startsWith('moderation.') ? 'moderated (' + a.slice(11).replace(/\./g, ' ') + ')' : a);
-  const ACT_GROUPS = [['', 'Everything'], ['payment.,gift.', 'Payments and gifts'], ['role.,permission.', 'Roles and permissions'], ['ban.,mute.,moderation.,report.,chat.', 'Moderation'], ['switch.,announcement.', 'Game switches and announcements'], ['email.,campaign.', 'Emails'], ['prices.,payment-details.', 'Prices and payment details'], ['faq.,translation.', 'FAQ and translations']];
+  Object.assign(ACT, { 'event.insert': 'scheduled a game event', 'event.update': 'changed a game event', 'event.delete': 'deleted a game event', 'leaderboard.removed': 'took a leaderboard entry off' });
+  const ACT_GROUPS = [['', 'Everything'], ['payment.,gift.', 'Payments and gifts'], ['role.,permission.', 'Roles and permissions'], ['ban.,mute.,moderation.,report.,chat.,leaderboard.', 'Moderation'], ['switch.,announcement.,event.', 'Game switches, events and announcements'], ['email.,campaign.', 'Emails'], ['prices.,payment-details.', 'Prices and payment details'], ['faq.,translation.', 'FAQ and translations']];
   async function activity(el) {
     const f = JSON.parse(sessionStorage.getItem('adm-act') || '{}'), limit = f.limit || 100;
     let q = sb.from('audit_log').select('*').order('at', { ascending: false }).limit(limit);

@@ -73,7 +73,7 @@ const sprite = () => `<svg width="0" height="0" style="position:absolute" aria-h
 
 // 0.30.1 (approved 8 October): four links always shown, the rest under More; on tablets and phones a side menu, in groups
 const NAV = [['community.html', 'Community', 'community', 'chat'], ['news.html', 'News', 'news', 'news'], ['store.html', 'Store', 'store', 'bag'], ['downloads.html', 'Downloads', 'downloads', 'download']];
-const MORE = [['index.html#features', 'Features', 'features', 'spark'], ['index.html#gallery', 'Gallery', 'gallery', 'image'], ['support.html', 'Support &amp; FAQ', 'support', 'help'], ['press.html', 'Press kit', 'press', 'box']];
+const MORE = [['index.html#features', 'Features', 'features', 'spark'], ['index.html#gallery', 'Gallery', 'gallery', 'image'], ['support.html', 'Support &amp; FAQ', 'support', 'help'], ['press.html', 'Press kit', 'press', 'box'], ['leaderboards.html', 'Leaderboards', 'leaderboards', 'star'], ['events.html', 'Events', 'events', 'bell']];
 const DRAWER = [['Play', [['play/', 'Play free', 'play', 'play'], ['downloads.html', 'Downloads', 'downloads', 'download']]],
   ['Keepers', [NAV[0], NAV[1], NAV[2], ['account.html', 'Account', 'account', 'user']]], ['About the game', MORE]];
 
