@@ -886,3 +886,15 @@ a.adm-tile, .adm-tile { display: flex; flex-direction: column; align-items: flex
   .adm-tiles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
 }
 .adm-badge[hidden] { display: none; }
+/* the dashboard: charts, several at once */
+.adm-chart { display: flex; align-items: flex-end; gap: 4px; height: 190px; padding: 12px 10px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--bg2); overflow-x: auto; }
+.adm-bar { flex: 1 0 22px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 22px; }
+.adm-bar i { display: block; width: 100%; max-width: 34px; min-height: 2px; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, var(--gold), var(--ember)); }
+.adm-bar-n i { background: linear-gradient(180deg, var(--sky), #3a6fd8); }
+.adm-bar span { font-size: .66rem; color: var(--dim); margin-top: 4px; white-space: nowrap; writing-mode: vertical-rl; transform: rotate(180deg); height: 46px; }
+.adm-head-row { background: var(--surface2); }
+.adm-pickrow { display: inline-flex; align-items: center; padding: 0 4px; }
+.adm-pickrow input { width: 20px; height: 20px; cursor: pointer; }
+.adm-bulk { position: sticky; bottom: 12px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: #0b1130; border: 1px solid var(--gold); box-shadow: var(--shadow); }
+.adm-bulk[hidden] { display: none; }
+.adm-bulk span { font-weight: 700; margin-right: auto; }

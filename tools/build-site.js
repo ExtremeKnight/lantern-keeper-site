@@ -95,7 +95,10 @@ function layout(meta, body) {
 <meta name="description" content="${esc(meta.description)}">
 <link rel="canonical" href="${url}">
 <meta name="theme-color" content="#0a0f24">
-<link rel="icon" type="image/png" sizes="64x64" href="assets/img/icon-64.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/img/icon-64.png">${meta.manifest ? `
+<link rel="manifest" href="${meta.manifest}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LK Dashboard">` : ''}
 <link rel="apple-touch-icon" href="assets/img/icon-192.png">
 <link rel="preload" href="assets/fonts/Jersey10.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/site.css">

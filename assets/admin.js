@@ -26,10 +26,10 @@ window.LKAdmin = function (root, A) {
 
   // section: [id, label, the permissions that open it (any one), draw]
   const SECTIONS = [
-    ['overview', 'Overview', ['dashboard.open'], overview], ['payments', 'Payments', ['payments.view', 'payments.settings'], payments], ['subs', 'Subscriptions', ['subs.view'], subs],
-    ['tickets', 'Tickets', ['tickets.handle'], tickets], ['moderation', 'Reports and mutes', ['moderation'], moderation], ['people', 'People and roles', ['people.view'], peoplePage],
+    ['overview', 'Overview', ['dashboard.open'], overview], ['device', 'Phone app and alerts', ['dashboard.open'], devicePage], ['payments', 'Payments', ['payments.view', 'payments.settings'], payments], ['subs', 'Subscriptions', ['subs.view'], subs], ['sales', 'Sales', ['payments.view'], sales],
+    ['tickets', 'Tickets', ['tickets.handle'], tickets], ['moderation', 'Reports and mutes', ['moderation'], moderation], ['people', 'People and roles', ['people.view'], peoplePage], ['activity', 'Activity log', ['activity.view'], activity],
     ['perms', 'Permissions', ['perms.manage'], permsPage], ['site', 'Website', ['site.edit', 'site.settings'], sitePage],
-    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['switches', 'Game switches', ['game.switches'], switchesPage], ['content', 'Notices (old)', ['site.edit'], content],
+    ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['switches', 'Game switches', ['game.switches'], switchesPage],
     ['faq', 'FAQ and chatbot', ['faq.edit'], faq], ['store', 'Products and prices', ['prices.edit', 'payments.settings'], store], ['emails', 'Email templates', ['emails.templates', 'emails.approve'], emails],
     ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
   ].filter(s => can(...s[2]));
@@ -45,21 +45,40 @@ window.LKAdmin = function (root, A) {
     main.innerHTML = '<p class="muted">Loading...</p>';
     try { await s[3](main, location.hash.slice(1).split('/').slice(1)); } catch (e) { main.innerHTML = `<p>Could not load: ${esc(e.message || e)}</p>`; }
   }
-  window.addEventListener('hashchange', route); route();
+  window.addEventListener('hashchange', route);
+  // the dashboard as an app (0.30.1): its own service worker, for notifications (scope /admin: never the rest of the site)
+  const swReg = 'serviceWorker' in navigator ? navigator.serviceWorker.register('admin-sw.js', { scope: '/admin' }).catch(() => null) : Promise.resolve(null);
+  let installEvt = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if ((location.hash || '').startsWith('#device')) route(); });
+  const ALERT_KINDS = [['payments', 'A payment to check (GCash or bank)', ['payments.approve', 'payments.view']], ['tickets', 'A new support ticket', ['tickets.handle']], ['reports', 'A new report', ['moderation']]].filter(k => can(...k[2]));
+  const alertPrefs = () => { try { return JSON.parse(localStorage.getItem('adm-alerts') || 'null') || ALERT_KINDS.map(k => k[0]); } catch (e) { return ALERT_KINDS.map(k => k[0]); } };
+  let lastCounts = null;
+  async function alertIfMore(n) { // while the dashboard is open (even in the background): a notification when something new waits
+    if (lastCounts && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      const want = alertPrefs(), msgs = { payments: 'A payment to check', tickets: 'A new support ticket', reports: 'A new report' };
+      const reg = await swReg;
+      for (const k of Object.keys(n)) if (want.includes(k === 'moderation' ? 'reports' : k) && n[k] > (lastCounts[k] || 0)) {
+        const kind = k === 'moderation' ? 'reports' : k, opts = { body: `${n[k]} waiting now`, tag: kind, renotify: true, icon: 'assets/img/icon-192.png', data: { url: 'admin.html#' + k } };
+        if (reg && reg.showNotification) reg.showNotification(msgs[kind], opts); else new Notification(msgs[kind], opts); }
+    }
+    lastCounts = n;
+  }
   // what waits for the team, on the menu (and the phone's dropdown): payments to check, open tickets, open reports
   async function badges() {
     const { data } = await sb.rpc('admin_overview'); if (!data) return;
     const n = { payments: can('payments.view', 'payments.approve') ? data.pending_payments : 0, tickets: can('tickets.handle') ? data.open_tickets : 0, moderation: can('moderation') ? data.open_reports : 0 };
     for (const [id, v] of Object.entries(n)) { const b = root.querySelector(`[data-badge="${id}"]`), o = root.querySelector(`[data-pick] option[value="${id}"]`);
       if (b) { b.hidden = !v; b.textContent = v > 99 ? '99+' : v; b.setAttribute('aria-label', v + ' waiting'); } if (o) o.textContent = o.dataset.label + (v ? ` (${v})` : ''); }
+    if (!document.querySelector('#appDialog:not([hidden])')) alertIfMore(n).catch(() => {});
+    if (navigator.setAppBadge) { const t = Object.values(n).reduce((a, v) => a + (v || 0), 0); (t ? navigator.setAppBadge(t) : navigator.clearAppBadge()).catch(() => {}); } // (the number on the app's icon)
   }
-  badges().catch(() => {});
+  badges().catch(() => {}); addEventListener('lk-admin-poll', () => badges().catch(() => {})); // (tests ask for the counts at once)
   // lists refresh by themselves every minute while this tab is open (never while a dialog is open or something is being typed)
   setInterval(() => {
-    if (document.hidden) return; badges().catch(() => {});
+    badges().catch(() => {}); if (document.hidden) return; // (the counts and alerts keep going in the background; the lists refresh only when seen)
     const [id, sub] = location.hash.slice(1).split('/'), typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#admMain input, #admMain textarea, #admMain select');
     if (['overview', 'payments', 'tickets', 'moderation', 'subs'].includes(id || 'overview') && !(id === 'tickets' && sub) && !document.querySelector('.hub-modal') && !typing) route();
   }, 60000);
+  route(); // (after everything the sections use is ready: a notification can open any section directly)
   const head = (title, sub, extra = '') => `<div class="adm-head"><div><h2>${title}</h2>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${extra}</div>`;
   const confirmBox = (title, html, ok, label = 'Confirm') => modal(`<h2>${title}</h2>${html}<div class="hub-actions"><button class="btn btn-primary" data-ok>${label}</button><button class="btn btn-ghost" data-no>Cancel</button></div>`, (d, close) => {
     d.querySelector('[data-no]').onclick = close; d.querySelector('[data-ok]').onclick = async () => { d.querySelector('[data-ok]').disabled = true; try { await ok(); close(); } catch (e) { say(d, e.message || String(e)); d.querySelector('[data-ok]').disabled = false; } }; });
@@ -104,7 +123,8 @@ window.LKAdmin = function (root, A) {
         <span><b>${esc(label(o.sku))}</b>${testTag(o.env)}<br><small>${nm(o.user_id)} · ${when(o.created_at)} · #${esc(o.id.slice(0, 8))}</small></span>
         <span>${o.method === 'grant' ? '<i>gift</i>' : esc(money(o.amount_cents, o.currency))}<br><small>${HOW[o.method] || esc(o.method)}${o.reference ? ' · ref <b>' + esc(o.reference) + '</b>' : ''}${o.payer_name ? ' · from ' + esc(o.payer_name) : ''}${o.paypal_order ? ' · PayPal ' + esc(o.paypal_order) : ''}</small>${o.note ? `<br><small class="muted">${esc(o.note)}</small>` : ''}</span>
         <span class="adm-state st-${o.status}">${ORDER[o.status] || esc(o.status)}</span>
-        <span class="adm-acts">${o.status === 'review' ? `<button class="btn btn-primary btn-sm" data-ok="${o.id}">Approve</button><button class="btn btn-ghost btn-sm" data-no="${o.id}">Reject</button>` : ''}${o.status === 'paid' && o.method !== 'paypal' ? `<button class="btn btn-ghost btn-sm" data-ref="${o.id}">Refund</button>` : ''}</span></div>`).join('') || '<p class="muted">Nothing here.</p>'}</div>`;
+        <span class="adm-acts">${o.status === 'review' ? `<label class="adm-pickrow"><input type="checkbox" data-sel="${o.id}" aria-label="Select this payment"></label><button class="btn btn-primary btn-sm" data-ok="${o.id}">Approve</button><button class="btn btn-ghost btn-sm" data-no="${o.id}">Reject</button>` : ''}${o.status === 'paid' && (o.method !== 'paypal' || o.sku !== 'lk.club.month') ? `<button class="btn btn-ghost btn-sm" data-ref="${o.id}">${o.method === 'paypal' ? 'Refund through PayPal' : o.method === 'grant' ? 'Take the gift back' : 'Refund'}</button>` : ''}</span></div>`).join('') || '<p class="muted">Nothing here.</p>'}</div>
+      ${(data || []).some(o => o.status === 'review') ? `<div class="adm-bulk" data-bulk hidden><span data-bulkn></span><button class="btn btn-primary btn-sm" data-bulkok>Approve selected</button><button class="btn btn-ghost btn-sm" data-bulkno>Reject selected</button><button class="btn btn-ghost btn-sm" data-bulkall>Select all shown</button></div>` : ''}`;
     el.querySelector('[data-st]').onchange = e => { location.hash = '#payments/' + e.target.value; };
     el.querySelector('[data-env]').onchange = e => { sessionStorage.setItem('adm-env', e.target.value); route(); };
     const rowsEl = [...el.querySelectorAll('.adm-row[data-hay]')], filter = () => { const q = el.querySelector('[data-find]').value.trim().toLowerCase(); sessionStorage.setItem('adm-pq', q); let n = 0;
@@ -117,7 +137,24 @@ window.LKAdmin = function (root, A) {
     const find = id => data.find(o => o.id === id), sum = o => `<dl class="hub-sum"><dt>Product</dt><dd>${esc(label(o.sku))}</dd><dt>Amount</dt><dd>${esc(money(o.amount_cents, o.currency))}</dd><dt>Method</dt><dd>${HOW[o.method] || esc(o.method)}</dd><dt>Reference</dt><dd>${esc(o.reference || '-')}</dd><dt>Payer</dt><dd>${esc(o.payer_name || '-')}</dd><dt>Account</dt><dd>${esc(names.get(o.user_id) || '-')}</dd></dl>`;
     for (const b of el.querySelectorAll('[data-ok]')) b.onclick = () => { const o = find(b.dataset.ok); confirmBox('Approve this payment?', sum(o) + `<p>Only approve after you have found <b>${esc(money(o.amount_cents, o.currency))}</b> with this reference in your ${HOW[o.method]} history. The player gets the purchase at once.</p>`, () => call('store', { action: 'review', order: o.id, approve: true }).then(route), 'Approve: I found the payment'); };
     for (const b of el.querySelectorAll('[data-no]')) b.onclick = () => { const o = find(b.dataset.no); confirmBox('Reject this payment?', sum(o) + '<p>The player sees "Not confirmed" and can open a ticket. Nothing is given.</p>', () => call('store', { action: 'review', order: o.id, approve: false }).then(route), 'Reject'); };
-    for (const b of el.querySelectorAll('[data-ref]')) b.onclick = () => { const o = find(b.dataset.ref); confirmBox('Refund this purchase?', sum(o) + '<p>The purchase is taken back from the account (Lumens, looks or Club time). Send the money back yourself by GCash or bank first.</p>', () => call('store', { action: 'refund', order: o.id }).then(route), 'Refund'); };
+    for (const b of el.querySelectorAll('[data-ref]')) b.onclick = () => { const o = find(b.dataset.ref);
+      const how = o.method === 'paypal' ? `<p><b>${esc(money(o.amount_cents, o.currency))} goes back to the player through PayPal now</b>, then the purchase is taken back from the account (Lumens, looks or the pack). This can't be undone.</p>`
+        : o.method === 'grant' ? '<p>The gift is taken back from the account. No money is involved.</p>' : '<p>The purchase is taken back from the account (Lumens, looks or Club time). Send the money back yourself by GCash or bank first.</p>';
+      confirmBox(o.method === 'paypal' ? 'Refund through PayPal?' : o.method === 'grant' ? 'Take this gift back?' : 'Refund this purchase?', sum(o) + how, () => call('store', { action: 'refund', order: o.id }).then(route), o.method === 'paypal' ? 'Refund ' + money(o.amount_cents, o.currency) : o.method === 'grant' ? 'Take it back' : 'Refund'); };
+    // several payments at once: each one is checked the same way, and the summary shows every reference first
+    const bulk = el.querySelector('[data-bulk]'), picked = () => [...el.querySelectorAll('[data-sel]:checked')].map(c => find(c.dataset.sel)).filter(Boolean);
+    const showBulk = () => { const n = picked().length; if (bulk) { bulk.hidden = !n; bulk.querySelector('[data-bulkn]').textContent = n + ' selected'; } };
+    for (const c of el.querySelectorAll('[data-sel]')) c.onchange = showBulk;
+    if (bulk) {
+      bulk.querySelector('[data-bulkall]').onclick = () => { for (const c of el.querySelectorAll('[data-sel]')) if (!c.closest('.adm-row').hidden) c.checked = true; showBulk(); };
+      const many = approve => { const list = picked(); if (!list.length) return;
+        const total = {}; for (const o of list) total[o.currency] = (total[o.currency] || 0) + o.amount_cents;
+        confirmBox(`${approve ? 'Approve' : 'Reject'} ${list.length} payment${list.length === 1 ? '' : 's'}?`, `<table class="adm-diff"><thead><tr><th>Reference</th><th>Payer</th><th>Amount</th><th>Account</th></tr></thead><tbody>${list.map(o => `<tr><td>${esc(o.reference || '-')}</td><td>${esc(o.payer_name || '-')}</td><td>${esc(money(o.amount_cents, o.currency))}</td><td>${esc(names.get(o.user_id) || '-')}</td></tr>`).join('')}</tbody></table>
+          <p>Total: <b>${Object.entries(total).map(([c, v]) => esc(money(v, c))).join(' + ')}</b>. ${approve ? 'Only approve the ones you found in your GCash or bank history: each player gets their purchase at once.' : 'Each player sees "Not confirmed" and can open a ticket.'}</p>`,
+          async () => { let done = 0; const fails = []; for (const o of list) { try { await call('store', { action: 'review', order: o.id, approve }); done++; } catch (e) { fails.push(`${o.reference || o.id}: ${e.message}`); } }
+            if (fails.length) throw new Error(`${done} done; not done: ${fails.join('; ')}`); route(); }, approve ? `Approve ${list.length}: I found them all` : `Reject ${list.length}`); };
+      bulk.querySelector('[data-bulkok]').onclick = () => many(true); bulk.querySelector('[data-bulkno]').onclick = () => many(false);
+    }
   }
 
   // ---------- subscriptions ----------
@@ -181,9 +218,15 @@ window.LKAdmin = function (root, A) {
     el.innerHTML = head('Reports and mutes', 'Reports from the website community. In-game chat reports are handled in the game (Settings > Moderation).')
       + `<h3>Open reports</h3><div class="adm-table">${(reps || []).map((r, i) => { const w = what[i] || {}; return `<div class="adm-row"><span><b>${esc(r.reason)}</b>${r.details ? ': ' + esc(r.details) : ''}<br><small>by ${nm(r.reporter)} · ${ago(r.created_at)}</small></span>
         <span><small>${r.profile_id ? 'Profile of' : r.message_id ? 'Chat message in #' + esc(w.channel || '') + ' by' : r.reply_id ? 'Reply by' : 'Post by'} ${nm(w.author)}</small><br>${w.profile ? `<span class="adm-prof">${w.web_avatar ? `<img src="${esc(pic(w.web_avatar))}" alt="Profile picture" width="48" height="48">` : ''}${w.web_banner ? `<img src="${esc(pic(w.web_banner))}" alt="Banner" width="144" height="48">` : ''}</span>` : ''}"${esc(String(w.title || w.body || '(removed)').slice(0, 140))}"</span>
-        <span class="adm-acts">${r.reply_id && w.post_id ? `<a class="btn btn-ghost btn-sm" href="community.html#/p/${w.post_id}" target="_blank">Open</a>` : r.post_id ? `<a class="btn btn-ghost btn-sm" href="${link(r)}" target="_blank">Open</a>` : ''}${w.author ? `<button class="btn btn-ghost btn-sm" data-mute="${w.author}">Mute author</button>` : ''}${r.message_id ? `<button class="btn btn-ghost btn-sm" data-hidemsg="${r.message_id}">Hide message</button>` : ''}${r.profile_id ? `<a class="btn btn-ghost btn-sm" href="community.html#/k/${r.profile_id}" target="_blank">Open</a>${w.web_avatar ? `<button class="btn btn-ghost btn-sm" data-clear="${r.profile_id}:avatar">Remove picture</button>` : ''}${w.web_banner ? `<button class="btn btn-ghost btn-sm" data-clear="${r.profile_id}:banner">Remove banner</button>` : ''}<button class="btn btn-ghost btn-sm" data-clear="${r.profile_id}:bio">Remove about text</button>` : ''}<button class="btn btn-primary btn-sm" data-done="${r.id}">Handled</button></span></div>`; }).join('') || '<p class="muted">No open reports.</p>'}</div>
+        <span class="adm-acts">${r.reply_id && w.post_id ? `<a class="btn btn-ghost btn-sm" href="community.html#/p/${w.post_id}" target="_blank">Open</a>` : r.post_id ? `<a class="btn btn-ghost btn-sm" href="${link(r)}" target="_blank">Open</a>` : ''}${w.author ? `<button class="btn btn-ghost btn-sm" data-mute="${w.author}">Mute author</button>` : ''}${r.message_id ? `<button class="btn btn-ghost btn-sm" data-hidemsg="${r.message_id}">Hide message</button>` : ''}${r.profile_id ? `<a class="btn btn-ghost btn-sm" href="community.html#/k/${r.profile_id}" target="_blank">Open</a>${w.web_avatar ? `<button class="btn btn-ghost btn-sm" data-clear="${r.profile_id}:avatar">Remove picture</button>` : ''}${w.web_banner ? `<button class="btn btn-ghost btn-sm" data-clear="${r.profile_id}:banner">Remove banner</button>` : ''}<button class="btn btn-ghost btn-sm" data-clear="${r.profile_id}:bio">Remove about text</button>` : ''}<label class="adm-pickrow"><input type="checkbox" data-rsel="${r.id}" aria-label="Select this report"></label><button class="btn btn-primary btn-sm" data-done="${r.id}">Handled</button></span></div>`; }).join('') || '<p class="muted">No open reports.</p>'}</div>
+      ${(reps || []).length > 1 ? '<div class="adm-bulk" data-rbulk hidden><span data-rbulkn></span><button class="btn btn-primary btn-sm" data-rbulkok>Mark selected handled</button><button class="btn btn-ghost btn-sm" data-rbulkall>Select all</button></div>' : ''}
       <h3>Muted now</h3><div class="adm-table">${(mutes || []).map(m => `<div class="adm-row"><span>${nm(m.user_id)}<br><small>${esc(m.reason)}</small></span><span>until ${when(m.until)}</span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-unmute="${m.user_id}">Lift</button></span></div>`).join('') || '<p class="muted">Nobody is muted.</p>'}</div>`;
     for (const b of el.querySelectorAll('[data-done]')) b.onclick = () => call('community', { action: 'resolve', report: +b.dataset.done }).then(route, err);
+    const rb = el.querySelector('[data-rbulk]'), rpicked = () => [...el.querySelectorAll('[data-rsel]:checked')].map(c => +c.dataset.rsel);
+    const rshow = () => { if (rb) { rb.hidden = !rpicked().length; rb.querySelector('[data-rbulkn]').textContent = rpicked().length + ' selected'; } };
+    for (const c of el.querySelectorAll('[data-rsel]')) c.onchange = rshow;
+    if (rb) { rb.querySelector('[data-rbulkall]').onclick = () => { for (const c of el.querySelectorAll('[data-rsel]')) c.checked = true; rshow(); };
+      rb.querySelector('[data-rbulkok]').onclick = () => { const ids = rpicked(); confirmBox(`Mark ${ids.length} reports handled?`, '<p>They leave the list of open reports. Nothing is hidden or muted by this: do that first where it is needed.</p>', async () => { for (const id of ids) await call('community', { action: 'resolve', report: id }); route(); }, `Mark ${ids.length} handled`); }; }
     // a profile: the picture, banner or about text is taken down, the file removed from storage, and the keeper told
     for (const b of el.querySelectorAll('[data-clear]')) b.onclick = async () => { const [user, what] = b.dataset.clear.split(':'); b.disabled = true;
       const { data, error } = await sb.rpc('mod_clear_profile', { p_user: user, p_what: what }); if (error) return err(error);
@@ -214,6 +257,119 @@ window.LKAdmin = function (root, A) {
     for (const b of el.querySelectorAll('[data-ban]')) b.onclick = () => modal(`<h2>Ban ${esc(names.get(b.dataset.ban))}</h2><form class="hub-form"><label>Days (0 lifts a ban)<input name="days" type="number" min="0" max="3650" value="7"></label><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">A banned account can't sign in until then. Their purchases stay theirs.</p>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); call('admin', { action: 'ban', user: b.dataset.ban, days: +new FormData(f).get('days') }).then(() => { close(); route(); }, x => say(f, x.message)); }; });
     for (const b of el.querySelectorAll('[data-roles]')) b.onclick = () => rolesBox(data.find(x => x.id === b.dataset.roles)).catch(err);
+  }
+
+  // ---------- the dashboard as an app on this phone or computer, and its notifications ----------
+  const b64key = k => { const p = '='.repeat((4 - k.length % 4) % 4), raw = atob((k + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...raw].map(c => c.charCodeAt(0))); };
+  async function devicePage(el) {
+    const within = (pr, ms, v) => Promise.race([Promise.resolve(pr).catch(() => v), new Promise(r => setTimeout(() => r(v), ms))]); // (a browser without a push service may never answer: the page still shows)
+    const reg = await within(swReg, 4000, null), sub = reg && reg.pushManager ? await within(reg.pushManager.getSubscription(), 4000, null) : null;
+    const key = await within(call('team-push', { action: 'key' }).then(r => r.key), 8000, null);
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone, ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const perm = typeof Notification === 'undefined' ? 'unsupported' : Notification.permission, want = alertPrefs();
+    const { data: mine } = await sb.from('team_push_subs').select('endpoint, kinds, device, last_ok, created_at').eq('user_id', A.me.id);
+    el.innerHTML = head('Phone app and alerts', 'Put the dashboard on your phone\'s home screen (or your computer\'s), and be told when something waits for you. Each person chooses on each device; you only get what your permissions let you act on.')
+      + `<div class="card adm-dev"><h3>The app</h3>${standalone ? '<p>This is the installed dashboard.</p>' : installEvt ? '<p><button class="btn btn-primary btn-sm" data-install>Install the dashboard</button></p>'
+        : ios ? '<p>On an iPhone or iPad: open this page in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b>. Notifications on iPhone need iOS 16.4 or newer and the dashboard opened from the home screen.</p>'
+        : '<p>In Chrome or Edge: the menu (⋮), then <b>Install app</b> or <b>Add to Home screen</b>. Other browsers: bookmark this page.</p>'}</div>
+      <div class="card adm-dev"><h3>Alerts on this device</h3>${ALERT_KINDS.length ? ALERT_KINDS.map(([k, l]) => `<label class="hub-check"><input type="checkbox" data-kind="${k}" ${want.includes(k) ? 'checked' : ''}> ${esc(l)}</label>`).join('') : '<p class="muted">Your permissions have no alerts.</p>'}
+        <p class="muted small">${perm === 'unsupported' ? 'This browser can\'t show notifications.' : perm === 'denied' ? 'Notifications are blocked for this site in the browser\'s settings: allow them there first.' : sub ? 'On: alerts come even when the dashboard is closed.' : key ? 'Off on this device.' : 'While the dashboard is open (even in the background), alerts work now. When it is closed too: after the owner sets the push keys once (node tools/team-push-keys.js).'}</p>
+        <p class="adm-acts">${perm !== 'unsupported' && perm !== 'denied' ? `<button class="btn btn-primary btn-sm" data-alerts-on>${sub ? 'Save the choices' : 'Turn alerts on'}</button>` : ''}${sub ? '<button class="btn btn-ghost btn-sm" data-alerts-off>Turn off on this device</button><button class="btn btn-ghost btn-sm" data-alerts-test>Send me a test</button>' : ''}</p></div>
+      <div class="card adm-dev"><h3>Your devices with alerts</h3>${(mine || []).length ? `<ul class="adm-list">${mine.map(m => `<li>${esc(m.device || 'A device')} · ${esc((m.kinds || []).join(', '))} · since ${day(m.created_at)}${m.last_ok ? ' · last alert ' + ago(m.last_ok) : ''}${sub && sub.endpoint === m.endpoint ? ' · <b>this one</b>' : ''}</li>`).join('')}</ul>` : '<p class="muted">None yet.</p>'}</div>`;
+    const ins = el.querySelector('[data-install]'); if (ins) ins.onclick = async () => { installEvt.prompt(); await installEvt.userChoice.catch(() => null); installEvt = null; route(); };
+    const kinds = () => [...el.querySelectorAll('[data-kind]:checked')].map(c => c.dataset.kind);
+    const on = el.querySelector('[data-alerts-on]'); if (on) on.onclick = async () => {
+      try { localStorage.setItem('adm-alerts', JSON.stringify(kinds())); } catch (e) { /* this visit */ }
+      const p = await Notification.requestPermission(); if (p !== 'granted') return modal('<h2>Notifications are not allowed</h2><p>The browser said no. Allow notifications for this site in its settings, then try again.</p>');
+      if (!key || !reg || !reg.pushManager) { say(el.querySelector('.adm-dev:nth-child(3)') || el, 'Alerts on while the dashboard is open.', true); return route(); }
+      try { const s2 = sub || await within(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(key) }), 15000, null);
+        if (!s2) { modal('<h2>Alerts on while the dashboard is open</h2><p>This browser has no push service, so alerts come only while the dashboard is open (even in the background).</p>'); return route(); }
+        const j = s2.toJSON();
+        const device = (/(iPhone|iPad|Android|Windows|Mac|Linux)/.exec(navigator.userAgent) || ['a device'])[0] + ' · ' + ((/(Edg|Chrome|Firefox|Safari)\//.exec(navigator.userAgent) || ['', 'a browser'])[1]).replace('Edg', 'Edge');
+        const { error } = await sb.from('team_push_subs').upsert({ endpoint: j.endpoint, user_id: A.me.id, p256dh: j.keys.p256dh, auth: j.keys.auth, kinds: kinds(), device }); if (error) throw error;
+        route(); } catch (e) { err(e); } };
+    const off = el.querySelector('[data-alerts-off]'); if (off) off.onclick = async () => { await sb.from('team_push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe().catch(() => {}); route(); };
+    const test = el.querySelector('[data-alerts-test]'); if (test) test.onclick = () => call('team-push', { action: 'test' }).then(r => modal(`<h2>${r.sent ? 'Sent' : 'Not sent'}</h2><p>${r.sent} of your ${r.devices} device${r.devices === 1 ? '' : 's'} got it.</p>`), err);
+  }
+
+  // ---------- the activity log: who did what, and when ----------
+  const ACT = { 'payment.approved': 'approved a payment', 'payment.rejected': 'rejected a payment', 'payment.refunded': 'refunded a payment', 'gift.given': 'gave a gift', 'gift.revoked': 'took a gift back',
+    'role.given': 'gave a role', 'role.taken': 'took a role', 'role.custom.insert': 'made a custom role', 'role.custom.update': 'renamed a custom role', 'role.custom.delete': 'deleted a custom role',
+    'permission.allowed': 'allowed a permission', 'permission.taken': 'took a permission', 'permission.person.set': 'set one person\'s permission', 'permission.person.cleared': 'cleared one person\'s permission',
+    'ban.set': 'banned', 'ban.lifted': 'lifted a ban', 'mute.set': 'muted', 'mute.lifted': 'lifted a mute', 'reward.given': 'gave a reward', 'reward.taken': 'took a reward back',
+    'report.handled': 'handled a report', 'report.actioned': 'acted on a game report', 'report.dismissed': 'dismissed a game report', 'switch.changed': 'changed a game switch',
+    'email.approved': 'approved an email', 'email.unapproved': 'stopped an email', 'email.edited': 'edited an email', 'prices.changed': 'changed prices', 'payment-details.changed': 'changed the payment details',
+    'announcement.insert': 'posted an in-game announcement', 'announcement.update': 'changed an in-game announcement', 'announcement.delete': 'removed an in-game announcement',
+    'faq.insert': 'added an FAQ answer', 'faq.update': 'changed an FAQ answer', 'faq.delete': 'removed an FAQ answer', 'translation.insert': 'added a translation', 'translation.update': 'changed a translation', 'translation.delete': 'removed a translation',
+    'chat.slow': 'slowed a game chat channel', 'chat.lock': 'locked or opened a game chat channel', 'moderation.game-chat.removed': 'removed a game chat message' };
+  const actName = a => ACT[a] || (a.startsWith('campaign.') ? 'email campaign: ' + a.slice(9) : a.startsWith('moderation.') ? 'moderated (' + a.slice(11).replace(/\./g, ' ') + ')' : a);
+  const ACT_GROUPS = [['', 'Everything'], ['payment.,gift.', 'Payments and gifts'], ['role.,permission.', 'Roles and permissions'], ['ban.,mute.,moderation.,report.,chat.', 'Moderation'], ['switch.,announcement.', 'Game switches and announcements'], ['email.,campaign.', 'Emails'], ['prices.,payment-details.', 'Prices and payment details'], ['faq.,translation.', 'FAQ and translations']];
+  async function activity(el) {
+    const f = JSON.parse(sessionStorage.getItem('adm-act') || '{}'), limit = f.limit || 100;
+    let q = sb.from('audit_log').select('*').order('at', { ascending: false }).limit(limit);
+    if (f.group) q = q.or(f.group.split(',').map(g => `action.like.${g}*`).join(','));
+    if (f.from) q = q.gte('at', new Date(f.from).toISOString()); if (f.to) q = q.lte('at', new Date(f.to + 'T23:59:59').toISOString());
+    if (f.who) q = q.eq('actor', f.who);
+    const { data, error } = await q; if (error) throw error;
+    const ids = []; for (const x of data || []) { ids.push(x.actor); const m = /^user:(.+)$/.exec(x.target || ''); if (m) ids.push(m[1]); } await people(ids);
+    const target = x => { const m = /^(user|order|role|switch|email|product|campaign|report|post|reply|message|chat|announcement|faq|translation|channel|game-report):(.+)$/.exec(x.target || ''); if (!m) return esc(x.target || '');
+      return m[1] === 'user' ? nm(m[2]) : m[1] === 'post' ? `<a href="community.html#/p/${esc(m[2])}" target="_blank">post ${esc(m[2])}</a>` : m[1] === 'order' ? 'order #' + esc(m[2].slice(0, 8)) : esc(m[1] + ' ' + m[2]); };
+    const detail = x => { const d = x.details || {}, bits = [];
+      if (d.amount != null && d.currency) bits.push(money(d.amount, d.currency)); for (const k of ['sku', 'reference', 'payer', 'role', 'permission', 'reason', 'title', 'subject', 'question', 'text', 'message', 'reward', 'note'])
+        if (d[k] != null && d[k] !== '') bits.push(`${k}: ${String(d[k]).slice(0, 100)}`);
+      if ('on' in d) bits.push(d.on ? 'on' : 'OFF'); if ('allow' in d && d.allow != null) bits.push(d.allow ? 'allow' : 'deny'); if (d.days) bits.push(d.days + ' days'); if (d.until) bits.push('until ' + when(d.until));
+      return esc(bits.join(' · ')); };
+    el.innerHTML = head('Activity log', 'What the team did, who and when: payments, gifts, roles, permissions, bans, mutes, moderation, prices, payment details, switches, emails and announcements. It can\'t be changed. Website edits have their own history (Website).',
+      `<form class="adm-filters" data-af><select name="group" aria-label="Kind">${ACT_GROUPS.map(([v, l]) => `<option value="${v}" ${(f.group || '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <input type="date" name="from" value="${esc(f.from || '')}" aria-label="From"><input type="date" name="to" value="${esc(f.to || '')}" aria-label="Until"><button class="btn btn-ghost btn-sm">Show</button>${f.who ? `<button class="btn btn-ghost btn-sm" type="button" data-allwho>Everyone (now: ${esc(names.get(f.who) || 'one person')})</button>` : ''}</form>`)
+      + `<p class="adm-count">${(data || []).length} shown <button class="btn btn-ghost btn-sm" data-acsv>Export these (CSV)</button></p><div class="adm-table">${(data || []).map(x => `<div class="adm-row"><span><b>${x.actor ? `<button class="hub-link" data-who="${x.actor}">${esc(names.get(x.actor) || 'A team member')}</button>` : 'The system'}</b> ${esc(actName(x.action))}<br><small>${target(x)}</small></span><span><small>${detail(x)}</small></span><span><small>${when(x.at)}</small></span></div>`).join('') || '<p class="muted">Nothing yet.</p>'}</div>
+      ${(data || []).length === limit ? '<p><button class="btn btn-ghost btn-sm" data-amore>Show more</button></p>' : ''}`;
+    const save = () => sessionStorage.setItem('adm-act', JSON.stringify(f));
+    el.querySelector('[data-af]').onsubmit = e => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); Object.assign(f, { group: v.group, from: v.from, to: v.to, limit: 100 }); save(); route(); };
+    const aw = el.querySelector('[data-allwho]'); if (aw) aw.onclick = () => { delete f.who; save(); route(); };
+    for (const b of el.querySelectorAll('[data-who]')) b.onclick = () => { f.who = b.dataset.who; f.limit = 100; save(); route(); };
+    const more = el.querySelector('[data-amore]'); if (more) more.onclick = () => { f.limit = limit + 200; save(); route(); };
+    el.querySelector('[data-acsv]').onclick = () => { const cell = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+      const lines = [['when', 'who', 'what', 'target', 'details'].join(',')].concat((data || []).map(x => [x.at, names.get(x.actor) || x.actor || 'system', actName(x.action), x.target, JSON.stringify(x.details)].map(cell).join(',')));
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv' })); a.download = `activity-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); };
+  }
+
+  // ---------- sales: by week or month, in each currency; the Supporter Club month by month ----------
+  async function sales(el) {
+    const f = JSON.parse(sessionStorage.getItem('adm-sales') || '{"by":"week"}');
+    const since = new Date(Date.now() - (f.by === 'month' ? 365 : 7 * 26) * 864e5).toISOString();
+    const [{ data: orders, error }, { data: prods }, { data: club }] = await Promise.all([
+      sb.from('store_orders').select('sku, currency, amount_cents, paid_at, created_at, method, refunded_at, status').eq('env', 'live').neq('method', 'grant').in('status', ['paid', 'refunded']).gte('created_at', since).limit(20000),
+      sb.from('store_products').select('sku, label'), can('subs.view') ? sb.from('club_members').select('since, until, status, months, env').eq('env', 'live').limit(20000) : { data: null }]); if (error) throw error;
+    const label = sku => ((prods || []).find(p => p.sku === sku) || { label: sku }).label;
+    const keyOf = d => { const x = new Date(d); if (f.by === 'month') return x.toISOString().slice(0, 7); const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate() - ((x.getUTCDay() + 6) % 7))); return y.toISOString().slice(0, 10); }; // (weeks start on Monday)
+    const keys = []; { const n = f.by === 'month' ? 12 : 26; for (let i = n - 1; i >= 0; i--) { const d = new Date(); if (f.by === 'month') { d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - i); } else d.setUTCDate(d.getUTCDate() - 7 * i); keys.push(keyOf(d)); } }
+    const curs = [...new Set((orders || []).map(o => o.currency))].sort(), cur = curs.includes(f.cur) ? f.cur : (curs.includes('PHP') ? 'PHP' : curs[0] || 'PHP');
+    const per = Object.fromEntries(keys.map(k => [k, { sum: 0, n: 0, refunds: 0 }]));
+    for (const o of orders || []) { if (o.currency !== cur) continue; const k = keyOf(o.paid_at || o.created_at); if (!per[k]) continue; per[k].n++; per[k].sum += o.amount_cents; if (o.status === 'refunded') per[k].refunds += o.amount_cents; }
+    const top = {}; for (const o of orders || []) if (o.status === 'paid') { const t = top[o.sku] || (top[o.sku] = { n: 0, by: {} }); t.n++; t.by[o.currency] = (t.by[o.currency] || 0) + o.amount_cents; }
+    const max = Math.max(1, ...keys.map(k => per[k].sum)), lbl = k => f.by === 'month' ? new Date(k + '-01T00:00:00Z').toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) : new Date(k).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const bars = (rows, val, fmt, cls) => `<div class="adm-chart" role="img" aria-label="${esc(rows.map(r => r.k + ': ' + fmt(val(r))).join(', '))}">${rows.map(r => `<div class="adm-bar ${cls || ''}" title="${esc(lbl(r.k) + ': ' + fmt(val(r)))}"><i style="height:${Math.round(val(r) / Math.max(1, ...rows.map(val)) * 100)}%"></i><span>${esc(lbl(r.k))}</span></div>`).join('')}</div>`;
+    let clubHtml = '';
+    if (club) { // new members by the month they joined; renewals by month (paid Club orders that weren't the first); stopped: cancelled memberships by the month their time ran out
+      const months = []; for (let i = 11; i >= 0; i--) { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - i); months.push(d.toISOString().slice(0, 7)); }
+      const cm = Object.fromEntries(months.map(m => [m, { joined: 0, paid: 0, stopped: 0 }]));
+      for (const m of club) { const j = (m.since || '').slice(0, 7); if (cm[j]) cm[j].joined++; const e = (m.until || '').slice(0, 7); if (m.status !== 'active' && cm[e] && Date.parse(m.until) < Date.now()) cm[e].stopped++; }
+      for (const o of orders || []) if (o.sku === 'lk.club.month' && o.status === 'paid') { const k = (o.paid_at || o.created_at).slice(0, 7); if (cm[k]) cm[k].paid++; }
+      const active = club.filter(m => Date.parse(m.until) > Date.now()).length, renewing = club.filter(m => Date.parse(m.until) > Date.now() && m.status === 'active').length;
+      clubHtml = `<h3>Supporter Club</h3><div class="adm-tiles"><div class="card adm-tile"><b>${active}</b><span>members now</span></div><div class="card adm-tile"><b>${renewing}</b><span>renewing</span></div><div class="card adm-tile"><b>${active - renewing}</b><span>cancelled, benefits until their date</span></div></div>
+        <div class="adm-table"><div class="adm-row adm-head-row"><span><b>Month</b></span><span><b>Joined</b></span><span><b>Payments (first and renewals)</b></span><span><b>Stopped</b></span></div>${months.slice().reverse().map(m => `<div class="adm-row"><span>${esc(lbl(m))}</span><span>${cm[m].joined}</span><span>${cm[m].paid}${cm[m].paid > cm[m].joined ? ` <small>(${cm[m].paid - cm[m].joined} renewals)</small>` : ''}</span><span>${cm[m].stopped}</span></div>`).join('')}</div>`;
+    }
+    const rows = keys.map(k => Object.assign({ k }, per[k])), total = rows.reduce((a, r) => a + r.sum, 0), count = rows.reduce((a, r) => a + r.n, 0), refunds = rows.reduce((a, r) => a + r.refunds, 0);
+    el.innerHTML = head('Sales', `Real payments only (no tests, no gifts), by the day they were paid (UTC). ${f.by === 'month' ? 'The last 12 months' : 'The last 26 weeks'}.`,
+      `<div class="adm-filters"><select data-by aria-label="By"><option value="week" ${f.by !== 'month' ? 'selected' : ''}>By week</option><option value="month" ${f.by === 'month' ? 'selected' : ''}>By month</option></select>
+        <select data-cur aria-label="Currency">${(curs.length ? curs : ['PHP']).map(c => `<option ${c === cur ? 'selected' : ''}>${c}</option>`).join('')}</select></div>`)
+      + `<div class="adm-tiles"><div class="card adm-tile"><b>${esc(money(total, cur))}</b><span>paid in ${cur} in this time</span></div><div class="card adm-tile"><b>${count}</b><span>orders in ${cur}</span></div><div class="card adm-tile"><b>${esc(money(refunds, cur))}</b><span>of it refunded since</span></div></div>
+      <h3>Paid in ${cur}, ${f.by === 'month' ? 'month by month' : 'week by week'}</h3>${bars(rows, r => r.sum, v => money(v, cur))}
+      <h3>Orders, ${f.by === 'month' ? 'month by month' : 'week by week'}</h3>${bars(rows, r => r.n, v => v + ' order' + (v === 1 ? '' : 's'), 'adm-bar-n')}
+      <h3>What sells</h3><div class="adm-table">${Object.entries(top).sort((a, b) => b[1].n - a[1].n).map(([sku, t]) => `<div class="adm-row"><span><b>${esc(label(sku))}</b></span><span>${t.n} sold</span><span><small>${Object.entries(t.by).map(([c, v]) => esc(money(v, c))).join(' · ')}</small></span></div>`).join('') || '<p class="muted">Nothing sold in this time.</p>'}</div>${clubHtml}`;
+    const set = patch => { Object.assign(f, patch); sessionStorage.setItem('adm-sales', JSON.stringify(f)); route(); };
+    el.querySelector('[data-by]').onchange = e => set({ by: e.target.value }); el.querySelector('[data-cur]').onchange = e => set({ cur: e.target.value });
   }
 
   // ---------- one person: orders, tickets, what they own, mutes ----------
@@ -347,19 +503,6 @@ window.LKAdmin = function (root, A) {
     el.querySelector('[data-new]').onclick = () => edit(null);
     for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(data.find(a => a.id === +b.dataset.ed));
     for (const b of el.querySelectorAll('[data-del]')) b.onclick = () => confirmBox('Delete this announcement?', '<p>It disappears from the game.</p>', async () => { const { error: e2 } = await sb.from('announcements').delete().eq('id', +b.dataset.del); if (e2) throw e2; route(); }, 'Delete');
-  }
-
-  // ---------- site sections (text on the website, per language) ----------
-  async function content(el) {
-    const { data, error } = await sb.from('site_content').select('*').order('key'); if (error) throw error;
-    el.innerHTML = head('Site sections', 'Text shown on the website, by key and language: for example home.banner (a notice at the top of the home page), store.notice, support.notice, community.welcome. Empty keys show nothing.', '<button class="btn btn-primary btn-sm" data-new>Add a section</button>')
-      + `<div class="adm-table">${(data || []).map(c => `<div class="adm-row"><span><b>${esc(c.key)}</b> <small>${esc(c.lang)}</small><br><small>${esc(c.value.slice(0, 200))}</small></span><span><small>${ago(c.updated_at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-ed="${esc(c.key)}|${esc(c.lang)}">Edit</button><button class="btn btn-ghost btn-sm" data-del="${esc(c.key)}|${esc(c.lang)}">Delete</button></span></div>`).join('') || '<p class="muted">None yet.</p>'}</div>`;
-    const edit = c => modal(`<h2>${c ? 'Edit' : 'New'} section</h2><form class="hub-form"><div class="hub-row"><label>Key<input name="key" pattern="[a-z0-9_.-]{2,80}" required value="${esc(c ? c.key : '')}" ${c ? 'readonly' : ''}></label><label>Language<input name="lang" required value="${esc(c ? c.lang : 'en')}" ${c ? 'readonly' : ''}></label></div><label>Text <small>(plain text; a blank line starts a new paragraph)</small><textarea name="value" rows="8" maxlength="20000">${esc(c ? c.value : '')}</textarea></label><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => {
-      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const { error: e2 } = await sb.from('site_content').upsert({ key: v.key, lang: v.lang, value: v.value, updated_at: new Date().toISOString() }); if (e2) say(f, e2.message); else { close(); route(); } }; });
-    el.querySelector('[data-new]').onclick = () => edit(null);
-    const pick = s => { const [k, l] = s.split('|'); return data.find(c => c.key === k && c.lang === l); };
-    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(pick(b.dataset.ed));
-    for (const b of el.querySelectorAll('[data-del]')) b.onclick = () => { const c = pick(b.dataset.del); confirmBox('Delete this section?', `<p>${esc(c.key)} (${esc(c.lang)}) stops showing on the website.</p>`, async () => { const { error: e2 } = await sb.from('site_content').delete().eq('key', c.key).eq('lang', c.lang); if (e2) throw e2; route(); }, 'Delete'); };
   }
 
   // ---------- FAQ (the support chatbot answers from it) ----------
