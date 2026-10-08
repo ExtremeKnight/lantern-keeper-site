@@ -147,5 +147,8 @@ fs.writeFileSync(path.join(ROOT, 'atom.xml'), `<?xml version="1.0" encoding="UTF
 ${news.map(it => `<entry><title>${xml(it.version + ': ' + it.title)}</title><id>${link(it)}</id><link href="${link(it)}"/><updated>${when(it).toISOString()}</updated><summary>${xml(it.summary)}</summary></entry>`).join('\n')}
 </feed>
 `);
+// the email design, for the dashboard's previews (0.30.1): copied from the game repo next to this one, when it is there
+{ const SHARED = path.join(ROOT, '..', 'lantern-keeper', 'supabase', 'functions', '_shared'), OUTE = path.join(ROOT, 'assets', 'email', 'js');
+  if (fs.existsSync(SHARED)) { fs.mkdirSync(OUTE, { recursive: true }); for (const f of ['email-layout.js', 'email-render.js', 'email-templates.js']) fs.copyFileSync(path.join(SHARED, f), path.join(OUTE, f)); } }
 fs.writeFileSync(path.join(ROOT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE}sitemap.xml\n`);
 console.log('built ' + built.map(b => b.path).join(', ') + ', sitemap.xml, robots.txt, feed.xml, atom.xml');

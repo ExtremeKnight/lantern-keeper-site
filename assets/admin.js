@@ -1,0 +1,334 @@
+/* The Lantern Keeper dashboard (0.30.1): for the team (owners and developers) and moderators. Signed in with the same
+   account as the game; every section is checked again by the server (row-level security and the functions), so this page
+   only shows what the account may see and do. Passwords are never shown or set here: people set their own.
+   Money: payment status comes from PayPal or from a person checking a GCash or bank history; test payments are marked
+   and left out of the totals. Changes to prices and emails go through a review step first. */
+window.LKAdmin = function (root, A) {
+  'use strict';
+  const { sb, call, modal, say, esc, day, ago } = A;
+  const when = d => d ? new Date(d).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+  const money = (c, cur) => (cur === 'PHP' ? '₱' : '$') + (c / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + cur;
+  const local = d => { if (!d) return ''; const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
+  const iso = v => v ? new Date(v).toISOString() : null;
+  const testTag = env => env && env !== 'live' ? ' <span class="hub-test">Test</span>' : '';
+  const err = e => modal(`<h2>Not done</h2><p>${esc(e && e.message || e)}</p>`);
+  const names = new Map(), mails = new Map();
+  async function people(ids) {
+    const need = [...new Set(ids)].filter(id => id && !names.has(id)); if (!need.length) return;
+    const { data } = await sb.rpc('admin_names', { p_ids: need }); for (const id of need) { const p = (data || []).find(x => x.id === id) || {}; names.set(id, p.name || p.email || 'A keeper'); if (p.email) mails.set(id, p.email); }
+  }
+  const nm = id => id ? `<a href="community.html#/k/${id}" target="_blank" rel="noopener" title="${esc(mails.get(id) || '')}">${esc(names.get(id) || 'A keeper')}</a>${mails.get(id) ? ` <span class="adm-mailto">${esc(mails.get(id))}</span>` : ''}` : '<i>deleted account</i>';
+
+  if (!A.me) { root.innerHTML = '<section class="card"><h2>The dashboard</h2><p>Sign in with a team or moderator account.</p><button class="btn btn-primary" data-in>Sign in</button></section>'; root.querySelector('[data-in]').onclick = A.signIn; return; }
+  if (!A.isStaff()) { root.innerHTML = '<section class="card"><h2>Not for this account</h2><p>The dashboard is for the Lantern Keeper team and moderators.</p></section>'; return; }
+  const team = A.isTeam(), owner = A.isOwner();
+
+  // section: [id, label, who may open it, draw]
+  const SECTIONS = [
+    ['overview', 'Overview', 'staff', overview], ['payments', 'Payments', 'team', payments], ['subs', 'Subscriptions', 'team', subs],
+    ['tickets', 'Tickets', 'staff', tickets], ['moderation', 'Reports and mutes', 'staff', moderation], ['people', 'People and roles', 'team', peoplePage],
+    ['posts', 'News, devlogs, events', 'team', posts], ['announce', 'In-game announcements', 'team', announce], ['content', 'Site sections', 'team', content],
+    ['faq', 'FAQ and chatbot', 'team', faq], ['store', 'Products and prices', 'team', store], ['emails', 'Email templates', 'team', emails],
+    ['campaigns', 'Email campaigns', 'team', campaigns], ['translations', 'Translations', 'team', translations], ['rewards', 'Rewards and gifts', 'team', rewards],
+  ].filter(s => s[2] === 'staff' || team);
+  root.innerHTML = `<div class="adm"><nav class="adm-nav" aria-label="Dashboard sections"><p class="adm-who">${esc((A.myProfile && A.myProfile.display_name) || A.me.email)} ${A.roleChips(A.myRoles)}</p>
+    ${SECTIONS.map(([id, label]) => `<a href="#${id}" data-s="${id}">${label}</a>`).join('')}</nav><section class="adm-main" id="admMain" tabindex="-1"></section></div>`;
+  const main = root.querySelector('#admMain');
+  async function route() {
+    const id = (location.hash.slice(1).split('/')[0]) || 'overview', s = SECTIONS.find(x => x[0] === id) || SECTIONS[0];
+    for (const a of root.querySelectorAll('[data-s]')) a.classList.toggle('on', a.dataset.s === s[0]);
+    main.innerHTML = '<p class="muted">Loading...</p>';
+    try { await s[3](main, location.hash.slice(1).split('/').slice(1)); } catch (e) { main.innerHTML = `<p>Could not load: ${esc(e.message || e)}</p>`; }
+  }
+  window.addEventListener('hashchange', route); route();
+  const head = (title, sub, extra = '') => `<div class="adm-head"><div><h2>${title}</h2>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${extra}</div>`;
+  const confirmBox = (title, html, ok, label = 'Confirm') => modal(`<h2>${title}</h2>${html}<div class="hub-actions"><button class="btn btn-primary" data-ok>${label}</button><button class="btn btn-ghost" data-no>Cancel</button></div>`, (d, close) => {
+    d.querySelector('[data-no]').onclick = close; d.querySelector('[data-ok]').onclick = async () => { d.querySelector('[data-ok]').disabled = true; try { await ok(); close(); } catch (e) { say(d, e.message || String(e)); d.querySelector('[data-ok]').disabled = false; } }; });
+
+  // ---------- overview ----------
+  async function overview(el) {
+    const { data, error } = await sb.rpc('admin_overview'); if (error) throw error;
+    const tile = (n, label, href) => `<a class="card adm-tile" href="${href}"><b>${esc(n)}</b><span>${label}</span></a>`;
+    el.innerHTML = head('Overview', 'Live numbers. Test and sandbox payments are not counted.') + `<div class="adm-tiles">
+      ${tile(data.players, 'Players', '#people')}${tile(data.new_week, 'New this week', '#people')}${tile(data.online, 'Online now', '#people')}${tile(data.club, 'Club members', '#subs')}
+      ${tile(data.pending_payments, 'Payments to check', '#payments')}${tile(data.open_tickets, 'Open tickets', '#tickets')}${tile(data.open_reports, 'Open reports', '#moderation')}
+      ${team ? tile(money(data.revenue_php, 'PHP'), 'Paid in pesos', '#payments/paid') + tile(money(data.revenue_usd, 'USD'), 'Paid in dollars', '#payments/paid') : ''}</div>`;
+  }
+
+  // ---------- payments ----------
+  const ORDER = { created: 'Waiting for payment', review: 'To check', paid: 'Paid', rejected: 'Rejected', refunded: 'Refunded', cancelled: 'Cancelled', expired: 'Expired (nothing charged)' };
+  const HOW = { paypal: 'PayPal', gcash: 'GCash', bank: 'Bank transfer', grant: 'Gift from the team' };
+  async function payments(el, [st]) {
+    const status = st || 'review', env = sessionStorage.getItem('adm-env') || 'live';
+    let q = sb.from('store_orders').select('*').order('created_at', { ascending: false }).limit(200);
+    if (status !== 'all') q = q.eq('status', status); if (env !== 'all') q = q.eq('env', env);
+    const [{ data, error }, { data: prods }] = await Promise.all([q, sb.from('store_products').select('sku, label')]); if (error) throw error;
+    await people((data || []).map(o => o.user_id)); const label = sku => ((prods || []).find(p => p.sku === sku) || { label: sku }).label;
+    el.innerHTML = head('Payments', 'PayPal payments are confirmed by PayPal. GCash and bank payments wait here: check the reference and amount in your GCash or bank history, then approve or reject.',
+      `<div class="adm-filters"><select data-st aria-label="Status">${['review', 'paid', 'created', 'rejected', 'refunded', 'expired', 'cancelled', 'all'].map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s === 'all' ? 'Every status' : ORDER[s]}</option>`).join('')}</select>
+      <select data-env aria-label="Live or test"><option value="live" ${env === 'live' ? 'selected' : ''}>Real payments</option><option value="test" ${env === 'test' ? 'selected' : ''}>Test payments</option><option value="sandbox" ${env === 'sandbox' ? 'selected' : ''}>PayPal sandbox</option><option value="all" ${env === 'all' ? 'selected' : ''}>All</option></select></div>`)
+      + `<div class="adm-table" role="table">${(data || []).map(o => `<div class="adm-row" role="row">
+        <span><b>${esc(label(o.sku))}</b>${testTag(o.env)}<br><small>${nm(o.user_id)} · ${when(o.created_at)} · #${esc(o.id.slice(0, 8))}</small></span>
+        <span>${o.method === 'grant' ? '<i>gift</i>' : esc(money(o.amount_cents, o.currency))}<br><small>${HOW[o.method] || esc(o.method)}${o.reference ? ' · ref <b>' + esc(o.reference) + '</b>' : ''}${o.payer_name ? ' · from ' + esc(o.payer_name) : ''}${o.paypal_order ? ' · PayPal ' + esc(o.paypal_order) : ''}</small>${o.note ? `<br><small class="muted">${esc(o.note)}</small>` : ''}</span>
+        <span class="adm-state st-${o.status}">${ORDER[o.status] || esc(o.status)}</span>
+        <span class="adm-acts">${o.status === 'review' ? `<button class="btn btn-primary btn-sm" data-ok="${o.id}">Approve</button><button class="btn btn-ghost btn-sm" data-no="${o.id}">Reject</button>` : ''}${o.status === 'paid' && o.method !== 'paypal' ? `<button class="btn btn-ghost btn-sm" data-ref="${o.id}">Refund</button>` : ''}</span></div>`).join('') || '<p class="muted">Nothing here.</p>'}</div>`;
+    el.querySelector('[data-st]').onchange = e => { location.hash = '#payments/' + e.target.value; };
+    el.querySelector('[data-env]').onchange = e => { sessionStorage.setItem('adm-env', e.target.value); route(); };
+    const find = id => data.find(o => o.id === id), sum = o => `<dl class="hub-sum"><dt>Product</dt><dd>${esc(label(o.sku))}</dd><dt>Amount</dt><dd>${esc(money(o.amount_cents, o.currency))}</dd><dt>Method</dt><dd>${HOW[o.method] || esc(o.method)}</dd><dt>Reference</dt><dd>${esc(o.reference || '-')}</dd><dt>Payer</dt><dd>${esc(o.payer_name || '-')}</dd><dt>Account</dt><dd>${esc(names.get(o.user_id) || '-')}</dd></dl>`;
+    for (const b of el.querySelectorAll('[data-ok]')) b.onclick = () => { const o = find(b.dataset.ok); confirmBox('Approve this payment?', sum(o) + `<p>Only approve after you have found <b>${esc(money(o.amount_cents, o.currency))}</b> with this reference in your ${HOW[o.method]} history. The player gets the purchase at once.</p>`, () => call('store', { action: 'review', order: o.id, approve: true }).then(route), 'Approve: I found the payment'); };
+    for (const b of el.querySelectorAll('[data-no]')) b.onclick = () => { const o = find(b.dataset.no); confirmBox('Reject this payment?', sum(o) + '<p>The player sees "Not confirmed" and can open a ticket. Nothing is given.</p>', () => call('store', { action: 'review', order: o.id, approve: false }).then(route), 'Reject'); };
+    for (const b of el.querySelectorAll('[data-ref]')) b.onclick = () => { const o = find(b.dataset.ref); confirmBox('Refund this purchase?', sum(o) + '<p>The purchase is taken back from the account (Lumens, looks or Club time). Send the money back yourself by GCash or bank first.</p>', () => call('store', { action: 'refund', order: o.id }).then(route), 'Refund'); };
+  }
+
+  // ---------- subscriptions ----------
+  async function subs(el) {
+    const { data, error } = await sb.from('club_members').select('*').order('until', { ascending: false }).limit(300); if (error) throw error;
+    await people((data || []).map(m => m.user_id)); const now = Date.now();
+    el.innerHTML = head('Subscriptions', 'The Supporter Club. Renewing: PayPal will charge again on the date shown. Cancelled: no more payments, benefits until the date shown.')
+      + `<div class="adm-table">${(data || []).map(m => { const on = Date.parse(m.until) > now, renew = on && m.paypal_sub && m.status === 'active';
+        return `<div class="adm-row"><span><b>${nm(m.user_id)}</b>${testTag(m.env)}<br><small>${m.months || 0} month${m.months === 1 ? '' : 's'} so far${m.paypal_sub ? ' · PayPal ' + esc(m.paypal_sub) : ' · GCash or bank, month by month'}</small></span>
+          <span>${m.amount_cents ? esc(money(m.amount_cents, m.currency)) + ' a month' : '-'}</span><span class="adm-state ${on ? 'st-paid' : 'st-cancelled'}">${!on ? 'Ended' : renew ? 'Renewing' : m.paypal_sub ? 'Cancelled' : 'Active'}</span><span>${renew ? 'Next payment ' : on ? 'Until ' : 'Ended '}${day(m.until)}</span></div>`; }).join('') || '<p class="muted">No members yet.</p>'}</div>`;
+  }
+
+  // ---------- tickets ----------
+  const TK = { open: 'Open', answered: 'Answered', waiting: 'Waiting for the player', closed: 'Closed' };
+  async function tickets(el, [id]) {
+    if (id) return ticket(el, +id);
+    const f = JSON.parse(sessionStorage.getItem('adm-tk') || '{"status":"active"}');
+    let q = sb.from('support_tickets').select('*').order('updated_at', { ascending: false }).limit(200);
+    if (f.status === 'active') q = q.in('status', ['open', 'waiting']); else if (f.status !== 'all') q = q.eq('status', f.status);
+    if (f.mine) q = q.eq('assignee', A.me.id);
+    const { data, error } = await q; if (error) throw error; await people((data || []).flatMap(t => [t.user_id, t.assignee]));
+    el.innerHTML = head('Support tickets', 'Private between the player and support. Internal notes are never shown to the player.',
+      `<div class="adm-filters"><select data-f aria-label="Status">${[['active', 'Needs an answer'], ['answered', 'Answered'], ['closed', 'Closed'], ['all', 'All']].map(([v, l]) => `<option value="${v}" ${f.status === v ? 'selected' : ''}>${l}</option>`).join('')}</select><label class="hub-check"><input type="checkbox" data-mine ${f.mine ? 'checked' : ''}> Mine</label></div>`)
+      + `<div class="adm-table">${(data || []).map(t => `<a class="adm-row adm-link" href="#tickets/${t.id}"><span><b>#${t.id} · ${esc(t.subject)}</b><br><small>${nm(t.user_id)} · ${esc(t.category)} · ${ago(t.updated_at)}</small></span><span class="adm-pri pri-${t.priority}">${esc(t.priority)}</span><span class="adm-state tk-${t.status}">${TK[t.status]}</span><span><small>${t.assignee ? 'Assigned: ' + esc(names.get(t.assignee) || '') : 'Unassigned'}</small></span></a>`).join('') || '<p class="muted">No tickets here.</p>'}</div>`;
+    const save = () => sessionStorage.setItem('adm-tk', JSON.stringify(f));
+    el.querySelector('[data-f]').onchange = e => { f.status = e.target.value; save(); route(); };
+    el.querySelector('[data-mine]').onchange = e => { f.mine = e.target.checked; save(); route(); };
+  }
+  async function ticket(el, id) {
+    const [{ data: t }, { data: msgs }] = await Promise.all([sb.from('support_tickets').select('*').eq('id', id).maybeSingle(), sb.from('ticket_messages').select('*').eq('ticket_id', id).order('created_at')]);
+    if (!t) { el.innerHTML = '<p>No such ticket.</p>'; return; }
+    await people([t.user_id, t.assignee, ...(msgs || []).map(m => m.author)]);
+    const files = {}; for (const m of msgs || []) if (m.attachment) { const { data: s } = await sb.storage.from('tickets').createSignedUrl(m.attachment, 900); if (s) files[m.id] = s.signedUrl; }
+    const orders = t.user_id ? (await sb.from('store_orders').select('id, sku, status, amount_cents, currency, method, created_at, env').eq('user_id', t.user_id).order('created_at', { ascending: false }).limit(5)).data || [] : [];
+    el.innerHTML = `<p><a href="#tickets">&larr; All tickets</a></p>` + head(`#${t.id} · ${esc(t.subject)}`, `${nm(t.user_id)} · ${esc(t.category)} · opened ${when(t.created_at)}`)
+      + `<div class="adm-split"><div>${(msgs || []).map(m => `<div class="card adm-msg${m.internal ? ' internal' : m.author === t.user_id ? '' : ' staff'}"><p class="adm-meta"><b>${m.author === t.user_id ? 'Player' : esc(names.get(m.author) || 'Support')}</b>${m.internal ? ' · <b>internal note</b>' : ''} · ${when(m.created_at)}</p><p>${esc(m.body).replace(/\n/g, '<br>')}</p>${files[m.id] ? `<p><a href="${esc(files[m.id])}" target="_blank" rel="noopener">Attached file</a></p>` : ''}</div>`).join('')}
+        <form class="hub-form card" data-reply><label>Reply<textarea name="body" rows="5" maxlength="4000" required></textarea></label><label class="hub-check"><input type="checkbox" name="internal"> Internal note (only staff see it)</label><button class="btn btn-primary" type="submit">Send</button></form></div>
+        <aside class="card adm-side"><label>Status<select data-k="status">${Object.entries(TK).map(([k, v]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+          <label>Priority<select data-k="priority">${['low', 'normal', 'high', 'urgent'].map(p => `<option ${t.priority === p ? 'selected' : ''}>${p}</option>`).join('')}</select></label>
+          <p>${t.assignee ? 'Assigned to ' + esc(names.get(t.assignee) || '') : 'Unassigned'} ${t.assignee !== A.me.id ? '<button class="btn btn-ghost btn-sm" data-me>Assign to me</button>' : ''}</p>
+          ${orders.length ? `<h3>Recent orders</h3>${orders.map(o => `<p><small>${esc(o.sku)} · ${esc(money(o.amount_cents, o.currency))} · ${esc(ORDER[o.status] || o.status)}${o.env !== 'live' ? ' (test)' : ''} · ${day(o.created_at)}</small></p>`).join('')}` : ''}</aside></div>`;
+    const upd = async patch => { const { error } = await sb.from('support_tickets').update(patch).eq('id', id); if (error) err(error); else ticket(el, id); };
+    for (const s of el.querySelectorAll('[data-k]')) s.onchange = () => upd({ [s.dataset.k]: s.value });
+    const me = el.querySelector('[data-me]'); if (me) me.onclick = () => upd({ assignee: A.me.id });
+    const f = el.querySelector('[data-reply]'); f.onsubmit = async e => { e.preventDefault(); const fd = new FormData(f);
+      const { error } = await sb.from('ticket_messages').insert({ ticket_id: id, author: A.me.id, body: String(fd.get('body')).trim(), internal: !!fd.get('internal') }); if (error) say(f, error.message); else ticket(el, id); };
+  }
+
+  // ---------- reports and mutes ----------
+  async function moderation(el) {
+    const [{ data: reps }, { data: mutes }] = await Promise.all([sb.from('community_reports').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(100), sb.from('mutes').select('*').gt('until', new Date().toISOString())]);
+    await people([...(reps || []).map(r => r.reporter), ...(mutes || []).map(m => m.user_id)]);
+    const link = r => r.post_id ? `community.html#/p/${r.post_id}` : r.message_id ? `community.html#/search/${encodeURIComponent('#' + r.message_id)}` : '#';
+    const target = async r => { if (r.reply_id) { const { data } = await sb.from('community_replies').select('post_id, body, author').eq('id', r.reply_id).maybeSingle(); return data; } if (r.message_id) { const { data } = await sb.from('community_messages').select('channel, body, author').eq('id', r.message_id).maybeSingle(); return data; } const { data } = await sb.from('community_posts').select('title, body, author').eq('id', r.post_id).maybeSingle(); return data; };
+    const what = await Promise.all((reps || []).map(target)); await people(what.filter(Boolean).map(w => w.author));
+    el.innerHTML = head('Reports and mutes', 'Reports from the website community. In-game chat reports are handled in the game (Settings > Moderation).')
+      + `<h3>Open reports</h3><div class="adm-table">${(reps || []).map((r, i) => { const w = what[i] || {}; return `<div class="adm-row"><span><b>${esc(r.reason)}</b>${r.details ? ': ' + esc(r.details) : ''}<br><small>by ${nm(r.reporter)} · ${ago(r.created_at)}</small></span>
+        <span><small>${r.message_id ? 'Chat message in #' + esc(w.channel || '') : r.reply_id ? 'Reply' : 'Post'} by ${nm(w.author)}</small><br>"${esc(String(w.title || w.body || '(removed)').slice(0, 140))}"</span>
+        <span class="adm-acts">${r.reply_id && w.post_id ? `<a class="btn btn-ghost btn-sm" href="community.html#/p/${w.post_id}" target="_blank">Open</a>` : r.post_id ? `<a class="btn btn-ghost btn-sm" href="${link(r)}" target="_blank">Open</a>` : ''}${w.author ? `<button class="btn btn-ghost btn-sm" data-mute="${w.author}">Mute author</button>` : ''}${r.message_id ? `<button class="btn btn-ghost btn-sm" data-hidemsg="${r.message_id}">Hide message</button>` : ''}<button class="btn btn-primary btn-sm" data-done="${r.id}">Handled</button></span></div>`; }).join('') || '<p class="muted">No open reports.</p>'}</div>
+      <h3>Muted now</h3><div class="adm-table">${(mutes || []).map(m => `<div class="adm-row"><span>${nm(m.user_id)}<br><small>${esc(m.reason)}</small></span><span>until ${when(m.until)}</span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-unmute="${m.user_id}">Lift</button></span></div>`).join('') || '<p class="muted">Nobody is muted.</p>'}</div>`;
+    for (const b of el.querySelectorAll('[data-done]')) b.onclick = () => call('community', { action: 'resolve', report: +b.dataset.done }).then(route, err);
+    for (const b of el.querySelectorAll('[data-hidemsg]')) b.onclick = () => call('community', { action: 'message_moderate', message: +b.dataset.hidemsg, status: 'hidden' }).then(route, err);
+    for (const b of el.querySelectorAll('[data-unmute]')) b.onclick = async () => { const { error } = await sb.from('mutes').delete().eq('user_id', b.dataset.unmute); if (error) err(error); else route(); };
+    for (const b of el.querySelectorAll('[data-mute]')) b.onclick = () => muteBox(b.dataset.mute);
+  }
+  function muteBox(user) {
+    modal(`<h2>Mute ${esc(names.get(user) || 'this keeper')}</h2><form class="hub-form"><label>For<select name="h"><option value="1">1 hour</option><option value="24" selected>1 day</option><option value="168">1 week</option><option value="720">30 days</option></select></label><label>Reason (they see it)<input name="reason" maxlength="200" required></label><button class="btn btn-primary" type="submit">Mute</button></form><p class="muted small">A muted keeper can read but not post, chat or reply, in the game and on the website.</p>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
+        const { error } = await sb.from('mutes').upsert({ user_id: user, until: new Date(Date.now() + v.h * 36e5).toISOString(), reason: v.reason, by: A.me.id }); if (error) say(f, error.message); else { close(); route(); } }; });
+  }
+
+  // ---------- people and roles ----------
+  async function peoplePage(el) {
+    const q = sessionStorage.getItem('adm-q') || '';
+    const { data, error } = await sb.rpc('admin_people', { p_q: q }); if (error) throw error;
+    el.innerHTML = head('People and roles', 'Search by email, name or friend code. Passwords are never shown or set here: people reset their own from the sign-in screen.',
+      `<form class="adm-filters" data-q><input name="q" placeholder="Email, name or friend code" value="${esc(q)}" aria-label="Search people"><button class="btn btn-ghost btn-sm">Search</button></form>`)
+      + `<div class="adm-table">${(data || []).map(p => `<div class="adm-row"><span><b>${esc(p.name || '(no name)')}</b> ${A.roleChips(p.roles)}<br><small>${esc(p.email || '')} · joined ${day(p.created_at)}${p.last_seen ? ' · seen ' + ago(p.last_seen) : ''}</small></span>
+        <span><small>${p.paid_orders} paid order${p.paid_orders === 1 ? '' : 's'}${p.club_until && Date.parse(p.club_until) > Date.now() ? ' · Club until ' + day(p.club_until) : ''}${p.muted_until && Date.parse(p.muted_until) > Date.now() ? ' · <b>muted</b>' : ''}${p.banned_until && Date.parse(p.banned_until) > Date.now() ? ' · <b>banned until ' + day(p.banned_until) + '</b>' : ''}</small></span>
+        <span class="adm-acts"><button class="btn btn-ghost btn-sm" data-roles="${p.id}">Roles</button><button class="btn btn-ghost btn-sm" data-mute="${p.id}">Mute</button>${p.id !== A.me.id ? `<button class="btn btn-ghost btn-sm" data-ban="${p.id}">Ban</button>` : ''}</span></div>`).join('') || '<p class="muted">Nobody found.</p>'}</div>`;
+    el.querySelector('[data-q]').onsubmit = e => { e.preventDefault(); sessionStorage.setItem('adm-q', new FormData(e.target).get('q').trim()); route(); };
+    for (const p of data || []) names.set(p.id, p.name || p.email);
+    for (const b of el.querySelectorAll('[data-mute]')) b.onclick = () => muteBox(b.dataset.mute);
+    for (const b of el.querySelectorAll('[data-ban]')) b.onclick = () => modal(`<h2>Ban ${esc(names.get(b.dataset.ban))}</h2><form class="hub-form"><label>Days (0 lifts a ban)<input name="days" type="number" min="0" max="3650" value="7"></label><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">A banned account can't sign in until then. Their purchases stay theirs.</p>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); call('admin', { action: 'ban', user: b.dataset.ban, days: +new FormData(f).get('days') }).then(() => { close(); route(); }, x => say(f, x.message)); }; });
+    for (const b of el.querySelectorAll('[data-roles]')) b.onclick = () => { const p = data.find(x => x.id === b.dataset.roles), has = r => (p.roles || []).includes(r);
+      modal(`<h2>Roles: ${esc(p.name || p.email)}</h2><div class="adm-roles">${[['moderator', 'Moderator: tickets, reports, mutes, hides posts'], ['contributor', 'Contributor: a credit on their profile'], ['developer', 'Developer: the whole dashboard (owners only)'], ['owner', 'Owner: also approves emails and gives roles (owners only)']].map(([r, txt]) => `<label class="hub-check"><input type="checkbox" data-r="${r}" ${has(r) ? 'checked' : ''} ${(r === 'developer' || r === 'owner') && !owner ? 'disabled' : ''}> ${txt}</label>`).join('')}</div><p class="muted small">Supporter, Club and Veteran come from purchases and play; they can't be set here.</p>`, d => {
+        for (const c of d.querySelectorAll('[data-r]')) c.onchange = () => call('admin', { action: 'role', user: p.id, role: c.dataset.r, on: c.checked }).then(r => { p.roles = r.roles; say(d, 'Saved.', true); }, x => { c.checked = !c.checked; say(d, x.message); }); }); };
+  }
+
+  // ---------- posts: news, devlogs (by version), events, giveaways; drafts and schedules ----------
+  async function posts(el) {
+    const { data, error } = await sb.from('community_posts').select('id, category, title, version, published, publish_at, starts_at, ends_at, prize, status, created_at, author').in('category', ['announcements', 'devlog', 'updates', 'roadmap', 'events', 'giveaways']).order('created_at', { ascending: false }).limit(100); if (error) throw error;
+    const st = p => !p.published ? 'Draft' : p.publish_at && Date.parse(p.publish_at) > Date.now() ? 'Scheduled ' + when(p.publish_at) : p.status !== 'visible' ? 'Hidden' : 'Published';
+    el.innerHTML = head('News, devlogs, events and giveaways', 'Written in the community with the team options (version, schedule, draft). Drafts are seen only by the team.', '<a class="btn btn-primary btn-sm" href="community.html#/new/announcements" target="_blank">New post</a>')
+      + `<div class="adm-table">${(data || []).map(p => `<div class="adm-row"><span><b>${esc(p.title)}</b><br><small>${esc(p.category)}${p.version ? ' · v' + esc(p.version) : ''}${p.ends_at ? ' · until ' + when(p.ends_at) : ''}${p.prize ? ' · prize: ' + esc(p.prize) : ''} · ${day(p.created_at)}</small></span><span class="adm-state ${p.published && p.status === 'visible' ? 'st-paid' : 'st-review'}">${st(p)}</span>
+        <span class="adm-acts"><a class="btn btn-ghost btn-sm" href="community.html#/p/${p.id}" target="_blank">Open</a>${!p.published ? `<button class="btn btn-primary btn-sm" data-pub="${p.id}">Publish now</button>` : ''}${p.category === 'giveaways' ? `<button class="btn btn-ghost btn-sm" data-draw="${p.id}">Entries</button>` : ''}</span></div>`).join('') || '<p class="muted">No posts yet.</p>'}</div>`;
+    for (const b of el.querySelectorAll('[data-pub]')) b.onclick = () => confirmBox('Publish this post?', '<p>Everyone can see it in the community straight away.</p>', () => call('community', { action: 'moderate', post: +b.dataset.pub, published: true }).then(route), 'Publish');
+    for (const b of el.querySelectorAll('[data-draw]')) b.onclick = async () => { const { data: en } = await sb.from('giveaway_entries').select('user_id, winner, created_at').eq('post_id', +b.dataset.draw); await people((en || []).map(e => e.user_id));
+      modal(`<h2>Giveaway entries: ${(en || []).length}</h2><div class="adm-notes">${(en || []).map(e => `<p>${nm(e.user_id)} · ${day(e.created_at)}${e.winner ? ' · <b>winner</b>' : ''}</p>`).join('') || '<p class="muted">No entries yet.</p>'}</div><div class="hub-actions"><button class="btn btn-primary" data-pick>Draw a winner at random</button></div>`, d => {
+        d.querySelector('[data-pick]').onclick = async () => { const left = (en || []).filter(e => !e.winner); if (!left.length) return say(d, 'Nobody left to draw.'); const a = new Uint32Array(1); crypto.getRandomValues(a); const w = left[a[0] % left.length];
+          const { error: e2 } = await sb.from('giveaway_entries').update({ winner: true }).eq('post_id', +b.dataset.draw).eq('user_id', w.user_id); if (e2) say(d, e2.message); else say(d, `Winner: ${names.get(w.user_id)}. Give the prize from Rewards and gifts.`, true); }; }); };
+  }
+
+  // ---------- in-game announcements (the Notification Center) ----------
+  async function announce(el) {
+    const { data, error } = await sb.from('announcements').select('*').order('starts_at', { ascending: false }).limit(60); if (error) throw error;
+    el.innerHTML = head('In-game announcements', 'Shown in the game\'s Notification Center, in their category, from the start time until the end time.', '<button class="btn btn-primary btn-sm" data-new>New announcement</button>')
+      + `<div class="adm-table">${(data || []).map(a => `<div class="adm-row"><span><b>${esc(a.title)}</b><br><small>${esc(a.body.slice(0, 160))}</small></span><span><small>${esc(a.category)}</small></span><span><small>${when(a.starts_at)} → ${a.ends_at ? when(a.ends_at) : 'no end'}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-ed="${a.id}">Edit</button><button class="btn btn-ghost btn-sm" data-del="${a.id}">Delete</button></span></div>`).join('') || '<p class="muted">None yet.</p>'}</div>`;
+    const edit = a => modal(`<h2>${a ? 'Edit' : 'New'} announcement</h2><form class="hub-form"><label>Category<select name="category">${['important', 'game', 'events', 'community', 'promotions'].map(c => `<option ${a && a.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label><label>Title<input name="title" maxlength="80" required value="${esc(a ? a.title : '')}"></label><label>Text<textarea name="body" maxlength="600" rows="4">${esc(a ? a.body : '')}</textarea></label><label>Link <small>(optional, https://)</small><input name="link" maxlength="300" value="${esc(a && a.link || '')}"></label><div class="hub-row"><label>From<input type="datetime-local" name="starts_at" value="${local(a ? a.starts_at : new Date())}"></label><label>Until <small>(optional)</small><input type="datetime-local" name="ends_at" value="${local(a && a.ends_at)}"></label></div><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">Players see it as soon as the start time comes.</p>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const row = { category: v.category, title: v.title, body: v.body, link: v.link || null, starts_at: iso(v.starts_at) || new Date().toISOString(), ends_at: iso(v.ends_at) };
+        const { error: e2 } = a ? await sb.from('announcements').update(row).eq('id', a.id) : await sb.from('announcements').insert(row); if (e2) say(f, e2.message); else { close(); route(); } }; });
+    el.querySelector('[data-new]').onclick = () => edit(null);
+    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(data.find(a => a.id === +b.dataset.ed));
+    for (const b of el.querySelectorAll('[data-del]')) b.onclick = () => confirmBox('Delete this announcement?', '<p>It disappears from the game.</p>', async () => { const { error: e2 } = await sb.from('announcements').delete().eq('id', +b.dataset.del); if (e2) throw e2; route(); }, 'Delete');
+  }
+
+  // ---------- site sections (text on the website, per language) ----------
+  async function content(el) {
+    const { data, error } = await sb.from('site_content').select('*').order('key'); if (error) throw error;
+    el.innerHTML = head('Site sections', 'Text shown on the website, by key and language: for example home.banner (a notice at the top of the home page), store.notice, support.notice, community.welcome. Empty keys show nothing.', '<button class="btn btn-primary btn-sm" data-new>Add a section</button>')
+      + `<div class="adm-table">${(data || []).map(c => `<div class="adm-row"><span><b>${esc(c.key)}</b> <small>${esc(c.lang)}</small><br><small>${esc(c.value.slice(0, 200))}</small></span><span><small>${ago(c.updated_at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-ed="${esc(c.key)}|${esc(c.lang)}">Edit</button><button class="btn btn-ghost btn-sm" data-del="${esc(c.key)}|${esc(c.lang)}">Delete</button></span></div>`).join('') || '<p class="muted">None yet.</p>'}</div>`;
+    const edit = c => modal(`<h2>${c ? 'Edit' : 'New'} section</h2><form class="hub-form"><div class="hub-row"><label>Key<input name="key" pattern="[a-z0-9_.-]{2,80}" required value="${esc(c ? c.key : '')}" ${c ? 'readonly' : ''}></label><label>Language<input name="lang" required value="${esc(c ? c.lang : 'en')}" ${c ? 'readonly' : ''}></label></div><label>Text <small>(plain text; a blank line starts a new paragraph)</small><textarea name="value" rows="8" maxlength="20000">${esc(c ? c.value : '')}</textarea></label><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const { error: e2 } = await sb.from('site_content').upsert({ key: v.key, lang: v.lang, value: v.value, updated_at: new Date().toISOString() }); if (e2) say(f, e2.message); else { close(); route(); } }; });
+    el.querySelector('[data-new]').onclick = () => edit(null);
+    const pick = s => { const [k, l] = s.split('|'); return data.find(c => c.key === k && c.lang === l); };
+    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(pick(b.dataset.ed));
+    for (const b of el.querySelectorAll('[data-del]')) b.onclick = () => { const c = pick(b.dataset.del); confirmBox('Delete this section?', `<p>${esc(c.key)} (${esc(c.lang)}) stops showing on the website.</p>`, async () => { const { error: e2 } = await sb.from('site_content').delete().eq('key', c.key).eq('lang', c.lang); if (e2) throw e2; route(); }, 'Delete'); };
+  }
+
+  // ---------- FAQ (the support chatbot answers from it) ----------
+  const FAQ_CATS = ['account', 'login', 'payment', 'subscription', 'game', 'troubleshooting', 'website', 'general'];
+  async function faq(el) {
+    const { data, error } = await sb.from('faq').select('*').order('category').order('sort'); if (error) throw error;
+    el.innerHTML = head('FAQ and the support chatbot', 'The chatbot on every page answers only from these questions (no AI). Keywords help it match how people ask.', '<button class="btn btn-primary btn-sm" data-new>Add a question</button>')
+      + `<div class="adm-table">${(data || []).map(q => `<div class="adm-row"><span><b>${esc(q.question)}</b>${q.published ? '' : ' <span class="hub-test">Hidden</span>'}<br><small>${esc(q.answer.slice(0, 180))}</small></span><span><small>${esc(q.category)} · ${esc(q.lang)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-ed="${q.id}">Edit</button><button class="btn btn-ghost btn-sm" data-del="${q.id}">Delete</button></span></div>`).join('') || '<p class="muted">No questions yet.</p>'}</div>`;
+    const edit = q => modal(`<h2>${q ? 'Edit' : 'New'} question</h2><form class="hub-form"><div class="hub-row"><label>Category<select name="category">${FAQ_CATS.map(c => `<option ${q && q.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label><label>Language<input name="lang" value="${esc(q ? q.lang : 'en')}" required></label></div>
+      <label>Question<input name="question" maxlength="200" required value="${esc(q ? q.question : '')}"></label><label>Answer<textarea name="answer" rows="6" maxlength="2000" required>${esc(q ? q.answer : '')}</textarea></label>
+      <label>Keywords <small>(comma separated: words people might use)</small><input name="keywords" value="${esc(q ? q.keywords.join(', ') : '')}"></label><label>Link <small>(optional: a page with more, e.g. support.html#refunds)</small><input name="link" maxlength="200" value="${esc(q && q.link || '')}"></label>
+      <div class="hub-row"><label>Order<input name="sort" type="number" value="${q ? q.sort : 0}"></label><label class="hub-check"><input type="checkbox" name="published" ${!q || q.published ? 'checked' : ''}> Published</label></div><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const row = { category: v.category, lang: v.lang, question: v.question, answer: v.answer, keywords: String(v.keywords || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean), link: v.link || null, sort: +v.sort || 0, published: !!v.published, updated_at: new Date().toISOString() };
+        const { error: e2 } = q ? await sb.from('faq').update(row).eq('id', q.id) : await sb.from('faq').insert(row); if (e2) say(f, e2.message); else { close(); route(); } }; });
+    el.querySelector('[data-new]').onclick = () => edit(null);
+    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(data.find(q => q.id === +b.dataset.ed));
+    for (const b of el.querySelectorAll('[data-del]')) b.onclick = () => confirmBox('Delete this question?', '<p>The chatbot stops using it.</p>', async () => { const { error: e2 } = await sb.from('faq').delete().eq('id', +b.dataset.del); if (e2) throw e2; route(); }, 'Delete');
+  }
+
+  // ---------- products and prices; GCash and bank details ----------
+  async function store(el) {
+    const [{ data: prods, error }, { data: s }] = await Promise.all([sb.from('store_products').select('*').order('sort'), sb.from('store_settings').select('*').eq('id', 1).maybeSingle()]); if (error) throw error;
+    el.innerHTML = head('Products and prices', 'Changes show on the website store at once. Orders already made keep what they paid; Club members already subscribed keep their price until they cancel.')
+      + `<div class="adm-table">${prods.map(p => `<div class="adm-row"><span><b>${esc(p.label)}</b>${p.active ? '' : ' <span class="hub-test">Off</span>'}${p.offer ? ` <span class="hub-offer">${esc(p.offer)}</span>` : ''}<br><small>${esc(p.sku)} · ${esc(p.kind)}${p.lumens ? ' · ' + p.lumens + ' Lumens' : ''}</small></span><span>${esc(money(p.usd_cents, 'USD'))}<br>${esc(money(p.php_cents, 'PHP'))}</span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-ed="${esc(p.sku)}">Edit</button></span></div>`).join('')}</div>
+      <h3>GCash and bank transfer</h3><form class="hub-form card" data-pay><label class="hub-check"><input type="checkbox" name="manual_on" ${s && s.manual_on ? 'checked' : ''}> Offer GCash and bank transfer</label>
+        <div class="hub-row"><label>GCash account name <small>(as players see it: use Exenova if your account allows)</small><input name="gcash_name" maxlength="80" value="${esc(s && s.gcash_name || '')}"></label><label>GCash number<input name="gcash_number" maxlength="20" value="${esc(s && s.gcash_number || '')}"></label></div>
+        <label>Bank details <small>(bank, account name, number)</small><textarea name="bank_details" rows="3" maxlength="400">${esc(s && s.bank_details || '')}</textarea></label>
+        <label>GCash QR code <small>(PNG or JPEG from the GCash app: Receive > QR)</small><input type="file" name="qr" accept="image/png,image/jpeg,image/webp"></label>${s && s.gcash_qr ? `<img class="hub-qr" src="${esc(s.gcash_qr)}" alt="The current GCash QR code" width="160" height="160">` : '<p class="muted small">No QR code yet.</p>'}
+        <button class="btn btn-primary" type="submit">Save</button></form>`;
+    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => { const p = prods.find(x => x.sku === b.dataset.ed);
+      modal(`<h2>${esc(p.label)}</h2><form class="hub-form"><label>Name<input name="label" maxlength="60" value="${esc(p.label)}" required></label><label>Description<textarea name="blurb" rows="3" maxlength="300">${esc(p.blurb || '')}</textarea></label>
+        <div class="hub-row"><label>Price in US dollars<input name="usd" type="number" step="0.01" min="0.5" value="${(p.usd_cents / 100).toFixed(2)}" required></label><label>Price in pesos<input name="php" type="number" step="1" min="20" value="${(p.php_cents / 100).toFixed(0)}" required></label></div>
+        <div class="hub-row"><label>Offer label <small>(optional, e.g. "Launch week")</small><input name="offer" maxlength="40" value="${esc(p.offer || '')}"></label><label>Offer ends<input name="offer_ends" type="datetime-local" value="${local(p.offer_ends)}"></label></div>
+        <label class="hub-check"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}> On sale</label><button class="btn btn-primary" type="submit">Review the change</button></form>`, (d, close) => {
+        const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)), row = { label: v.label, blurb: v.blurb || '', usd_cents: Math.round(+v.usd * 100), php_cents: Math.round(+v.php * 100), offer: v.offer || null, offer_ends: iso(v.offer_ends), active: !!v.active };
+          const diff = [['Name', p.label, row.label], ['Price (USD)', money(p.usd_cents, 'USD'), money(row.usd_cents, 'USD')], ['Price (PHP)', money(p.php_cents, 'PHP'), money(row.php_cents, 'PHP')], ['Offer', p.offer || '-', row.offer || '-'], ['On sale', p.active ? 'yes' : 'no', row.active ? 'yes' : 'no']].filter(x => x[1] !== x[2]);
+          if (!diff.length && row.blurb === (p.blurb || '')) { close(); return; } close();
+          confirmBox('Confirm the change', `<table class="adm-diff"><tr><th></th><th>Now</th><th>After</th></tr>${diff.map(([k, a, b2]) => `<tr><td>${k}</td><td>${esc(a)}</td><td><b>${esc(b2)}</b></td></tr>`).join('')}</table>${row.blurb !== (p.blurb || '') ? '<p>The description changes too.</p>' : ''}<p class="muted small">Players see the new price on the website at once. Nobody is charged differently for what they already bought.</p>`, async () => { const { error: e2 } = await sb.from('store_products').update(row).eq('sku', p.sku); if (e2) throw e2; route(); }, 'Save the change'); }; }); };
+    const f = el.querySelector('[data-pay]'); f.onsubmit = async e => { e.preventDefault(); const fd = new FormData(f), row = { manual_on: !!fd.get('manual_on'), gcash_name: fd.get('gcash_name') || null, gcash_number: fd.get('gcash_number') || null, bank_details: fd.get('bank_details') || null };
+      try { const file = fd.get('qr'); if (file && file.size) { if (file.size > 2 * 1048576) throw new Error('Use a picture under 2 MB.'); const path = `gcash-qr-${Date.now()}.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`; const up = await sb.storage.from('store').upload(path, file, { contentType: file.type }); if (up.error) throw up.error; row.gcash_qr = sb.storage.from('store').getPublicUrl(path).data.publicUrl; }
+        const { error: e2 } = await sb.from('store_settings').update(row).eq('id', 1); if (e2) throw e2; say(f, 'Saved.', true); } catch (x) { say(f, x.message || String(x)); } };
+  }
+
+  // ---------- email templates: edit, preview, approve (owners) ----------
+  let mailMod = null; const mail = async () => mailMod || (mailMod = await Promise.all([import('./email/js/email-render.js'), import('./email/js/email-templates.js')]));
+  async function emails(el, [key]) {
+    const { data, error } = await sb.from('email_templates').select('*').order('grp').order('key'); if (error) throw error;
+    if (key) return emailEdit(el, data.find(t => t.key === key));
+    el.innerHTML = head('Email templates', `The automatic emails. Each one is sent only once an owner approves it; a change needs approving again.${owner ? '' : ' (Only an owner can approve.)'}`)
+      + `<div class="adm-table">${data.map(t => `<a class="adm-row adm-link" href="#emails/${esc(t.key)}"><span><b>${esc(t.name)}</b><br><small>${esc(t.subject)}</small></span><span><small>${esc(t.grp)}</small></span><span class="adm-state ${t.approved ? 'st-paid' : 'st-review'}">${t.approved ? 'Approved' : 'Not approved: not sent'}</span><span><small>${ago(t.updated_at)}</small></span></a>`).join('')}</div>`
+      + (owner ? `<p><button class="btn btn-ghost btn-sm" data-all>Approve every template</button></p>` : '');
+    const all = el.querySelector('[data-all]'); if (all) all.onclick = () => confirmBox('Approve every email?', `<p>${data.filter(t => !t.approved).length} templates start being sent when what they are for happens (a payment, a ticket...).</p>`, async () => { const { error: e2 } = await sb.from('email_templates').update({ approved: true }).eq('approved', false); if (e2) throw e2; route(); }, 'Approve all');
+  }
+  async function emailEdit(el, t) {
+    if (!t) { el.innerHTML = '<p>No such template.</p>'; return; }
+    const [{ renderEmail }, { EMAIL_SAMPLES }] = await mail();
+    const fields = [...new Set((t.subject + t.preheader + t.heading + t.body + (t.button_link || '')).match(/\{\{(\w+)\}\}/g) || [])].join(' ');
+    el.innerHTML = `<p><a href="#emails">&larr; All templates</a></p>` + head(esc(t.name), `${t.approved ? 'Approved' : '<b>Not approved</b>: this email is not sent'} · fields you can use: ${esc(fields || 'none')}`)
+      + `<div class="adm-split"><form class="hub-form card" data-tpl><label>Subject<input name="subject" maxlength="140" value="${esc(t.subject)}" required></label><label>Preview line <small>(after the subject in the inbox)</small><input name="preheader" maxlength="160" value="${esc(t.preheader)}"></label>
+        <label>Heading<input name="heading" maxlength="140" value="${esc(t.heading)}"></label><label>Text <small>(a blank line starts a paragraph; lines like "Amount: {{amount}}" become the details card; "• " lines a list)</small><textarea name="body" rows="12" maxlength="6000">${esc(t.body)}</textarea></label>
+        <div class="hub-row"><label>Button text<input name="button_label" maxlength="40" value="${esc(t.button_label || '')}"></label><label>Button link<input name="button_link" maxlength="300" value="${esc(t.button_link || '')}"></label></div>
+        <label>Colour<select name="tone">${['info', 'success', 'warning', 'danger'].map(x => `<option ${t.tone === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+        <div class="hub-actions"><button class="btn btn-primary" type="submit">Save</button>${owner && !t.approved ? '<button class="btn btn-ghost" type="button" data-approve>Approve: start sending</button>' : ''}${owner && t.approved ? '<button class="btn btn-ghost" type="button" data-unapprove>Stop sending</button>' : ''}</div></form>
+        <div><p class="muted small">Preview with sample values</p><iframe class="adm-mail" title="Email preview"></iframe></div></div>`;
+    const f = el.querySelector('[data-tpl]'), frame = el.querySelector('iframe');
+    const draw = () => { const v = Object.fromEntries(new FormData(f)), r = renderEmail(Object.assign({}, t, v), EMAIL_SAMPLES, { unsubLink: '#' }); frame.srcdoc = r.html; };
+    f.addEventListener('input', draw); draw();
+    f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const { error } = await sb.from('email_templates').update({ subject: v.subject, preheader: v.preheader, heading: v.heading, body: v.body, button_label: v.button_label || null, button_link: v.button_link || null, tone: v.tone }).eq('key', t.key); if (error) say(f, error.message); else { say(f, t.approved ? 'Saved. It needs approving again before it is sent.' : 'Saved.', true); setTimeout(route, 900); } };
+    const ap = el.querySelector('[data-approve]'); if (ap) ap.onclick = () => confirmBox('Approve this email?', `<p>"${esc(t.name)}" is sent from now on, whenever what it is for happens.</p>`, async () => { const { error } = await sb.from('email_templates').update({ approved: true }).eq('key', t.key); if (error) throw error; route(); }, 'Approve');
+    const un = el.querySelector('[data-unapprove]'); if (un) un.onclick = async () => { const { error } = await sb.from('email_templates').update({ approved: false }).eq('key', t.key); if (error) err(error); else route(); };
+  }
+
+  // ---------- email campaigns (updates, events, offers: only to players who chose them) ----------
+  async function campaigns(el) {
+    const { data, error } = await sb.from('email_campaigns').select('*').order('created_at', { ascending: false }).limit(50); if (error) throw error;
+    el.innerHTML = head('Email campaigns', 'Sent only to players who turned that kind of email on, with a one-click unsubscribe. Send yourself a test first.', '<button class="btn btn-primary btn-sm" data-new>New campaign</button>')
+      + `<div class="adm-table">${(data || []).map(c => `<div class="adm-row"><span><b>${esc(c.subject)}</b><br><small>${esc(c.kind)} · ${day(c.created_at)}</small></span><span class="adm-state st-${c.status === 'sent' ? 'paid' : c.status === 'cancelled' ? 'cancelled' : 'review'}">${esc(c.status)}${c.status === 'scheduled' ? ' ' + when(c.send_at) : ''}</span><span><small>${c.sent}/${c.audience} sent${c.failed ? ', ' + c.failed + ' failed' : ''}</small></span>
+        <span class="adm-acts">${c.status === 'draft' ? `<button class="btn btn-ghost btn-sm" data-ed="${c.id}">Edit</button><button class="btn btn-ghost btn-sm" data-test="${c.id}">Send me a test</button><button class="btn btn-primary btn-sm" data-send="${c.id}">Send or schedule</button>` : ''}${['scheduled', 'sending'].includes(c.status) ? `<button class="btn btn-ghost btn-sm" data-stop="${c.id}">Cancel</button>` : ''}</span></div>`).join('') || '<p class="muted">No campaigns yet.</p>'}</div>`;
+    const edit = c => modal(`<h2>${c ? 'Edit' : 'New'} campaign</h2><form class="hub-form"><label>Kind<select name="kind">${[['updates', 'Updates and patch notes'], ['events', 'Events'], ['promos', 'Offers']].map(([k, l]) => `<option value="${k}" ${c && c.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label>Subject<input name="subject" maxlength="120" required value="${esc(c ? c.subject : '')}"></label><label>Preview line<input name="preheader" maxlength="140" value="${esc(c ? c.preheader : '')}"></label><label>Headline<input name="headline" maxlength="120" value="${esc(c ? c.headline : '')}"></label>
+      <label>Text <small>(a blank line starts a paragraph)</small><textarea name="body" rows="8" maxlength="6000">${esc(c ? c.body : '')}</textarea></label><div class="hub-row"><label>Button text<input name="button_label" maxlength="40" value="${esc(c && c.button_label || '')}"></label><label>Button link <small>(https://)</small><input name="button_link" maxlength="300" value="${esc(c && c.button_link || '')}"></label></div><button class="btn btn-primary" type="submit">Save the draft</button></form>`, (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)), row = Object.assign(v, { button_label: v.button_label || null, button_link: v.button_link || null });
+        const { error: e2 } = c ? await sb.from('email_campaigns').update(row).eq('id', c.id) : await sb.from('email_campaigns').insert(row); if (e2) say(f, e2.message); else { close(); route(); } }; });
+    el.querySelector('[data-new]').onclick = () => edit(null);
+    for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(data.find(c => c.id === +b.dataset.ed));
+    for (const b of el.querySelectorAll('[data-test]')) b.onclick = () => call('send-emails', { action: 'test', id: +b.dataset.test }).then(r => modal(`<h2>Test sent</h2><p>Sent to ${esc(r.to)}.</p>`), err);
+    for (const b of el.querySelectorAll('[data-stop]')) b.onclick = () => call('send-emails', { action: 'cancel', id: +b.dataset.stop }).then(route, err);
+    for (const b of el.querySelectorAll('[data-send]')) b.onclick = () => { const c = data.find(x => x.id === +b.dataset.send);
+      modal(`<h2>Send "${esc(c.subject)}"</h2><form class="hub-form"><label>When<input type="datetime-local" name="at"> <small>(empty: now)</small></label><label>Type SEND to confirm<input name="confirm" autocomplete="off" required></label><button class="btn btn-primary" type="submit">Send</button></form><p class="muted small">It goes to every player who chose ${esc(c.kind)} emails. This can't be undone once sent.</p>`, (d, close) => {
+        const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
+          try { if (v.at) { const { error: e2 } = await sb.from('email_campaigns').update({ send_at: iso(v.at) }).eq('id', c.id); if (e2) throw e2; } const r = await call('send-emails', { action: 'start', id: c.id, confirm: v.confirm }); close(); modal(`<h2>${r.scheduled ? 'Scheduled' : 'Sending'}</h2><p>${r.audience} player${r.audience === 1 ? '' : 's'}.</p>`); route(); } catch (x) { say(f, x.message); } }; }); };
+  }
+
+  // ---------- translations (website and game; override the shipped language files) ----------
+  async function translations(el) {
+    const lang = sessionStorage.getItem('adm-lang') || 'fil';
+    const [{ data, error }, base] = await Promise.all([sb.from('translations').select('*').eq('lang', lang).order('key'), fetch('assets/i18n/' + lang + '.json').then(r => r.ok ? r.json() : {}, () => ({}))]); if (error) throw error;
+    const LANGS = window.LK_LANGS || [['fil', 'Filipino'], ['es', 'Español'], ['pt-BR', 'Português (Brasil)'], ['id', 'Bahasa Indonesia'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '简体中文']];
+    el.innerHTML = head('Translations', 'The website and the game ship with these languages. Changes here replace the shipped text for that language as soon as the page or the game loads again.',
+      `<div class="adm-filters"><select data-lang aria-label="Language">${LANGS.map(([c, n]) => `<option value="${c}" ${c === lang ? 'selected' : ''}>${n}</option>`).join('')}</select><button class="btn btn-primary btn-sm" data-new>Change a text</button></div>`)
+      + `<p class="muted small">${Object.keys(base).length} texts shipped for this language; ${(data || []).length} changed here.</p><div class="adm-table">${(data || []).map(t => `<div class="adm-row"><span><small>${esc(t.key)}</small><br><b>${esc(t.value)}</b></span><span><small>${ago(t.updated_at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-del="${esc(t.key)}">Undo</button></span></div>`).join('')}</div>`;
+    el.querySelector('[data-lang]').onchange = e => { sessionStorage.setItem('adm-lang', e.target.value); route(); };
+    el.querySelector('[data-new]').onclick = () => modal(`<h2>Change a text</h2><form class="hub-form"><label>English text <small>(start typing to find it)</small><input name="key" list="admKeys" required></label><datalist id="admKeys">${Object.keys(base).slice(0, 3000).map(k => `<option value="${esc(k)}">`).join('')}</datalist><label>Translation<textarea name="value" rows="3" maxlength="2000" required></textarea></label><button class="btn btn-primary" type="submit">Save</button></form>`, (d, close) => {
+      const f = d.querySelector('form'), k = f.querySelector('[name=key]'); k.onchange = () => { const cur = (data || []).find(x => x.key === k.value); f.querySelector('textarea').value = cur ? cur.value : base[k.value] || ''; };
+      f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const { error: e2 } = await sb.from('translations').upsert({ lang, key: v.key, value: v.value, updated_at: new Date().toISOString() }); if (e2) say(f, e2.message); else { close(); route(); } }; });
+    for (const b of el.querySelectorAll('[data-del]')) b.onclick = async () => { const { error: e2 } = await sb.from('translations').delete().eq('lang', lang).eq('key', b.dataset.del); if (e2) err(e2); else route(); };
+  }
+
+  // ---------- rewards and gifts ----------
+  async function rewards(el) {
+    const [{ data: prods }, { count: cf }, { count: sp }] = await Promise.all([sb.from('store_products').select('sku, label').order('sort'),
+      sb.from('entitlements').select('user_id', { count: 'exact', head: true }).eq('sku', 'lk.event.community-founder').is('revoked_at', null), sb.from('entitlements').select('user_id', { count: 'exact', head: true }).eq('sku', 'lk.event.spotlight-2026').is('revoked_at', null)]);
+    el.innerHTML = head('Rewards and gifts', 'Give an event reward or a product to one account: for contest winners, a refund in kind, or a mistake put right.')
+      + `<form class="adm-filters card" data-find><input name="q" placeholder="Email, name or friend code" aria-label="Find an account" required><button class="btn btn-ghost btn-sm">Find</button></form><div data-found></div>
+      <p class="muted small">Show Us Your Lighthouse: ${cf || 0} Community Founder badge${cf === 1 ? '' : 's'} given automatically; ${sp || 0} of 3 winners rewarded.</p>`;
+    const box = el.querySelector('[data-found]');
+    el.querySelector('[data-find]').onsubmit = async e => { e.preventDefault(); try { const r = await call('store', { action: 'find', q: new FormData(e.target).get('q') });
+      box.innerHTML = (r.accounts || []).map(a => `<div class="adm-row"><span><b>${esc(a.name || a.email || a.id)}</b><br><small>${esc(a.email || '')} ${esc(a.code || '')}</small></span><span class="adm-acts"><button class="btn btn-primary btn-sm" data-win="${a.id}">Contest winner (Spotlight + 250 Lumens)</button><button class="btn btn-ghost btn-sm" data-cf="${a.id}">Community Founder badge</button><button class="btn btn-ghost btn-sm" data-gift="${a.id}">Give a product</button></span></div>`).join('') || '<p class="muted">Nobody found.</p>';
+      for (const a of r.accounts || []) names.set(a.id, a.name || a.email);
+      for (const b of box.querySelectorAll('[data-win]')) b.onclick = () => confirmBox('Reward a contest winner?', `<p>${esc(names.get(b.dataset.win))} gets the Spotlight lantern, the Featured Keeper title and 250 Lumens.</p>`, () => call('admin', { action: 'reward', user: b.dataset.win, reward: 'spotlight' }).then(x => modal(`<h2>${x.already ? 'Already given' : 'Given'}</h2>`)), 'Give');
+      for (const b of box.querySelectorAll('[data-cf]')) b.onclick = () => call('admin', { action: 'reward', user: b.dataset.cf, reward: 'commfounder' }).then(x => modal(`<h2>${x.already ? 'Already given' : 'Given'}</h2>`), err);
+      for (const b of box.querySelectorAll('[data-gift]')) b.onclick = () => modal(`<h2>Give a product to ${esc(names.get(b.dataset.gift))}</h2><form class="hub-form"><label>Product<select name="sku">${(prods || []).map(p => `<option value="${esc(p.sku)}">${esc(p.label)}</option>`).join('')}</select></label><label>Why <small>(kept with the order)</small><input name="note" maxlength="200" required></label><button class="btn btn-primary" type="submit">Give</button></form><p class="muted small">It shows in their purchases as a gift from the team; no money is involved.</p>`, (d, close) => {
+        const f = d.querySelector('form'); f.onsubmit = e2 => { e2.preventDefault(); const v = Object.fromEntries(new FormData(f)); call('store', { action: 'grant', user: b.dataset.gift, sku: v.sku, note: v.note }).then(() => { close(); modal('<h2>Given</h2>'); }, x => say(f, x.message)); }; });
+    } catch (x) { box.innerHTML = `<p>${esc(x.message)}</p>`; } };
+  }
+};

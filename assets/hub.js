@@ -214,7 +214,7 @@
       <section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${esc((p.display_name || '?').slice(0, 1))}</div><div>
         <h2>${esc(p.display_name || 'Keeper')}</h2><p>${roleChips(myRoles)} <span class="muted">Joined ${day(p.created_at || me.created_at)} · Friend code ${esc(p.friend_code || '-')}</span></p></div></div>
         <div class="hub-stats">${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${(w.data && w.data.lumens) || 0}</b> Lumens</span><span><b>${looks + packs.length + lanterns}</b> paid looks and packs</span></div>
-        <p><a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
+        <p>${isStaff() ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
       <section class="card"><h2>Profile</h2><form class="hub-form" data-profile>
         <label>About you <small>(shown on your public page, 300 characters)</small><textarea name="bio" maxlength="300" rows="3">${esc(p.bio || '')}</textarea></label>
         <label>Discord name <small>(optional: shown so friends can find you)</small><input name="discord" maxlength="40" value="${esc(p.discord || '')}"></label>
@@ -546,5 +546,9 @@
     if (PAGE === 'store') renderStore();
     else if (PAGE === 'account') renderAccount();
     else if (PAGE === 'community') startCommunity();
+    else if (PAGE === 'admin') { // 0.30.1: the dashboard (assets/admin.js) gets the sign-in and the helpers
+      const api = { sb, CFG, call, modal, say, esc, day, ago, h, me, myRoles, myProfile, isStaff, isTeam, isOwner: () => myRoles.includes('owner'), roleChips, signIn: () => { location.href = 'account.html?next=admin.html'; } };
+      const go = () => window.LKAdmin ? window.LKAdmin(root, api) : setTimeout(go, 50); go();
+    }
   });
 })();
