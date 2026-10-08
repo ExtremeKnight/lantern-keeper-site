@@ -469,10 +469,10 @@
     body.innerHTML = `<div class="lkc-list-head"><a class="btn btn-primary btn-sm" href="#/tickets/new">New ticket</a></div>
       ${(data || []).map(t => `<a class="lkc-row" href="#/tickets/${t.id}"><span>#${t.id} · ${esc(t.subject)}</span><small class="tk-${t.status}">${TICKET_STATE[t.status]} · ${ago(t.updated_at)}</small></a>`).join('') || '<p class="muted">No tickets. For account, payment or subscription problems, open one: support answers usually within a day.</p>'}`;
   }
-  function newTicket() {
+  function newTicket(cat) {
     if (!me) { location.href = 'account.html?next=community.html'; return; }
     const body = shell('tickets', ''); title('<b>New ticket</b>');
-    body.innerHTML = `<form class="hub-form card" data-tk><label>What is it about<select name="category">${TICKET_CATS.map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+    body.innerHTML = `<form class="hub-form card" data-tk><label>What is it about<select name="category">${TICKET_CATS.map(([k, v]) => `<option value="${k}" ${k === cat ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
       <label>Subject<input name="subject" maxlength="120" required></label><label>Describe the problem <small>(what happened, when, on which device; never your password)</small><textarea name="body" rows="7" maxlength="4000" required></textarea></label>
       <label>A file <small>(optional: a screenshot or a receipt, PNG, JPEG, WebP, PDF or text, up to 5 MB)</small><input name="file" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"></label>
       <button class="btn btn-primary" type="submit">Send to support</button></form>`;
@@ -528,7 +528,7 @@
     if ((m = path.match(/^\/k\/([0-9a-f-]{36})$/))) return showKeeper(m[1]);
     if ((m = path.match(/^\/new(?:\/([a-z0-9-]+))?$/))) return compose(m[1]);
     if (path === '/tickets') return tickets();
-    if (path === '/tickets/new') return newTicket();
+    if (path === '/tickets/new') return newTicket((hsh.match(/[?&]cat=([a-z]+)/) || [])[1]);
     if ((m = path.match(/^\/tickets\/(\d+)$/))) return showTicket(+m[1]);
     if ((m = path.match(/^\/search\/(.+)$/))) return search(decodeURIComponent(m[1]));
     if (path === '/following' && me) return following();

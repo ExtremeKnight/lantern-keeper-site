@@ -114,6 +114,7 @@ ${body.trim()}
   </div>
 </footer>
 <script src="assets/site.js" defer></script>
+<script src="assets/bot.js" defer></script>
 </body>
 </html>
 `;
