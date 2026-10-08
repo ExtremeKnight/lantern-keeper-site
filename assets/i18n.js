@@ -67,9 +67,22 @@
   // tablets and phones. The currencies are the ones the store can charge; the store and the account use the choice.
   // (texts other scripts show, for tools/i18n-extract.js: t('Philippine peso') t('US dollar') t('Download for Windows') t('Download for Mac')
   //  t('Download for Linux') t('Download for Android') t('Get it on iPhone'))
-  const CURS = [['PHP', '₱', 'Philippine peso'], ['USD', '$', 'US dollar']];
+  // 0.30.1 (approved 8 October): nine currencies PayPal can charge; GCash and bank transfer are always pesos. The first
+  // visit picks one from the device's time zone (the Philippines pesos, Japan yen, the euro area euros...), else dollars.
+  const CURS = [['PHP', '₱', 'Philippine peso'], ['USD', '$', 'US dollar'], ['EUR', '€', 'Euro'], ['GBP', '£', 'British pound'], ['JPY', '¥', 'Japanese yen'], ['AUD', 'A$', 'Australian dollar'], ['CAD', 'C$', 'Canadian dollar'], ['SGD', 'S$', 'Singapore dollar'], ['MXN', 'MX$', 'Mexican peso']];
+  // (for tools/i18n-extract.js: t('Euro') t('British pound') t('Japanese yen') t('Australian dollar') t('Canadian dollar') t('Singapore dollar') t('Mexican peso'))
   const curNow = () => { try { const c = localStorage.getItem('lk-currency'); if (CURS.some(x => x[0] === c)) return c; } catch (e) { /* none */ }
-    let ph = false; try { ph = Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Manila' || /-PH$/i.test(navigator.language); } catch (e) { /* none */ } return ph ? 'PHP' : 'USD'; };
+    let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* none */ }
+    if (tz === 'Asia/Manila' || /-PH$/i.test(navigator.language)) return 'PHP';
+    if (tz === 'Asia/Tokyo') return 'JPY'; if (tz === 'Asia/Singapore') return 'SGD'; if (/^Australia\//.test(tz)) return 'AUD';
+    if (/^Europe\/(London|Belfast|Guernsey|Jersey|Isle_of_Man)$/.test(tz)) return 'GBP';
+    if (/^America\/(Toronto|Vancouver|Edmonton|Winnipeg|Halifax|St_Johns|Regina|Moncton|Whitehorse|Yellowknife|Iqaluit)$/.test(tz)) return 'CAD';
+    if (/^America\/(Mexico_City|Monterrey|Merida|Cancun|Chihuahua|Tijuana|Hermosillo|Mazatlan|Bahia_Banderas|Matamoros|Ojinaga)$/.test(tz)) return 'MXN';
+    if (/^Europe\/(Amsterdam|Andorra|Athens|Berlin|Bratislava|Brussels|Dublin|Helsinki|Lisbon|Ljubljana|Luxembourg|Madrid|Malta|Monaco|Paris|Riga|Rome|San_Marino|Tallinn|Vatican|Vienna|Vilnius|Zagreb)$/.test(tz)) return 'EUR';
+    return 'USD'; };
+  // an amount in hundredths, as a price: ₱149, $2.99, ¥480 (the yen has no decimals)
+  const money = (cents, cur) => { const c = CURS.find(x => x[0] === cur) || CURS[1], v = cents / 100, whole = cur === 'JPY' || (cur === 'PHP' && Number.isInteger(v));
+    return c[1] + v.toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }); };
   function picker() {
     const SHORT = { en: 'EN', fil: 'FIL', es: 'ES', 'pt-BR': 'PT', id: 'ID', ja: '日本', ko: '한국', 'zh-CN': '中文' }, cur = curNow();
     const setLang = c => { if (c === lang) return; try { localStorage.setItem('lk-lang', c); } catch (e) { /* this visit */ } location.reload(); };
@@ -107,6 +120,6 @@
     new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) queued.add(n); else if (n.nodeType === 3 && n.parentElement) queued.add(n.parentElement);
       if (!timer) timer = requestAnimationFrame(() => { timer = 0; const list = [...queued]; queued = new Set(); for (const n of list) if (n.isConnected) walk(n); }); }).observe(document.body, { childList: true, subtree: true });
   }
-  window.LKI18N = { t, lang: () => lang, LANGS, CURS, cur: curNow, collect: () => (walk(document.body), [...collected]) };
+  window.LKI18N = { t, lang: () => lang, LANGS, CURS, cur: curNow, money, setCur: c => { try { localStorage.setItem('lk-currency', c); } catch (e) { /* this visit */ } }, collect: () => (walk(document.body), [...collected]) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

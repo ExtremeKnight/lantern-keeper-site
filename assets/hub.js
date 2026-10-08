@@ -121,9 +121,14 @@
 
   // ---------- the store ----------
   const store = { products: [], settings: null, club: null, orders: [],
-    cur() { try { const c = localStorage.getItem('lk-currency'); if (c === 'PHP' || c === 'USD') return c; } catch (e) { /* none */ } let ph = false; try { ph = Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Manila' || /-PH$/i.test(navigator.language); } catch (e) { /* none */ } return ph ? 'PHP' : 'USD'; },
-    setCur(c) { try { localStorage.setItem('lk-currency', c); } catch (e) { /* this visit */ } },
-    price(p, cur = this.cur()) { const v = (cur === 'PHP' ? p.php_cents : p.usd_cents) / 100; return cur === 'PHP' ? '₱' + v.toLocaleString('en-PH', { maximumFractionDigits: 2 }) : '$' + v.toFixed(2); } };
+    // the currency and the prices come from assets/i18n.js (nine currencies, 0.30.1); a product without a price in that
+    // currency shows (and is charged) in US dollars
+    cur() { return Lx().cur(); }, setCur(c) { Lx().setCur(c); },
+    cents(p, cur = this.cur()) { return cur === 'USD' ? p.usd_cents : cur === 'PHP' ? p.php_cents : (p.prices || {})[cur] || null; },
+    payCur(p, cur = this.cur()) { return this.cents(p, cur) ? cur : 'USD'; },
+    price(p, cur = this.cur()) { const c = this.payCur(p, cur); return Lx().money(this.cents(p, c), c); } };
+  const LF = { cur: () => 'USD', setCur: () => {}, money: (c, cur) => (cur === 'PHP' ? '₱' : '$') + (c / 100).toFixed(2), CURS: [['PHP', '₱', 'Philippine peso'], ['USD', '$', 'US dollar']] };
+  const Lx = () => window.LKI18N || LF; // (assets/i18n.js may load after this script)
   async function loadStore() {
     const [p, s, c, o] = await Promise.all([sb.from('store_products').select('*').eq('active', true).order('sort'),
       me ? sb.from('store_settings').select('gcash_name, gcash_number, gcash_qr, bank_details, manual_on').eq('id', 1).maybeSingle() : { data: null },
@@ -141,7 +146,7 @@
     const club = store.products.find(p => p.kind === 'club');
     root.innerHTML = `
       <div class="hub-bar"><div>${me ? `Signed in as <b>${esc(myProfile && myProfile.display_name || me.email)}</b> ${roleChips(myRoles)} · <a href="account.html">Your account</a>` : '<a href="account.html?next=store.html" class="btn btn-ghost btn-sm">Sign in to buy</a>'}</div>
-        <div class="hub-cur" role="group" aria-label="Currency"><button data-cur="PHP" aria-pressed="${cur === 'PHP'}">₱ Pesos</button><button data-cur="USD" aria-pressed="${cur === 'USD'}">$ US dollars</button></div></div>
+        <div class="hub-cur" role="group" aria-label="Currency" translate="no">${Lx().CURS.map(([k, sym, name]) => `<button data-cur="${k}" aria-pressed="${cur === k}" title="${esc(Lx().t ? Lx().t(name) : name)}">${sym} ${k}</button>`).join('')}</div></div>
       ${club ? `<section class="hub-club card"><div><span class="kicker">Supporter Club · monthly, cancel any time</span><h2>Keep the light on, every month</h2>
         <ul class="hub-perks"><li>A new lantern each month, yours to keep</li><li>The Club frame, badge and Club Keeper title</li><li>The Club role and the Supporter Lounge in the community</li><li>Early looks, behind-the-scenes posts and polls</li><li>Your name in the credits</li></ul>
         ${store.club ? subPanel(store.club, club) : ''}</div>
@@ -153,7 +158,7 @@
       <h2 class="hub-h">Lumens</h2><p class="muted">Lumens buy looks in the game's shop. They never buy strength.</p><div class="cards hub-grid hub-grid-4">${store.products.filter(p => p.kind === 'lumens').map(card).join('')}</div>
       ${me && store.orders.length ? `<h2 class="hub-h">Your orders</h2><div class="hub-orders">${store.orders.map(orderRow).join('')}</div>` : ''}
       <p class="muted small">Sold by Exenova. Pay with PayPal (a PayPal account or a card) or GCash and bank transfer. Everything goes to your account, in the game on every device. Refunds within 14 days: see the <a href="terms.html#4a-refunds">Terms</a>. If you are under 18, ask a parent before buying.</p>`;
-    for (const b of root.querySelectorAll('[data-cur]')) b.onclick = () => { store.setCur(b.dataset.cur); renderStore(); };
+    for (const b of root.querySelectorAll('.hub-cur [data-cur]')) b.onclick = () => { store.setCur(b.dataset.cur); renderStore(); };
     for (const b of root.querySelectorAll('[data-buy]')) b.onclick = () => buy(store.products.find(p => p.sku === b.dataset.buy));
     const j = root.querySelector('[data-club]'); if (j) j.onclick = () => joinClub();
     const st = root.querySelector('[data-club-stop]'); if (st) st.onclick = () => modal(`<h2>Cancel your subscription?</h2><p>No more monthly payments. You stay a member until <b>${day(store.club.until)}</b>; then the Club frame, badge and title end. The lanterns you received stay yours, and you can join again any time.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Cancel the subscription</button><button class="btn btn-ghost" data-keep>Keep it</button></div>`, (d, close) => { d.querySelector('[data-keep]').onclick = close; d.querySelector('[data-ok]').onclick = async () => { try { await call('store', { action: 'club_cancel' }); close(); renderStore(); } catch (e) { say(d, e.message); } }; });
@@ -162,14 +167,14 @@
   const HOW = { paypal: 'PayPal', gcash: 'GCash', bank: 'Bank transfer', grant: 'Gift from the team' };
   const renewing = c => !!(c && c.paypal_sub && c.status === 'active' && Date.parse(c.until) > Date.now());
   function subPanel(c, club) {
-    const member = Date.parse(c.until) > Date.now(), price = c.amount_cents ? (c.currency === 'PHP' ? '₱' : '$') + (c.amount_cents / 100).toFixed(2) : store.price(club);
+    const member = Date.parse(c.until) > Date.now(), price = c.amount_cents ? Lx().money(c.amount_cents, c.currency) : store.price(club);
     const status = !member ? 'Ended' : renewing(c) ? 'Active, renews every month' : c.paypal_sub ? 'Cancelled: stays until the end of the paid month' : 'Active (paid month by month)';
     return `<dl class="hub-sum"><dt>Plan</dt><dd>Supporter Club${c.env && c.env !== 'live' ? ' <span class="hub-test">Test</span>' : ''}</dd><dt>Price</dt><dd>${esc(price)} a month</dd><dt>Billing</dt><dd>${c.paypal_sub ? 'Monthly with PayPal' : 'One month at a time (GCash or bank)'}</dd><dt>Status</dt><dd>${esc(status)}</dd>${renewing(c) ? `<dt>Next payment</dt><dd>${day(c.until)}</dd>` : `<dt>${member ? 'Ends' : 'Ended'}</dt><dd>${day(c.until)}</dd>`}</dl>`;
   }
-  const orderRow = o => { const p = store.products.find(x => x.sku === o.sku); return `<div class="hub-order"><span>${esc(p ? p.label : o.sku)}${o.env && o.env !== 'live' ? ' <span class="hub-test">Test</span>' : ''}${o.method === 'grant' ? ' · a gift from the team' : ` · ${o.currency === 'PHP' ? '₱' : '$'}${(o.amount_cents / 100).toFixed(2)} ${o.currency} · ${HOW[o.method] || esc(o.method)}`}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span class="state-${o.status}">${ORDER_STATE[o.status] || esc(o.status)} · ${day(o.created_at)}</span></div>`; };
+  const orderRow = o => { const p = store.products.find(x => x.sku === o.sku); return `<div class="hub-order"><span>${esc(p ? p.label : o.sku)}${o.env && o.env !== 'live' ? ' <span class="hub-test">Test</span>' : ''}${o.method === 'grant' ? ' · a gift from the team' : ` · ${Lx().money(o.amount_cents, o.currency)} ${o.currency} · ${HOW[o.method] || esc(o.method)}`}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span class="state-${o.status}">${ORDER_STATE[o.status] || esc(o.status)} · ${day(o.created_at)}</span></div>`; };
   function buy(p) {
     if (!me) { location.href = 'account.html?next=store.html'; return; }
-    const cur = store.cur(), s = store.settings || {}, gc = s.manual_on && (s.gcash_number || s.gcash_qr), bk = s.manual_on && s.bank_details;
+    const cur = store.payCur(p), s = store.settings || {}, gc = s.manual_on && (s.gcash_number || s.gcash_qr), bk = s.manual_on && s.bank_details;
     modal(`<h2>${esc(p.label)}: ${store.price(p, cur)}</h2><p>${p.kind === 'club' ? 'One month in the Supporter Club. It does not renew by itself.' : p.kind === 'lumens' ? `${Number(p.lumens).toLocaleString()} Lumens for your account.` : esc(p.blurb)} <b>One-time payment.</b></p>
       <div class="hub-actions">${p.kind !== 'club' ? '<button class="btn btn-primary" data-pp>PayPal or card</button>' : ''}${gc ? `<button class="btn ${p.kind === 'club' ? 'btn-primary' : 'btn-ghost'}" data-gc="gcash">GCash${cur === 'PHP' ? '' : ' (pesos)'}</button>` : ''}${bk ? `<button class="btn btn-ghost" data-gc="bank">Bank transfer${cur === 'PHP' ? '' : ' (pesos)'}</button>` : ''}</div>
       <p class="muted small">Sold by Exenova. After paying with PayPal you come back here and it is added in a few seconds.</p>`, (d, close) => {
@@ -179,7 +184,7 @@
   }
   async function joinClub() {
     if (!me) { location.href = 'account.html?next=store.html'; return; }
-    try { const r = await call('store', { action: 'club', currency: store.cur() }); location.href = r.approve; } catch (e) { modal(`<h2>Not started</h2><p>${esc(e.message)}</p>`); }
+    try { const r = await call('store', { action: 'club', currency: store.payCur(store.products.find(x => x.kind === 'club') || {}) }); location.href = r.approve; } catch (e) { modal(`<h2>Not started</h2><p>${esc(e.message)}</p>`); }
   }
   function gcash(p, method) {
     const s = store.settings || {}, price = store.price(p, 'PHP'), g = method === 'gcash';
