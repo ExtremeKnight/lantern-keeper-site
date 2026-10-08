@@ -2,6 +2,53 @@
   "latest": "0.30.0",
   "items": [
     {
+      "version": "0.30.1",
+      "date": "2026-10-09",
+      "title": "Your language, a real community, and help when you need it",
+      "summary": "Lantern Keeper now speaks eight languages, the community has live chat and channels, and help is one tap away: a help assistant, private support tickets and clearer Supporter Club details. Plus this weekend's Lanterns Rekindled event and local peso prices.",
+      "notes": [
+        {
+          "h": "Play in your language",
+          "items": [
+            "The game and the website in English, Filipino, Spanish, Portuguese (Brazil), Indonesian, Japanese, Korean and Chinese (Simplified).",
+            "The game follows your device's language; change it any time in Settings > Display > Language.",
+            "Chat, names and posts always stay as people wrote them."
+          ]
+        },
+        {
+          "h": "A real community",
+          "items": [
+            "Channels for news, devlogs by version, events, giveaways, ideas, feedback and bug reports, and live chat in General and Game discussion.",
+            "Mentions, a notification bell, who is online now, search, reactions and polls, on a phone too.",
+            "Private support tickets for your account, a payment or the Club, with a screenshot if you need one.",
+            "A help assistant on every page answers common questions and passes you to a person when it can't."
+          ]
+        },
+        {
+          "h": "Events this week",
+          "items": [
+            "Lanterns Rekindled, Saturday and Sunday: +50% embers from every night, and play 3 nights to keep the Rekindled lantern.",
+            "Show Us Your Lighthouse, until 17 October: post a screenshot in the community for the Community Founder badge. Three winners get the Spotlight lantern, the Featured Keeper title and 250 Lumens."
+          ]
+        },
+        {
+          "h": "Store and Supporter Club",
+          "items": [
+            "Lower prices in pesos, and the Supporter Club at $2.99 / ₱149 a month.",
+            "Your Club plan, price, next payment date and status, and a clear way to cancel: you keep the benefits until the end of the month you paid for.",
+            "PayPal or card, GCash and bank transfer as separate choices; every order shows its method, amount, status and reference."
+          ]
+        },
+        {
+          "h": "Also",
+          "items": [
+            "Show or hide your password when you type it.",
+            "New-look emails, sent only for what you chose."
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.30",
       "date": "2026-10-07",
       "title": "A home for keepers: notifications, a store, the Supporter Club and the community",
