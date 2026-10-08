@@ -1,7 +1,7 @@
 {
-  "version": "0.30.0",
-  "date": "2026-10-07",
-  "release": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/tag/v0.30.0",
+  "version": "0.30.1",
+  "date": "2026-10-08",
+  "release": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/tag/v0.30.1",
   "files": [
     {
       "name": "Lantern-Keeper-Windows-x64.exe",
@@ -11,8 +11,8 @@
       "label": "Windows 10 and 11 (most PCs)",
       "arch": "x64",
       "type": "Installer (.exe)",
-      "size": 84323666,
-      "sha256": "632a0d584061a3bc1f5f277266f09a84cfe697706c344da474561cf625b9cfe9",
+      "size": 84421254,
+      "sha256": "2fa28b94d83eb6db22dc65cb323b21977c00898c9d1e7782ffd6301472187cd8",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Windows-x64.exe"
     },
     {
@@ -23,8 +23,8 @@
       "label": "Windows on ARM (Snapdragon laptops)",
       "arch": "ARM64",
       "type": "Installer (.exe)",
-      "size": 90555934,
-      "sha256": "73b9ee4867b7d60c21e6ba9cac27500e84ecf601b632ae1a2706885fc6016820",
+      "size": 90653490,
+      "sha256": "0ae7ae5033e4d8b5d7265dc608031c61b21c70920a68f00189925f3e32671398",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Windows-ARM64.exe"
     },
     {
@@ -35,8 +35,8 @@
       "label": "Windows 10, 32-bit (older PCs)",
       "arch": "x86 (32-bit)",
       "type": "Installer (.exe)",
-      "size": 78698845,
-      "sha256": "6d4ea89b52aa1c4f5ae64206ce1e08a93b305303b01f4b3eba1de8b037947413",
+      "size": 78796327,
+      "sha256": "ad978eb06fa519ef87e382b2c50379d101e4d503ecb5a203d4ee4d7cb12d9044",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Windows-x86.exe"
     },
     {
@@ -47,8 +47,8 @@
       "label": "Macs with Apple silicon (M1 and newer)",
       "arch": "Apple silicon (arm64)",
       "type": "Disk image (.dmg)",
-      "size": 99596279,
-      "sha256": "335e0315f305c928235d361eb281fb6ed846f1a72dd6c37e074c4dedd9fc3e9e",
+      "size": 99745158,
+      "sha256": "d566948714b55fba5353a490d866233c8ea399e555df0ace895ec89e0884533e",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-macOS-Apple-silicon.dmg"
     },
     {
@@ -59,8 +59,8 @@
       "label": "Macs with an Intel processor",
       "arch": "x64",
       "type": "Disk image (.dmg)",
-      "size": 104187039,
-      "sha256": "9697e5c0f4826a76d6a789beb32232782e213654f041cd77d00465ccc2283283",
+      "size": 104339173,
+      "sha256": "81ffd0209521ec6651a41ff10001b515fb0a490f73fe38a541d0ab3eb3778adc",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-macOS-Intel.dmg"
     },
     {
@@ -71,8 +71,8 @@
       "label": "AppImage (any distribution)",
       "arch": "x64",
       "type": "AppImage",
-      "size": 109122290,
-      "sha256": "36e3e8cc762024c5838e066bb7d6749dac9d8e91c6f7163b58cb8eb59903d72b",
+      "size": 109290382,
+      "sha256": "f49d1fb53a243720a23018d42e971d8e1f02d58d91ac19fff5bd9475dccd6e73",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Linux-x86_64.AppImage"
     },
     {
@@ -83,8 +83,8 @@
       "label": "Debian, Ubuntu, Mint (.deb)",
       "arch": "x64",
       "type": "Debian package (.deb)",
-      "size": 76000288,
-      "sha256": "936679365686d8c84b4d0801f732b40e6a7d9295d48329da6841650c769f9cfc",
+      "size": 76100074,
+      "sha256": "1bdefb95d948625b4b4d888349c27db292dbe1ef782dcaa277eb256ba7b39fe2",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Linux-amd64.deb"
     },
     {
@@ -95,8 +95,8 @@
       "label": "Fedora, openSUSE (.rpm)",
       "arch": "x64",
       "type": "RPM package (.rpm)",
-      "size": 75827849,
-      "sha256": "4c6f12d63488abb33abd494788aa8b609f031b6cc9131edf8681ee0c04b132b3",
+      "size": 75928129,
+      "sha256": "4e98a9e07f59d1c518a6f29be3ff70ca14025b48db60109c2ef0a61d1c476925",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Linux-x86_64.rpm"
     },
     {
@@ -107,8 +107,8 @@
       "label": "ARM64 AppImage (Raspberry Pi 4 and 5, ARM laptops)",
       "arch": "ARM64",
       "type": "AppImage",
-      "size": 109504770,
-      "sha256": "a27d1d6ec7c8d842b04b34e7020be5dc686d9405464d3341e4129932cd558a0d",
+      "size": 109676933,
+      "sha256": "5db35f71baa352c5bb78e3d7f200aa07b41a1fa65268d3e7bd94fb7039faad10",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Linux-arm64.AppImage"
     },
     {
@@ -119,8 +119,8 @@
       "label": "ARM64 Debian, Raspberry Pi OS (.deb)",
       "arch": "ARM64",
       "type": "Debian package (.deb)",
-      "size": 74969186,
-      "sha256": "b23ff652e96f3b63846d465669f7557825511f2b0bb85ce9d83265ad34d0ab52",
+      "size": 75057906,
+      "sha256": "b6c18a3d2b960bf152fd34a80fac05fd6f4e1f8182ec0d6dfd50d8a7e3a8eda9",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Linux-arm64.deb"
     },
     {
@@ -131,8 +131,8 @@
       "label": "ARM64 Fedora (.rpm)",
       "arch": "ARM64",
       "type": "RPM package (.rpm)",
-      "size": 71283833,
-      "sha256": "795c6a89960f8070d17862a75ef740f64cdc99ca95ef4709a787192924602bfe",
+      "size": 71369581,
+      "sha256": "f0234a0622d9525997158b77ddc722e7c65d4d336fa79c6484c67244d5faaed4",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Linux-aarch64.rpm"
     },
     {
@@ -143,8 +143,8 @@
       "label": "Android 7 and newer (.apk)",
       "arch": "Any (no native code)",
       "type": "Android package (.apk)",
-      "size": 6835291,
-      "sha256": "f5b4067c965fa3b782c57f508ba930a41a9818c34dde7013589821a05fa56ea9",
+      "size": 13317373,
+      "sha256": "c11458a1187bb20d97d1882ae09d9ef8e1c341abf457c6995cd5fc1d663124e4",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-Android.apk"
     },
     {
@@ -155,12 +155,18 @@
       "label": "For sideloading (.ipa, unsigned)",
       "arch": "arm64",
       "type": "iOS app package (.ipa)",
-      "size": 2333920,
-      "sha256": "7dfdf4c6b54d4152d02717b2e545e7d6a11cadfcaab03b64cd75bd79b83a4a53",
+      "size": 2505474,
+      "sha256": "55836088264335d19da87dc8cd0497482109ccbcde34c6986267c7abea565eba",
       "url": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest/download/Lantern-Keeper-iOS-unsigned.ipa"
     }
   ],
   "previous": [
+    {
+      "version": "0.30.0",
+      "date": "2026-10-07",
+      "release": "https://github.com/ExtremeKnight/lantern-keeper-site/releases/tag/v0.30.0",
+      "files": 13
+    },
     {
       "version": "0.29.0",
       "date": "2026-10-04",
