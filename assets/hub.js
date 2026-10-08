@@ -474,6 +474,8 @@
   // GIF as it is (3 MB at most; it is shown cropped to fit); anyone else's GIF is saved as a still picture. The server
   // checks this too (profiles_gif_guard).
   const canAnimate = () => isStaff() || myRoles.includes('subscriber');
+  // (for tools/i18n-extract.js: t('Supporter Club perk: your picture and banner can be animated (GIF, up to 3 MB).') t('Animated pictures and banners (GIF) are a Supporter Club perk. A GIF you choose now is saved as a still picture.')
+  //  t('Saved as a still picture: animated ones are a Supporter Club perk.') t('Animated pictures can be 3 MB at most.') t('Animated pictures are a Supporter Club perk.') t('Saved.'))
   async function editProfile() {
     if (!me) { const body = shell('me', ''); title('<b>Your profile</b>'); needSignIn(body, 'Sign in with your game account to set up your profile.', async () => { await loadMe(); heartbeat(); editProfile(); }); return; }
     await loadMe(); const body = shell('me', ''); title('<b>Edit your profile</b>');

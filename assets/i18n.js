@@ -11,7 +11,7 @@
   const CFG = { url: 'https://odnjaegbkudwsfrwnjiy.supabase.co', key: 'sb_publishable_IUdpT3MRtokyJD3SsNNF0Q_eZAovpor' };
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && window.LK_HUB_CFG) Object.assign(CFG, window.LK_HUB_CFG); // (tests)
   const LEGAL = /(terms|privacy-policy)\.html$/.test(location.pathname), COLLECT = !!window.LK_I18N_COLLECT;
-  const SKIP = '[translate="no"], script, style, code, pre, textarea, select option[data-raw], .lkc-text, .hub-body, .hub-post-link, .hub-full > h2, .lkc-quote, .lkc-mini b, .lkc-mini span, .lkc-row > span, .hub-who, .lkc-me b, .lkc-person, .lkc-note b, .hub-me h2, .lkb-m, .lkb-chip, .adm, .brand, .hub-qr, .lkc-top b';
+  const SKIP = '[translate="no"], script, style, code, pre, textarea, select option[data-raw], .lkc-text, .lkc-mini, .lkc-row > span, .hub-post h3, .hub-full > h2, .hub-body, .hub-post-link, .hub-full > h2, .lkc-quote, .lkc-mini b, .lkc-mini span, .lkc-row > span, .hub-who, .lkc-me b, .lkc-person, .lkc-note b, .hub-me h2, .lkb-m, .lkb-chip, .adm, .brand, .hub-qr, .lkc-top b';
   const INLINE = new Set(['A', 'B', 'I', 'EM', 'STRONG', 'SMALL', 'SPAN', 'BR', 'CODE', 'KBD', 'SUP', 'SUB', 'ABBR', 'IMG', 'SVG', 'USE', 'TIME', 'MARK', 'S', 'U']);
   const BLOCKY = 'h1,h2,h3,h4,h5,p,li,dt,dd,th,td,summary,label,button,a,small,figcaption,legend,option,blockquote,span,b,strong,.kicker';
   const pick = () => { let s = null; try { s = localStorage.getItem('lk-lang'); } catch (e) { /* private mode */ }
