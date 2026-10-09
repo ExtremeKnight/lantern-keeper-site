@@ -85,9 +85,13 @@
         ${tab === 'in' ? '<button class="hub-link" type="button" data-t="reset">Forgot your password?</button>' : ''}
       </form><p class="muted small">The same account as in the game: your progress, looks and purchases are shared.</p></div>`;
     for (const b of box.querySelectorAll('[data-t]')) b.onclick = () => authPanel(box, done, b.dataset.t);
-    if (tab !== 'reset') google.then(on => { if (!on || !box.isConnected) return; const g = h(`<div class="hub-google"><button class="btn-google" type="button">${G_LOGO}<span>Continue with Google</span></button><p class="hub-or"><span>or with your email</span></p></div>`);
-      box.querySelector('.hub-form').before(g); g.querySelector('button').onclick = () => googleGo().catch(err => say(box.querySelector('form'), err.message || String(err))); });
+    if (tab === 'in' || tab === 'up') Promise.all([providers, emailCode]).then(([list, code]) => { if (!box.isConnected || (!list.length && !(code && tab === 'in'))) return;
+      const g = h(`<div class="hub-oauth">${list.map(k => `<button class="btn btn-oauth p-${k}" type="button" data-p="${k}">Continue with ${oauthName(k)}</button>`).join('')}${code && tab === 'in' ? '<button class="btn btn-oauth p-email" type="button" data-code>Email me a sign-in code</button>' : ''}<p class="hub-or"><span>or with your email and password</span></p></div>`);
+      box.querySelector('.hub-form').before(g);
+      for (const b of g.querySelectorAll('[data-p]')) b.onclick = () => googleGo(b.dataset.p).catch(err => say(box.querySelector('form'), err.message || String(err)));
+      const c = g.querySelector('[data-code]'); if (c) c.onclick = () => authPanel(box, done, 'code'); });
     if (googleMsg) { say(box.querySelector('form'), googleMsg); googleMsg = ''; }
+    if (tab === 'code') { const f = box.querySelector('form'); f.querySelector('[type=submit]').textContent = 'Email me a code'; f.insertAdjacentHTML('afterbegin', '<p>We send a 6-digit code to your email: no password needed.</p>'); }
     const form = box.querySelector('form'); let token = () => undefined;
     captcha(box.querySelector('.hub-cap')).then(t => { token = t; }, () => { /* no check: the server will say */ });
     form.onsubmit = async e => {
@@ -95,6 +99,7 @@
       try {
         if (tab === 'in') { const { error } = await sb.auth.signInWithPassword({ email: v.email.trim(), password: v.pw, options: { captchaToken: token() } }); if (error) throw error; await loadMe(); signedIn(done); return; }
         if (tab === 'reset') { const { error } = await sb.auth.resetPasswordForEmail(v.email.trim(), { captchaToken: token() }); if (error) throw error; codeStep(box, v.email.trim(), 'recovery', done); return; }
+        if (tab === 'code') { const { error } = await sb.auth.signInWithOtp({ email: v.email.trim(), options: { shouldCreateUser: false, captchaToken: token() } }); if (error && !/signups not allowed|not found/i.test(error.message)) throw error; codeStep(box, v.email.trim(), 'email', done); return; }
         const name = String(v.name || '').trim(); if (!/^[A-Za-z0-9 _.'-]{3,16}$/.test(name)) throw new Error('Choose a keeper name of 3 to 16 letters or numbers.');
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email || '')) throw new Error('That doesn\'t look like an email address.');
         if (!(v.pw.length >= 8 && /[a-z]/.test(v.pw) && /[A-Z]/.test(v.pw) && /\d/.test(v.pw) && /[^A-Za-z0-9]/.test(v.pw))) throw new Error('The password needs all four: 8 or more characters, upper and lower case, a number and a symbol.');
@@ -122,29 +127,33 @@
         await loadMe(); signedIn(done); } catch (err) { say(form, err.message || String(err)); }
     };
   }
-  // ---------- 0.31: Sign in with Google (shown once the owner has turned Google on in Supabase) ----------
-  const google = fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }).then(r => r.json()).then(j => !!(j && j.external && j.external.google), () => false);
-  const G_LOGO = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
-  async function googleGo() {
-    try { sessionStorage.setItem('lk-site-oauth', '1'); } catch (e) { /* */ }
-    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname + location.search.replace(/[?&](code|error|error_description|error_code|state)=[^&]*/g, ''), queryParams: { prompt: 'select_account' } } });
+  // ---------- 0.31: other ways to sign in: Google, Discord, Twitch, Microsoft, Facebook, X (each shown once the owner turns
+  // it on in Supabase), and a 6-digit code by email instead of a password (the dashboard switch "Sign in with an email code") ----------
+  const OAUTH = [['google', 'Google'], ['discord', 'Discord'], ['twitch', 'Twitch'], ['azure', 'Microsoft'], ['facebook', 'Facebook'], ['x', 'X']];
+  const oauthName = k => (OAUTH.find(p => p[0] === k) || [k, k])[1];
+  const providers = fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }).then(r => r.json()).then(j => { const x = (j && j.external) || {}; return OAUTH.map(p => p[0]).filter(k => x[k]); }, () => []);
+  const emailCode = sb.from('game_switches').select('on').eq('key', 'emailcode').maybeSingle().then(r => !!(r.data && r.data.on), () => false);
+  async function googleGo(provider = 'google') {
+    try { sessionStorage.setItem('lk-site-oauth', provider); } catch (e) { /* */ }
+    const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname + location.search.replace(/[?&](code|error|error_description|error_code|state)=[^&]*/g, ''),
+      queryParams: provider === 'google' || provider === 'azure' ? { prompt: 'select_account' } : undefined, scopes: provider === 'azure' ? 'email' : undefined } });
     if (error) throw error;
   }
-  // back from Google: ?code=... (or ?error=...); the session is made from it and the address cleaned up
+  // back from the provider: ?code=... (or ?error=...); the session is made from it and the address cleaned up
   let googleMsg = '';
   async function googleReturn() {
     const q = new URLSearchParams(location.search), code = q.get('code'), err = q.get('error_description') || q.get('error'); if (!code && !err) return;
-    let ours = false; try { ours = !!sessionStorage.getItem('lk-site-oauth'); sessionStorage.removeItem('lk-site-oauth'); } catch (e) { /* */ }
+    let prov = ''; try { prov = sessionStorage.getItem('lk-site-oauth') || ''; sessionStorage.removeItem('lk-site-oauth'); } catch (e) { /* */ }
     for (const k of ['code', 'error', 'error_description', 'error_code', 'state']) q.delete(k);
     history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
-    if (!ours) return;
-    if (err) { googleMsg = 'Google sign-in did not finish. Try again, or use your email.'; return; }
+    if (!prov) return; const nm = oauthName(prov === '1' ? 'google' : prov);
+    if (err) { googleMsg = /email/i.test(err) ? `${nm} did not share an email address, which every account needs. Try another way to sign in.` : `${nm} sign-in did not finish. Try again, or use your email.`; return; }
     const { error } = await sb.auth.exchangeCodeForSession(code); if (error) googleMsg = error.message;
   }
   // an account made with Google answers the sign-up questions first, as every account does (complete_consent)
   function consentPanel(then) {
     const y = new Date().getFullYear();
-    modal(`<h2>Finish your account</h2><p>Signed in with Google as <b>${esc(me.email)}</b>. A few questions before you go on, as for every account. Accounts are for players aged 13 or over.</p>
+    modal(`<h2>Finish your account</h2><p>Signed in with ${esc(oauthName(((me.identities || []).find(i => i.provider !== 'email') || {}).provider || 'google'))} as <b>${esc(me.email)}</b>. A few questions before you go on, as for every account. Accounts are for players aged 13 or over.</p>
       <form class="hub-form" novalidate><label>Keeper name<input name="name" maxlength="16" autocomplete="nickname" required></label>
         <div class="hub-row"><label>Born in<select name="bm"><option value="">Month</option>${MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select></label>
           <label>&nbsp;<select name="by"><option value="">Year</option>${Array.from({ length: 100 }, (_, i) => y - i).map(v => `<option>${v}</option>`).join('')}</select></label></div>

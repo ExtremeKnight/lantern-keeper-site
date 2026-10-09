@@ -481,10 +481,10 @@ window.LKAdmin = function (root, A) {
   }
 
   // ---------- game switches: a part of the game off for a while, a message on every player's home screen ----------
-  const SW_NAMES = { notice: 'Message on the home screen', coop: 'Co-op', pvp: 'PvP', bazaar: 'The Bazaar', store: 'The store (Lumens and packs)', trade: 'Trading' };
+  const SW_NAMES = { notice: 'Message on the home screen', coop: 'Co-op', pvp: 'PvP', bazaar: 'The Bazaar', store: 'The store (Lumens and packs)', trade: 'Trading', emailcode: 'Sign in with an email code (turn on once the Magic link email shows the code)' };
   async function switchesPage(el) {
     const { data, error } = await sb.from('game_switches').select('*'); if (error) throw error;
-    const rows = ['notice', 'coop', 'pvp', 'bazaar', 'store', 'trade'].map(k => (data || []).find(s => s.key === k)).filter(Boolean);
+    const rows = ['notice', 'coop', 'pvp', 'bazaar', 'store', 'trade', 'emailcode'].map(k => (data || []).find(s => s.key === k)).filter(Boolean);
     await people(rows.map(s => s.updated_by));
     el.innerHTML = head('Game switches', 'Turn a part of the game off for every player for a while (its button explains why), or show a short message on every home screen. Players see a change within five minutes; nothing already running is stopped. Works without a new release.')
       + `<div class="adm-table">${rows.map(s => `<div class="adm-row adm-permrow"><span><b>${esc(SW_NAMES[s.key])}</b><br><small>${s.updated_by ? 'changed ' + ago(s.updated_at) + ' by ' + nm(s.updated_by) : 'never changed'}</small>
