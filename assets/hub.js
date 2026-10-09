@@ -130,8 +130,8 @@
   // ---------- 0.31: other ways to sign in: Google, Discord, Twitch, Facebook, X (each shown once the owner turns
   // it on in Supabase), and a 6-digit code by email instead of a password (the dashboard switch "Sign in with an email code") ----------
   const OAUTH = [['google', 'Google'], ['discord', 'Discord'], ['twitch', 'Twitch'], ['facebook', 'Facebook'], ['x', 'X']];
-  const oauthName = k => (OAUTH.find(p => p[0] === k) || [k, k])[1];
-  const providers = fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }).then(r => r.json()).then(j => { const x = (j && j.external) || {}; return OAUTH.map(p => p[0]).filter(k => x[k]); }, () => []);
+  const oauthName = k => k === 'twitter' ? 'X' : (OAUTH.find(p => p[0] === k) || [k, k])[1];
+  const providers = fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }).then(r => r.json()).then(j => { const x = (j && j.external) || {}; return OAUTH.map(p => p[0]).filter(k => x[k]).concat(!x.x && x.twitter ? ['twitter'] : []); }, () => []); // (X: Supabase names its older connection twitter)
   const emailCode = sb.from('game_switches').select('on').eq('key', 'emailcode').maybeSingle().then(r => !!(r.data && r.data.on), () => false);
   async function googleGo(provider = 'google', why = '') {
     try { sessionStorage.setItem('lk-site-oauth', provider + (why ? ':' + why : '')); } catch (e) { /* */ }
