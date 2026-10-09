@@ -127,16 +127,16 @@
         await loadMe(); signedIn(done); } catch (err) { say(form, err.message || String(err)); }
     };
   }
-  // ---------- 0.31: other ways to sign in: Google, Discord, Twitch, Microsoft, Facebook, X (each shown once the owner turns
+  // ---------- 0.31: other ways to sign in: Google, Discord, Twitch, Facebook, X (each shown once the owner turns
   // it on in Supabase), and a 6-digit code by email instead of a password (the dashboard switch "Sign in with an email code") ----------
-  const OAUTH = [['google', 'Google'], ['discord', 'Discord'], ['twitch', 'Twitch'], ['azure', 'Microsoft'], ['facebook', 'Facebook'], ['x', 'X']];
+  const OAUTH = [['google', 'Google'], ['discord', 'Discord'], ['twitch', 'Twitch'], ['facebook', 'Facebook'], ['x', 'X']];
   const oauthName = k => (OAUTH.find(p => p[0] === k) || [k, k])[1];
   const providers = fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }).then(r => r.json()).then(j => { const x = (j && j.external) || {}; return OAUTH.map(p => p[0]).filter(k => x[k]); }, () => []);
   const emailCode = sb.from('game_switches').select('on').eq('key', 'emailcode').maybeSingle().then(r => !!(r.data && r.data.on), () => false);
-  async function googleGo(provider = 'google') {
-    try { sessionStorage.setItem('lk-site-oauth', provider); } catch (e) { /* */ }
+  async function googleGo(provider = 'google', why = '') {
+    try { sessionStorage.setItem('lk-site-oauth', provider + (why ? ':' + why : '')); } catch (e) { /* */ }
     const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname + location.search.replace(/[?&](code|error|error_description|error_code|state)=[^&]*/g, ''),
-      queryParams: provider === 'google' || provider === 'azure' ? { prompt: 'select_account' } : undefined, scopes: provider === 'azure' ? 'email' : undefined } });
+      queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined } });
     if (error) throw error;
   }
   // back from the provider: ?code=... (or ?error=...); the session is made from it and the address cleaned up
@@ -146,10 +146,11 @@
     let prov = ''; try { prov = sessionStorage.getItem('lk-site-oauth') || ''; sessionStorage.removeItem('lk-site-oauth'); } catch (e) { /* */ }
     for (const k of ['code', 'error', 'error_description', 'error_code', 'state']) q.delete(k);
     history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
-    if (!prov) return; const nm = oauthName(prov === '1' ? 'google' : prov);
+    if (!prov) return; let why = ''; [prov, why = ''] = prov.split(':'); const nm = oauthName(prov === '1' ? 'google' : prov);
     if (err) { googleMsg = /email/i.test(err) ? `${nm} did not share an email address, which every account needs. Try another way to sign in.` : `${nm} sign-in did not finish. Try again, or use your email.`; return; }
-    const { error } = await sb.auth.exchangeCodeForSession(code); if (error) googleMsg = error.message;
+    const { error } = await sb.auth.exchangeCodeForSession(code); if (error) googleMsg = error.message; else if (why === 'delete') deleteNext = true;
   }
+  let deleteNext = false;
   // an account made with Google answers the sign-up questions first, as every account does (complete_consent)
   function consentPanel(then) {
     const y = new Date().getFullYear();
@@ -179,6 +180,25 @@
   }
   // after any sign-in: an account made with Google answers the questions first (0.31)
   const signedIn = done => { if (me && myProfile && myProfile.consent_pending) consentPanel(done); else done(); };
+  // 0.31: deleting the account from the website (also explained on delete-data.html): a password account types its
+  // password; an account made with Google, Discord... signs in with it again first (the server checks it was just now)
+  function deleteAccount(confirmed) {
+    const prov = ((me.identities || []).find(i => i.provider !== 'email') || {}).provider, viaOauth = !!prov && !(me.identities || []).some(i => i.provider === 'email');
+    modal(`<h2>Delete your account</h2><p>This permanently deletes your Lantern Keeper account: your cloud save, profile, friends, messages, posts and Lumens. Purchased items can't be restored afterwards. Progress saved on your own devices stays there.</p>
+      <form class="hub-form" novalidate>${viaOauth ? (confirmed ? `<p class="hub-msg ok">Confirmed with ${esc(oauthName(prov))}. You can delete now (within 10 minutes).</p>` : `<p>Your account signs in with ${esc(oauthName(prov))}: confirm with it first.</p><button class="btn btn-ghost" type="button" data-reauth>Confirm with ${esc(oauthName(prov))}</button>`)
+        : '<label>Your password, to confirm<input name="pw" type="password" autocomplete="current-password" required></label><div class="hub-cap"></div>'}
+        <label class="hub-check"><input type="checkbox" name="sure"> I understand this can't be undone</label>
+        <button class="btn btn-danger" type="submit">Delete my account</button></form>`, (dlg, close) => {
+      const form = dlg.querySelector('form'); let token = () => undefined;
+      if (!viaOauth) captcha(form.querySelector('.hub-cap')).then(t => { token = t; }, () => {});
+      const re = form.querySelector('[data-reauth]'); if (re) re.onclick = () => googleGo(prov, 'delete').catch(err => say(form, err.message || String(err)));
+      form.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(form)), btn = form.querySelector('[type=submit]');
+        if (!v.sure) return say(form, 'Tick the box to confirm.'); btn.disabled = true;
+        try { await call('delete-account', viaOauth ? { oauth: true } : { password: v.pw, captchaToken: token() });
+          await sb.auth.signOut({ scope: 'local' }); close(); me = null; root.innerHTML = '<section class="card"><h2>Your account has been deleted</h2><p>Thank you for keeping the light. You can still play as a guest.</p></section>';
+        } catch (err) { say(form, err.message || String(err)); btn.disabled = false; } };
+    });
+  }
   function needSignIn(box, why, done) { box.innerHTML = `<p class="hub-lead">${esc(why)}</p><div class="hub-authbox"></div>`; authPanel(box.querySelector('.hub-authbox'), done); }
 
   // ---------- the store ----------
@@ -282,7 +302,7 @@
       <section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${p.web_avatar ? `<img src="${esc(CFG.url + '/storage/v1/object/public/community/' + p.web_avatar)}" alt="">` : esc((p.display_name || '?').slice(0, 1))}</div><div>
         <h2>${esc(p.display_name || 'Keeper')}</h2><p>${roleChips(myRoles)} <span class="muted">Joined ${day(p.created_at || me.created_at)} · Friend code ${esc(p.friend_code || '-')}</span></p></div></div>
         <div class="hub-stats">${k.game && k.game.best ? `<span><b>${esc(k.game.best)}</b> best wave</span>` : ''}${k.game && k.game.runs ? `<span><b>${esc(k.game.runs)}</b> nights</span>` : ''}${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${(w.data && w.data.lumens) || 0}</b> Lumens</span><span><b>${looks + packs.length + lanterns}</b> paid looks and packs</span></div>
-        <p>${can('dashboard.open') ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button></p></section>
+        <p>${can('dashboard.open') ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button> · <button class="hub-link" data-del>Delete my account</button></p></section>
       <section class="card"><h2>Profile</h2><p class="muted small">Your picture, banner, name and colour show in the community and on your page. Your in-game avatar, frame and title are changed in the game (Profile).</p><div data-profile-editor></div></section>
       <section class="card"><h2>Supporter status</h2>
         ${c.data ? subPanel(c.data, store.products.find(x => x.kind === 'club') || { usd_cents: 0, php_cents: 0 }) + `<p><a href="store.html">${renewing(c.data) ? 'Manage or cancel the subscription' : member ? 'Renew monthly' : 'Join again'}</a></p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
@@ -296,6 +316,7 @@
       <section class="card"><h2>Purchase history</h2>${(o.data || []).length ? `<div class="hub-orders">${o.data.map(orderRow).join('')}</div>` : '<p class="muted">No web store purchases yet.</p>'}
         <p class="muted small">Purchases made in the Google Play version show in the game (Shop > Supporter).</p></section>`;
     root.querySelector('[data-out]').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); await loadMe(); renderAccount(); };
+    root.querySelector('[data-del]').onclick = () => deleteAccount(); if (deleteNext) { deleteNext = false; deleteAccount(true); }
     profileEditor(root.querySelector('[data-profile-editor]'), () => setTimeout(renderAccount, 600));
     const mf = root.querySelector('[data-mail]'); mf.onsubmit = async ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(mf));
       const row = { user_id: me.id, email_updates: !!v.email_updates, email_events: !!v.email_events, email_friends: !!v.email_friends, email_promos: md.adult ? !!v.email_promos : false, updated_at: new Date().toISOString() };

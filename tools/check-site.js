@@ -10,7 +10,7 @@
 const path = require('path'), fs = require('fs'), { spawn } = require('child_process');
 const pw = require(process.env.LK_PLAYWRIGHT || path.join(__dirname, '..', '..', 'lantern-keeper', 'node_modules', 'playwright'));
 const PORT = 8731 + Math.floor(Math.random() * 50), BASE = `http://localhost:${PORT}/`;
-const PAGES = ['', 'downloads.html', 'news.html', 'support.html', 'privacy-policy.html', 'terms.html', 'store.html', 'community.html', 'account.html', 'leaderboards.html', 'events.html']; // (0.30: the hub's pages too)
+const PAGES = ['', 'downloads.html', 'news.html', 'support.html', 'privacy-policy.html', 'terms.html', 'store.html', 'community.html', 'account.html', 'leaderboards.html', 'events.html', 'delete-data.html']; // (0.30: the hub's pages too)
 const NFILES = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'downloads.json'), 'utf8')).files.length; // (0.30: 13 downloads)
 const WIDTHS = [[360, 740], [390, 844], [768, 1024], [1280, 800], [1920, 1080]];
 let pass = 0, fail = 0;
