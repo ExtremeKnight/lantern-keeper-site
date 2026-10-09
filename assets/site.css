@@ -917,3 +917,11 @@ a.adm-tile, .adm-tile { display: flex; flex-direction: column; align-items: flex
 .ev-live { border-color: var(--gold); box-shadow: var(--glow); }
 .ev-bonus { color: var(--gold); font-weight: 700; margin: 0 0 6px; }
 .ev-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+
+/* 0.31: Continue with Google (Google's button rules: white, the four-colour G, its own words) */
+.hub-google { display: grid; gap: .6rem; margin: 0 0 .4rem; }
+.btn-google { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 44px; padding: .55rem 1rem; border-radius: 999px; border: 1px solid #747775; background: #fff; color: #1f1f1f; font: 500 .95rem Roboto, Arial, sans-serif; cursor: pointer; }
+.btn-google:hover { background: #f2f2f2; } .btn-google:focus-visible { outline: 3px solid var(--accent, #ffcf66); outline-offset: 2px; }
+.hub-or { display: flex; align-items: center; gap: .6rem; margin: .2rem 0 0; color: var(--muted, #9aa3c7); font-size: .85rem; }
+.hub-or::before, .hub-or::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .14); }
+.hub-must .hub-x { display: none; }

@@ -10,7 +10,7 @@
   if (LOCAL && window.LK_HUB_CFG) Object.assign(CFG, window.LK_HUB_CFG); // (tests: the local server)
   const root = document.getElementById('hub'); if (!root || !window.supabase) return;
   const PAGE = root.dataset.page;
-  const sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, storageKey: 'lk-site-auth', detectSessionInUrl: false } });
+  const sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, storageKey: 'lk-site-auth', detectSessionInUrl: false, flowType: 'pkce' } }); // (0.31: pkce for Google)
   window.LKHUB = { sb, CFG }; // (tests)
   const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -36,8 +36,8 @@
   function modal(html, onReady) {
     const back = h(`<div class="hub-modal" role="dialog" aria-modal="true"><div class="hub-dlg">${html}<button class="hub-x" type="button" aria-label="Close">×</button></div></div>`);
     const close = () => { back.remove(); document.removeEventListener('keydown', key); };
-    const key = e => { if (e.key === 'Escape') close(); };
-    back.addEventListener('click', e => { if (e.target === back || e.target.closest('.hub-x')) close(); }); document.addEventListener('keydown', key);
+    const key = e => { if (e.key === 'Escape' && !back.classList.contains('hub-must')) close(); }; // (hub-must: answered, not dismissed)
+    back.addEventListener('click', e => { if (back.classList.contains('hub-must')) return; if (e.target === back || e.target.closest('.hub-x')) close(); }); document.addEventListener('keydown', key);
     document.body.append(back); const f = back.querySelector('input, select, textarea, button.btn'); if (f) f.focus(); if (onReady) onReady(back.querySelector('.hub-dlg'), close); return close;
   }
   const say = (box, msg, ok) => { const p = box.querySelector('.hub-msg') || box.appendChild(h('<p class="hub-msg" role="status"></p>')); p.textContent = msg; p.classList.toggle('ok', !!ok); };
@@ -85,12 +85,15 @@
         ${tab === 'in' ? '<button class="hub-link" type="button" data-t="reset">Forgot your password?</button>' : ''}
       </form><p class="muted small">The same account as in the game: your progress, looks and purchases are shared.</p></div>`;
     for (const b of box.querySelectorAll('[data-t]')) b.onclick = () => authPanel(box, done, b.dataset.t);
+    if (tab !== 'reset') google.then(on => { if (!on || !box.isConnected) return; const g = h(`<div class="hub-google"><button class="btn-google" type="button">${G_LOGO}<span>Continue with Google</span></button><p class="hub-or"><span>or with your email</span></p></div>`);
+      box.querySelector('.hub-form').before(g); g.querySelector('button').onclick = () => googleGo().catch(err => say(box.querySelector('form'), err.message || String(err))); });
+    if (googleMsg) { say(box.querySelector('form'), googleMsg); googleMsg = ''; }
     const form = box.querySelector('form'); let token = () => undefined;
     captcha(box.querySelector('.hub-cap')).then(t => { token = t; }, () => { /* no check: the server will say */ });
     form.onsubmit = async e => {
       e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const btn = form.querySelector('[type=submit]'); btn.disabled = true;
       try {
-        if (tab === 'in') { const { error } = await sb.auth.signInWithPassword({ email: v.email.trim(), password: v.pw, options: { captchaToken: token() } }); if (error) throw error; await loadMe(); done(); return; }
+        if (tab === 'in') { const { error } = await sb.auth.signInWithPassword({ email: v.email.trim(), password: v.pw, options: { captchaToken: token() } }); if (error) throw error; await loadMe(); signedIn(done); return; }
         if (tab === 'reset') { const { error } = await sb.auth.resetPasswordForEmail(v.email.trim(), { captchaToken: token() }); if (error) throw error; codeStep(box, v.email.trim(), 'recovery', done); return; }
         const name = String(v.name || '').trim(); if (!/^[A-Za-z0-9 _.'-]{3,16}$/.test(name)) throw new Error('Choose a keeper name of 3 to 16 letters or numbers.');
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email || '')) throw new Error('That doesn\'t look like an email address.');
@@ -116,9 +119,57 @@
       e.preventDefault(); const v = Object.fromEntries(new FormData(form));
       try { const { error } = await sb.auth.verifyOtp({ email, token: String(v.code).trim(), type }); if (error) throw error;
         if (type === 'recovery') { const { error: e2 } = await sb.auth.updateUser({ password: v.pw }); if (e2) throw e2; }
-        await loadMe(); done(); } catch (err) { say(form, err.message || String(err)); }
+        await loadMe(); signedIn(done); } catch (err) { say(form, err.message || String(err)); }
     };
   }
+  // ---------- 0.31: Sign in with Google (shown once the owner has turned Google on in Supabase) ----------
+  const google = fetch(`${CFG.url}/auth/v1/settings`, { headers: { apikey: CFG.key } }).then(r => r.json()).then(j => !!(j && j.external && j.external.google), () => false);
+  const G_LOGO = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  async function googleGo() {
+    try { sessionStorage.setItem('lk-site-oauth', '1'); } catch (e) { /* */ }
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname + location.search.replace(/[?&](code|error|error_description|error_code|state)=[^&]*/g, ''), queryParams: { prompt: 'select_account' } } });
+    if (error) throw error;
+  }
+  // back from Google: ?code=... (or ?error=...); the session is made from it and the address cleaned up
+  let googleMsg = '';
+  async function googleReturn() {
+    const q = new URLSearchParams(location.search), code = q.get('code'), err = q.get('error_description') || q.get('error'); if (!code && !err) return;
+    let ours = false; try { ours = !!sessionStorage.getItem('lk-site-oauth'); sessionStorage.removeItem('lk-site-oauth'); } catch (e) { /* */ }
+    for (const k of ['code', 'error', 'error_description', 'error_code', 'state']) q.delete(k);
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    if (!ours) return;
+    if (err) { googleMsg = 'Google sign-in did not finish. Try again, or use your email.'; return; }
+    const { error } = await sb.auth.exchangeCodeForSession(code); if (error) googleMsg = error.message;
+  }
+  // an account made with Google answers the sign-up questions first, as every account does (complete_consent)
+  function consentPanel(then) {
+    const y = new Date().getFullYear();
+    modal(`<h2>Finish your account</h2><p>Signed in with Google as <b>${esc(me.email)}</b>. A few questions before you go on, as for every account. Accounts are for players aged 13 or over.</p>
+      <form class="hub-form" novalidate><label>Keeper name<input name="name" maxlength="16" autocomplete="nickname" required></label>
+        <div class="hub-row"><label>Born in<select name="bm"><option value="">Month</option>${MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select></label>
+          <label>&nbsp;<select name="by"><option value="">Year</option>${Array.from({ length: 100 }, (_, i) => y - i).map(v => `<option>${v}</option>`).join('')}</select></label></div>
+        <label class="hub-check"><input type="checkbox" name="parent"> I am 13 to 15 and a parent or guardian agrees</label>
+        <label class="hub-check"><input type="checkbox" name="terms"> I agree to the <a href="terms.html" target="_blank">Terms of Service</a> and have read the <a href="privacy-policy.html" target="_blank">Privacy Policy</a></label>
+        <label class="hub-check"><input type="checkbox" name="news"> Send me patch notes and updates (you can stop them any time)</label>
+        <button class="btn btn-primary" type="submit">Finish</button> <button class="btn btn-ghost" type="button" data-cancel>Cancel and sign out</button></form>`, (dlg, close) => {
+      const form = dlg.querySelector('form'); dlg.closest('.hub-modal').classList.add('hub-must');
+      dlg.querySelector('[data-cancel]').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); close(); location.reload(); };
+      form.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(form)), btn = form.querySelector('[type=submit]'); btn.disabled = true;
+        try {
+          const name = String(v.name || '').trim(); if (!/^[A-Za-z0-9 _.'-]{3,16}$/.test(name)) throw new Error('Choose a keeper name of 3 to 16 letters or numbers.');
+          if (!v.bm || !v.by) throw new Error('Choose the month and year you were born.');
+          const now = new Date(), age = now.getFullYear() - +v.by - (now.getMonth() + 1 < +v.bm ? 1 : 0), ok = age >= AGE_MIN, teen = ok && age < PARENT_UNDER;
+          if (teen && !v.parent) throw new Error('Players aged 13 to 15 need a parent or guardian to agree: tick the box when they do.');
+          if (ok && !v.terms) throw new Error('Please agree to the Terms of Service to make an account.');
+          const unsub = Array.from(crypto.getRandomValues(new Uint8Array(18)), x => x.toString(16).padStart(2, '0')).join('');
+          const { data, error } = await sb.rpc('complete_consent', { p_age_ok: ok, p_teen: teen, p_parent_ok: teen, p_terms: TERMS, p_news: !!v.news, p_name: name, p_unsub: unsub, p_adult: age >= 18 }); if (error) throw error;
+          if (data === 'deleted') { await sb.auth.signOut({ scope: 'local' }); form.innerHTML = '<p>Accounts are for players aged 13 or over, so that account was removed. You can still play the game as a guest.</p>'; setTimeout(() => location.reload(), 4000); return; }
+          close(); await loadMe(); then();
+        } catch (err) { say(form, err.message || String(err)); btn.disabled = false; } };
+    });
+  }
+  // after any sign-in: an account made with Google answers the questions first (0.31)
+  const signedIn = done => { if (me && myProfile && myProfile.consent_pending) consentPanel(done); else done(); };
   function needSignIn(box, why, done) { box.innerHTML = `<p class="hub-lead">${esc(why)}</p><div class="hub-authbox"></div>`; authPanel(box.querySelector('.hub-authbox'), done); }
 
   // ---------- the store ----------
@@ -210,10 +261,11 @@
   async function renderAccount() {
     if (!me) { needSignIn(root, 'Sign in with your Lantern Keeper account, or make one: it is the same account as in the game.', () => { const n = new URLSearchParams(location.search).get('next'); if (n && /^[a-z-]+\.html$/.test(n)) location.href = n; else renderAccount(); }); return; }
     root.innerHTML = '<p class="muted">Loading your account...</p>';
-    const [w, e, c, prefs, o] = await Promise.all([sb.from('wallets').select('lumens').eq('user_id', me.id).maybeSingle(), sb.from('entitlements').select('sku, granted_at, revoked_at').eq('user_id', me.id),
+    const [w, e, c, prefs, o, kp] = await Promise.all([sb.from('wallets').select('lumens').eq('user_id', me.id).maybeSingle(), sb.from('entitlements').select('sku, granted_at, revoked_at').eq('user_id', me.id),
       sb.from('club_members').select('until, status, paypal_sub, months, currency, amount_cents, env').eq('user_id', me.id).maybeSingle(), sb.from('comm_prefs').select('*').eq('user_id', me.id).maybeSingle(),
-      sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference, env').order('created_at', { ascending: false }).limit(30)]);
-    const p = myProfile || {}, ents = (e.data || []).filter(x => !x.revoked_at), sc = p.showcase || {}, md = me.user_metadata || {};
+      sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference, env').order('created_at', { ascending: false }).limit(30),
+      sb.rpc('keeper_page', { p_user: me.id }).then(x => x, () => ({ data: null }))]); // (0.31: the best wave and nights)
+    const k = (kp && kp.data) || {}, p = myProfile || {}, ents = (e.data || []).filter(x => !x.revoked_at), sc = p.showcase || {}, md = me.user_metadata || {};
     const packs = ents.filter(x => SKU_NAME[x.sku] && x.sku !== 'lk.club').map(x => SKU_NAME[x.sku]), lanterns = ents.filter(x => /^lk\.club\.\d{4}-\d\d$/.test(x.sku)).length, looks = ents.filter(x => /^lumen:/.test(x.sku)).length;
     const member = c.data && Date.parse(c.data.until) > Date.now(), cp = prefs.data || {};
     store.products = store.products.length ? store.products : ((await sb.from('store_products').select('*')).data || []);
@@ -650,7 +702,7 @@
   }
 
   // ---------- start ----------
-  loadMe().then(() => {
+  googleReturn().then(loadMe).then(() => new Promise(res => { if (me && myProfile && myProfile.consent_pending) consentPanel(res); else res(); })).then(() => {
     if (PAGE === 'store') renderStore();
     else if (PAGE === 'account') renderAccount();
     else if (PAGE === 'community') startCommunity();
