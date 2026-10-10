@@ -113,7 +113,7 @@ function layout(meta, body) {
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">${ld}
-<script>document.documentElement.classList.add('js')</script>
+<script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.LKSITE)document.documentElement.classList.remove('js')},3000)</script>
 </head>
 <body>
 ${sprite()}
