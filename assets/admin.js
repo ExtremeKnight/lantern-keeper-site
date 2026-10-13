@@ -20,9 +20,36 @@ window.LKAdmin = function (root, A) {
   const nm = id => id ? `<a href="community.html#/k/${id}" target="_blank" rel="noopener" title="${esc(mails.get(id) || '')}">${esc(names.get(id) || 'A keeper')}</a>${mails.get(id) ? ` <span class="adm-mailto">${esc(mails.get(id))}</span>` : ''}` : '<i>deleted account</i>';
 
   if (!A.me) { root.innerHTML = '<section class="card"><h2>The dashboard</h2><p>Sign in with a team or moderator account.</p><button class="btn btn-primary" data-in>Sign in</button></section>'; root.querySelector('[data-in]').onclick = A.signIn; return; }
+  // 0.31: two-step sign-in for the team. Asked before anything else: a member who has it on has no permissions until the
+  // second step is passed (the server checks it again for every action); an owner can require it for everyone
+  if (!A.tf) { sb.rpc('my_2fa').then(({ data }) => { A.tf = data || {}; if (A.tf.on && A.tf.aal !== 'aal2') return twoStepCode(); if (A.tf.team && !A.tf.on && A.tf.required) return twoStepSetup(true); window.LKAdmin(root, A); }, () => { A.tf = {}; window.LKAdmin(root, A); }); root.innerHTML = '<p class="muted">Loading the dashboard…</p>'; return; }
+  async function twoStepCode() {
+    const { data: fl } = await sb.auth.mfa.listFactors(), fac = fl && (fl.totp || []).find(x => x.status === 'verified'); if (!fac) { A.tf.on = false; return window.LKAdmin(root, A); }
+    root.innerHTML = `<section class="card hub-auth"><h2>Two-step sign-in</h2><p>Enter the 6-digit code from your authenticator app to open the dashboard.</p>
+      <form class="hub-form"><label>Code<input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label><button class="btn btn-primary" type="submit">Continue</button></form></section>`;
+    const form = root.querySelector('form'); form.code.focus();
+    form.onsubmit = async e => { e.preventDefault(); const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: fac.id, code: String(form.code.value).trim() }); if (error) return say(form, 'That code is wrong or has expired. Try the newest one.'); location.reload(); };
+  }
+  async function twoStepSetup(forced) {
+    const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Lantern Keeper dashboard ' + new Date().toISOString().slice(0, 10) });
+    if (error) { const box = forced ? root : null; const msg = '<h2>Two-step sign-in</h2><p>' + esc(error.message) + '</p>'; return box ? (root.innerHTML = '<section class="card">' + msg + '</section>') : modal(msg); }
+    const html = `<h2>Turn on two-step sign-in</h2>${forced ? '<p><b>The owners ask everyone on the team to use it.</b></p>' : ''}<p>1. In an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy…), add an account by scanning this code:</p>
+      <p><img src="${esc(data.totp.qr_code)}" alt="QR code for your authenticator app" width="180" height="180" style="background:#fff;border-radius:8px;padding:6px"></p>
+      <p class="muted small">Can't scan? Enter this key instead: <code>${esc(data.totp.secret)}</code></p>
+      <p>2. Type the 6-digit code it shows:</p><form class="hub-form"><label>Code<input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label><button class="btn btn-primary" type="submit">Turn it on</button></form>
+      <p class="muted small">From then on, the dashboard asks for a code from the app each time you sign in. Lost the phone? An owner can turn it off for you in People and roles.</p>`;
+    const wire = (box, close) => { const form = box.querySelector('form'); form.onsubmit = async e => { e.preventDefault(); const { error: e2 } = await sb.auth.mfa.challengeAndVerify({ factorId: data.id, code: String(form.code.value).trim() }); if (e2) return say(form, 'That code is wrong or has expired. Try the newest one.'); if (close) close(); location.reload(); }; };
+    if (forced) { root.innerHTML = '<section class="card hub-auth">' + html + '</section>'; wire(root); } else modal(html, (dlg, close) => wire(dlg, async () => { close(); }));
+  }
   const can = A.can; // 0.30.1: what this account may open comes from the permissions page (the server checks again)
   if (!can('dashboard.open')) { root.innerHTML = '<section class="card"><h2>Not for this account</h2><p>The dashboard is for the Lantern Keeper team and moderators.</p></section>'; return; }
   const team = can('payments.view'), owner = A.isOwner();
+  if (A.tf.required !== undefined && !A.tf.on) { const n = document.createElement('section'); /* (once the server has it: my_2fa answered) */ n.className = 'card hub-2fa'; n.innerHTML = '<p><b>Protect the dashboard:</b> turn on two-step sign-in, with a code from an authenticator app. <button class="btn btn-primary btn-sm" type="button" data-2fa>Turn it on</button></p>'; setTimeout(() => { root.prepend(n); n.querySelector('[data-2fa]').onclick = () => twoStepSetup(false); }, 0); }
+  if (owner && A.tf.aal === 'aal2') setTimeout(async () => { // (only in a session that passed the second step)
+    const { data: ts } = await sb.from('team_settings').select('on').eq('key', 'team_2fa').maybeSingle(); const on = !!(ts && ts.on), c = document.createElement('section'); c.className = 'card hub-2fa';
+    c.innerHTML = `<p><b>Two-step sign-in for everyone on the team:</b> ${on ? 'required' : 'optional'}. <button class="btn btn-ghost btn-sm" type="button" data-req>${on ? 'Make it optional' : 'Require it'}</button></p>`; root.prepend(c);
+    c.querySelector('[data-req]').onclick = async () => { const { error } = await sb.from('team_settings').update({ on: !on, updated_at: new Date().toISOString(), updated_by: A.me.id }).eq('key', 'team_2fa'); if (error) return err(error); location.reload(); };
+  }, 0);
 
   // section: [id, label, the permissions that open it (any one), draw]
   const SECTIONS = [
@@ -249,11 +276,12 @@ window.LKAdmin = function (root, A) {
       `<form class="adm-filters" data-q><input name="q" placeholder="Email, name or friend code" value="${esc(q)}" aria-label="Search people"><button class="btn btn-ghost btn-sm">Search</button></form>`)
       + `<div class="adm-table">${(data || []).map(p => `<div class="adm-row"><span><b>${esc(p.name || '(no name)')}</b> ${A.roleChips(p.roles)}<br><small>${esc(p.email || '')} · joined ${day(p.created_at)}${p.last_seen ? ' · seen ' + ago(p.last_seen) : ''}</small></span>
         <span><small>${p.paid_orders} paid order${p.paid_orders === 1 ? '' : 's'}${p.club_until && Date.parse(p.club_until) > Date.now() ? ' · Club until ' + day(p.club_until) : ''}${p.muted_until && Date.parse(p.muted_until) > Date.now() ? ' · <b>muted</b>' : ''}${p.banned_until && Date.parse(p.banned_until) > Date.now() ? ' · <b>banned until ' + day(p.banned_until) + '</b>' : ''}</small></span>
-        <span class="adm-acts"><button class="btn btn-ghost btn-sm" data-who="${p.id}">Details</button><button class="btn btn-ghost btn-sm" data-roles="${p.id}">Roles</button><button class="btn btn-ghost btn-sm" data-mute="${p.id}">Mute</button>${p.id !== A.me.id ? `<button class="btn btn-ghost btn-sm" data-ban="${p.id}">Ban</button>` : ''}</span></div>`).join('') || '<p class="muted">Nobody found.</p>'}</div>`;
+        <span class="adm-acts"><button class="btn btn-ghost btn-sm" data-who="${p.id}">Details</button><button class="btn btn-ghost btn-sm" data-roles="${p.id}">Roles</button><button class="btn btn-ghost btn-sm" data-mute="${p.id}">Mute</button>${p.id !== A.me.id ? `<button class="btn btn-ghost btn-sm" data-ban="${p.id}">Ban</button>` : ''}${A.isOwner() && p.id !== A.me.id && A.tf && A.tf.aal === 'aal2' ? `<button class="btn btn-ghost btn-sm" data-mfa="${p.id}" title="Turn off their two-step sign-in (a lost phone)">Reset 2-step</button>` : ''}</span></div>`).join('') || '<p class="muted">Nobody found.</p>'}</div>`;
     el.querySelector('[data-q]').onsubmit = e => { e.preventDefault(); sessionStorage.setItem('adm-q', new FormData(e.target).get('q').trim()); route(); };
     for (const p of data || []) names.set(p.id, p.name || p.email);
     for (const b of el.querySelectorAll('[data-mute]')) b.onclick = () => muteBox(b.dataset.mute);
     for (const b of el.querySelectorAll('[data-who]')) b.onclick = () => whoBox(data.find(x => x.id === b.dataset.who)).catch(err);
+    for (const b of el.querySelectorAll('[data-mfa]')) b.onclick = () => modal(`<h2>Reset two-step sign-in?</h2><p>${esc(names.get(b.dataset.mfa) || 'This member')} signs in with only their password until they turn it on again. Do this only when you are sure it is them (a lost phone).</p><p><button class="btn btn-primary" type="button" data-yes>Reset</button></p>`, (d, close) => { d.querySelector('[data-yes]').onclick = () => call('admin', { action: 'mfa_reset', user: b.dataset.mfa }).then(r => { close(); modal(`<h2>Done</h2><p>${r.removed} authenticator${r.removed === 1 ? '' : 's'} removed.</p>`); }, err); });
     for (const b of el.querySelectorAll('[data-ban]')) b.onclick = () => modal(`<h2>Ban ${esc(names.get(b.dataset.ban))}</h2><form class="hub-form"><label>Days (0 lifts a ban)<input name="days" type="number" min="0" max="3650" value="7"></label><button class="btn btn-primary" type="submit">Save</button></form><p class="muted small">A banned account can't sign in until then. Their purchases stay theirs.</p>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = e => { e.preventDefault(); call('admin', { action: 'ban', user: b.dataset.ban, days: +new FormData(f).get('days') }).then(() => { close(); route(); }, x => say(f, x.message)); }; });
     for (const b of el.querySelectorAll('[data-roles]')) b.onclick = () => rolesBox(data.find(x => x.id === b.dataset.roles)).catch(err);

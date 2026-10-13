@@ -199,6 +199,41 @@
         } catch (err) { say(form, err.message || String(err)); btn.disabled = false; } };
     });
   }
+  // ---------- 0.31: your data and devices, yourself ----------
+  // everything the account holds, as one file (the same rows the server keeps for you; never other keepers' data)
+  async function downloadMyData(btn) {
+    const was = btn.textContent; btn.textContent = 'Gathering…'; btn.disabled = true;
+    try {
+      const mine = (t, cols = '*', key = 'user_id') => sb.from(t).select(cols).eq(key, me.id).then(r => r.data || [], () => []);
+      const [save, wallet, ents, prefs, orders, devices, posts, seeds, pvp, pvpPast, friends] = await Promise.all([mine('saves', 'data, rev, device, updated_at'), mine('wallets'), mine('entitlements'), mine('comm_prefs'),
+        sb.from('store_orders').select('id, sku, method, currency, amount_cents, status, created_at, reference').eq('user_id', me.id).then(r => r.data || [], () => []),
+        mine('push_tokens', 'platform, cats, created_at, seen_at'), mine('community_posts', 'id, title, body, category, created_at', 'author'), mine('seed_results'), mine('pvp_ratings'), mine('pvp_season_results'),
+        sb.from('friendships').select('requester, addressee, status, created_at').or(`requester.eq.${me.id},addressee.eq.${me.id}`).then(r => r.data || [], () => [])]);
+      const out = { exported_at: new Date().toISOString(), about: 'Your Lantern Keeper account data (https://lk.exenova.is-local.host/privacy-policy.html).',
+        account: { id: me.id, email: me.email, created_at: me.created_at, sign_in_with: (me.identities || []).map(i => i.provider) }, profile: myProfile,
+        cloud_save: save[0] || null, lumens: wallet[0] || null, owned_items: ents, email_choices: prefs[0] || null, orders, notification_devices: devices, community_posts: posts,
+        seed_results: seeds, ranked: pvp[0] || null, ranked_past_seasons: pvpPast, friends };
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
+      a.download = `lantern-keeper-data-${new Date().toISOString().slice(0, 10)}.json`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } finally { btn.textContent = was; btn.disabled = false; }
+  }
+  // the devices that get this account's notifications (each phone or browser that turned them on)
+  async function myDevices() {
+    const { data } = await sb.from('push_tokens').select('token, platform, created_at, seen_at').eq('user_id', me.id).order('seen_at', { ascending: false });
+    const rows = data || [], name = { android: 'Android phone or tablet', ios: 'iPhone or iPad', web: 'A web browser' };
+    modal(`<h2>My devices</h2><p>Phones and browsers that get notifications for this account. Removing one stops them there (it can turn them on again in Settings).</p>
+      ${rows.length ? '<ul class="hub-devices">' + rows.map((r, i) => `<li><span><b>${esc(name[r.platform] || r.platform || 'A device')}</b><small>Since ${esc(day(r.created_at))}${r.seen_at ? ' · last seen ' + esc(ago(r.seen_at)) : ''}</small></span><button class="btn btn-ghost btn-sm" type="button" data-dev="${i}">Remove</button></li>`).join('') + '</ul>' : '<p class="muted">No device gets notifications for this account.</p>'}
+      <p class="muted small">Signed in somewhere you don't recognise? Use <b>Sign out everywhere</b>, then change your password.</p>`, (dlg, close) => {
+      for (const b of dlg.querySelectorAll('[data-dev]')) b.onclick = async () => { b.disabled = true; await sb.from('push_tokens').delete().eq('user_id', me.id).eq('token', rows[+b.dataset.dev].token); close(); myDevices(); };
+    });
+  }
+  function signOutEverywhere() {
+    modal(`<h2>Sign out everywhere?</h2><p>Every phone, computer and browser signed in to this account is signed out, this one too. Progress on each device stays there and syncs again when you sign back in.</p>
+      <p><button class="btn btn-primary" type="button" data-yes>Sign out everywhere</button> <button class="btn btn-ghost" type="button" data-no>Cancel</button></p>`, (dlg, close) => {
+      dlg.querySelector('[data-no]').onclick = close;
+      dlg.querySelector('[data-yes]').onclick = async () => { await sb.auth.signOut({ scope: 'global' }); close(); await loadMe(); renderAccount(); };
+    });
+  }
   function needSignIn(box, why, done) { box.innerHTML = `<p class="hub-lead">${esc(why)}</p><div class="hub-authbox"></div>`; authPanel(box.querySelector('.hub-authbox'), done); }
 
   // ---------- the store ----------
@@ -221,10 +256,12 @@
   async function renderStore() {
     root.innerHTML = '<p class="muted">Loading the store...</p>';
     await loadStore();
+    // (0.31: gifts show once the server takes them: its orders have a gift_to column)
+    if (store.gifts === undefined) store.gifts = me ? !(await sb.from('store_orders').select('gift_to').limit(1)).error : false;
     const cur = store.cur(), member = store.club && Date.parse(store.club.until) > Date.now();
     const offer = p => p.offer && (!p.offer_ends || Date.parse(p.offer_ends) > Date.now()) ? `<span class="hub-offer">${esc(p.offer)}${p.offer_ends ? ' · until ' + day(p.offer_ends) : ''}</span>` : '';
     const card = p => `<article class="card hub-prod kind-${p.kind}">${offer(p)}<h3>${esc(p.label)}</h3>${p.kind === 'lumens' ? `<p class="hub-lum">${Number(p.lumens).toLocaleString()} Lumens</p>` : `<p>${esc(p.blurb)}</p>`}
-      <button class="btn btn-primary" data-buy="${esc(p.sku)}">${p.kind === 'club' ? 'One month · ' : ''}${store.price(p, cur)}</button></article>`;
+      <button class="btn btn-primary" data-buy="${esc(p.sku)}">${p.kind === 'club' ? 'One month · ' : ''}${store.price(p, cur)}</button>${store.gifts && (p.kind === 'lumens' || p.kind === 'club') ? `<button class="btn btn-ghost btn-sm" data-gift="${esc(p.sku)}">Gift to a friend</button>` : ''}</article>`; // (0.31: gifts)
     const club = store.products.find(p => p.kind === 'club');
     root.innerHTML = `
       <div class="hub-bar"><div>${me ? `Signed in as <b>${esc(myProfile && myProfile.display_name || me.email)}</b> ${roleChips(myRoles)} · <a href="account.html">Your account</a>` : '<a href="account.html?next=store.html" class="btn btn-ghost btn-sm">Sign in to buy</a>'}</div>
@@ -242,6 +279,7 @@
       <p class="muted small">Sold by Exenova. Pay with PayPal (a PayPal account or a card) or GCash and bank transfer. Everything goes to your account, in the game on every device. Refunds within 14 days: see the <a href="terms.html#4a-refunds">Terms</a>. If you are under 18, ask a parent before buying.</p>`;
     for (const b of root.querySelectorAll('.hub-cur [data-cur]')) b.onclick = () => { store.setCur(b.dataset.cur); renderStore(); };
     for (const b of root.querySelectorAll('[data-buy]')) b.onclick = () => buy(store.products.find(p => p.sku === b.dataset.buy));
+    for (const b of root.querySelectorAll('[data-gift]')) b.onclick = () => gift(store.products.find(p => p.sku === b.dataset.gift));
     const j = root.querySelector('[data-club]'); if (j) j.onclick = () => joinClub();
     const st = root.querySelector('[data-club-stop]'); if (st) st.onclick = () => modal(`<h2>Cancel your subscription?</h2><p>No more monthly payments. You stay a member until <b>${day(store.club.until)}</b>; then the Club frame, badge and title end. The lanterns you received stay yours, and you can join again any time.</p><div class="hub-actions"><button class="btn btn-primary" data-ok>Cancel the subscription</button><button class="btn btn-ghost" data-keep>Keep it</button></div>`, (d, close) => { d.querySelector('[data-keep]').onclick = close; d.querySelector('[data-ok]').onclick = async () => { try { await call('store', { action: 'club_cancel' }); close(); renderStore(); } catch (e) { say(d, e.message); } }; });
   }
@@ -264,6 +302,23 @@
       for (const b of d.querySelectorAll('[data-gc]')) b.onclick = () => { close(); gcash(p, b.dataset.gc); };
     });
   }
+  // 0.31: a gift for a friend (an accepted friend in the game): Lumens or a Club month, with a short note
+  async function gift(p) {
+    if (!me) { location.href = 'account.html?next=store.html'; return; }
+    const { data: fr } = await sb.from('friendships').select('requester, addressee').eq('status', 'accepted').or(`requester.eq.${me.id},addressee.eq.${me.id}`);
+    const ids = (fr || []).map(x => x.requester === me.id ? x.addressee : x.requester), { data: nm } = ids.length ? await sb.rpc('keeper_names', { ids }) : { data: [] };
+    const cur = store.payCur(p), s = store.settings || {}, gc = s.manual_on && (s.gcash_number || s.gcash_qr);
+    if (!ids.length) return modal('<h2>Gift to a friend</h2><p>Gifts go to your friends in the game. Add a friend first: in the game, open Friends and share your friend code.</p>');
+    modal(`<h2>Gift: ${esc(p.label)}, ${store.price(p, cur)}</h2><p>${p.kind === 'club' ? 'One month in the Supporter Club for your friend.' : `${Number(p.lumens).toLocaleString()} Lumens for your friend.`} They get a notice saying it's from you. <b>One-time payment.</b></p>
+      <form class="hub-form"><label>Friend<select name="to" required>${ids.map(id => `<option value="${id}">${esc(((nm || []).find(n => n.id === id) || {}).display_name || 'A keeper')}</option>`).join('')}</select></label>
+      <label>A short note (optional)<input name="note" maxlength="120" placeholder="Happy birthday, keeper!"></label>
+      <div class="hub-actions"><button class="btn btn-primary" type="submit">PayPal or card</button>${gc ? '<button class="btn btn-ghost" type="button" data-gc>GCash (pesos)</button>' : ''}</div></form>`, (d) => {
+      const f = d.querySelector('form'), val = () => Object.fromEntries(new FormData(f));
+      f.onsubmit = async e => { e.preventDefault(); const v = val(), btn = f.querySelector('[type=submit]'); btn.disabled = true;
+        try { const r = await call('store', { action: 'create', sku: p.sku, currency: cur, gift_to: v.to, note: v.note }); location.href = r.approve; } catch (err) { say(f, err.message); btn.disabled = false; } };
+      const g = d.querySelector('[data-gc]'); if (g) g.onclick = () => { const v = val(); gcash(Object.assign({}, p, { giftTo: v.to, giftNote: v.note }), 'gcash'); };
+    });
+  }
   async function joinClub() {
     if (!me) { location.href = 'account.html?next=store.html'; return; }
     try { const r = await call('store', { action: 'club', currency: store.payCur(store.products.find(x => x.kind === 'club') || {}) }); location.href = r.approve; } catch (e) { modal(`<h2>Not started</h2><p>${esc(e.message)}</p>`); }
@@ -278,7 +333,7 @@
         <label>Name on the account you paid from <small>(optional, helps us find it)</small><input name="payer" maxlength="80" autocomplete="name"></label>
         <button class="btn btn-primary" type="submit">Submit payment</button></form>`, (d, close) => {
       const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
-        try { const r = await call('store', { action: 'manual', sku: p.sku, currency: 'PHP', method, reference: v.ref, payer: v.payer });
+        try { const r = await call('store', { action: 'manual', gift_to: p.giftTo || undefined, note: p.giftNote || undefined, sku: p.sku, currency: 'PHP', method, reference: v.ref, payer: v.payer });
           d.innerHTML = `<h2>Payment submitted</h2><dl class="hub-sum"><dt>Product</dt><dd>${esc(p.label)}</dd><dt>Payment</dt><dd>${g ? 'GCash' : 'Bank transfer'}</dd><dt>Amount</dt><dd>${price} PHP</dd><dt>Status</dt><dd><b>Pending</b>: being checked</dd><dt>Reference</dt><dd>${esc(String(v.ref).trim())}</dd><dt>Order</dt><dd>${esc(String(r.order).slice(0, 8))}</dd></dl><p>We check it against our ${g ? 'GCash' : 'bank'} history, usually within a day; then it is in your account and the game tells you.</p><div class="hub-actions"><button class="btn btn-primary" data-done>Done</button></div>`;
           d.querySelector('[data-done]').onclick = () => { close(); renderStore(); };
         } catch (err) { say(f, err.message); } };
@@ -302,7 +357,8 @@
       <section class="card hub-me"><div class="hub-me-head"><div class="hub-av" aria-hidden="true">${p.web_avatar ? `<img src="${esc(CFG.url + '/storage/v1/object/public/community/' + p.web_avatar)}" alt="">` : esc((p.display_name || '?').slice(0, 1))}</div><div>
         <h2>${esc(p.display_name || 'Keeper')}</h2><p>${roleChips(myRoles)} <span class="muted">Joined ${day(p.created_at || me.created_at)} · Friend code ${esc(p.friend_code || '-')}</span></p></div></div>
         <div class="hub-stats">${k.game && k.game.best ? `<span><b>${esc(k.game.best)}</b> best wave</span>` : ''}${k.game && k.game.runs ? `<span><b>${esc(k.game.runs)}</b> nights</span>` : ''}${sc.level ? `<span><b>${esc(sc.level)}</b> level</span>` : ''}${sc.regions != null ? `<span><b>${esc(sc.regions)}</b> regions</span>` : ''}${sc.achievements != null ? `<span><b>${esc(sc.achievements)}</b> achievements</span>` : ''}<span><b>${(w.data && w.data.lumens) || 0}</b> Lumens</span><span><b>${looks + packs.length + lanterns}</b> paid looks and packs</span></div>
-        <p>${can('dashboard.open') ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button> · <button class="hub-link" data-del>Delete my account</button></p></section>
+        <p>${can('dashboard.open') ? '<a href="admin.html"><b>Dashboard</b></a> · ' : ''}<a href="community.html#/k/${me.id}">Your public page</a> · <a href="play/">Play</a> · <button class="hub-link" data-out>Sign out</button> · <button class="hub-link" data-del>Delete my account</button></p>
+        <p><button class="hub-link" data-mydata>Download my data</button> · <button class="hub-link" data-devices>My devices</button> · <button class="hub-link" data-outall>Sign out everywhere</button></p></section>
       <section class="card"><h2>Profile</h2><p class="muted small">Your picture, banner, name and colour show in the community and on your page. Your in-game avatar, frame and title are changed in the game (Profile).</p><div data-profile-editor></div></section>
       <section class="card"><h2>Supporter status</h2>
         ${c.data ? subPanel(c.data, store.products.find(x => x.kind === 'club') || { usd_cents: 0, php_cents: 0 }) + `<p><a href="store.html">${renewing(c.data) ? 'Manage or cancel the subscription' : member ? 'Renew monthly' : 'Join again'}</a></p>` : '<p>Not in the Supporter Club. <a href="store.html">Join it</a>.</p>'}
@@ -316,7 +372,8 @@
       <section class="card"><h2>Purchase history</h2>${(o.data || []).length ? `<div class="hub-orders">${o.data.map(orderRow).join('')}</div>` : '<p class="muted">No web store purchases yet.</p>'}
         <p class="muted small">Purchases made in the Google Play version show in the game (Shop > Supporter).</p></section>`;
     root.querySelector('[data-out]').onclick = async () => { await sb.auth.signOut({ scope: 'local' }); await loadMe(); renderAccount(); };
-    root.querySelector('[data-del]').onclick = () => deleteAccount(); if (deleteNext) { deleteNext = false; deleteAccount(true); }
+    root.querySelector('[data-del]').onclick = () => deleteAccount();
+    root.querySelector('[data-mydata]').onclick = e => downloadMyData(e.target); root.querySelector('[data-devices]').onclick = () => myDevices(); root.querySelector('[data-outall]').onclick = () => signOutEverywhere(); if (deleteNext) { deleteNext = false; deleteAccount(true); }
     profileEditor(root.querySelector('[data-profile-editor]'), () => setTimeout(renderAccount, 600));
     const mf = root.querySelector('[data-mail]'); mf.onsubmit = async ev => { ev.preventDefault(); const v = Object.fromEntries(new FormData(mf));
       const row = { user_id: me.id, email_updates: !!v.email_updates, email_events: !!v.email_events, email_friends: !!v.email_friends, email_promos: md.adult ? !!v.email_promos : false, updated_at: new Date().toISOString() };

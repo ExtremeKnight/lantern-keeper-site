@@ -128,6 +128,19 @@
     if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
   }).catch(() => { dlBox.innerHTML = '<p class="note">The list of downloads could not be loaded. Every file is also on <a href="https://github.com/ExtremeKnight/lantern-keeper-site/releases/latest">GitHub</a>.</p>'; });
 
+  /* ---------- 0.31: the help centre search (support page): every answer that has all the words typed opens; the others step aside ---------- */
+  (function () {
+    const q = document.getElementById('helpQ'), n = document.getElementById('helpN'); if (!q) return;
+    const items = [...document.querySelectorAll('.faq details')], heads = [...document.querySelectorAll('.page h2[id]')];
+    const norm = t => String(t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+    let t0 = 0; q.addEventListener('input', () => { clearTimeout(t0); t0 = setTimeout(run, 120); });
+    function run() {
+      const words = norm(q.value).split(/s+/).filter(w => w.length > 1); let shown = 0;
+      for (const d of items) { const hit = !words.length || words.every(w => norm(d.textContent).includes(w)); d.hidden = !hit; if (words.length) d.open = hit; if (hit) shown++; }
+      for (const h of heads) { let el = h.nextElementSibling, any = false; while (el && !(el.tagName === 'H2')) { if (el.querySelector && el.querySelector('details:not([hidden])')) any = true; el = el.nextElementSibling; } h.hidden = words.length > 0 && !any; }
+      n.innerHTML = !words.length ? '' : shown ? (shown === 1 ? '1 answer' : shown + ' answers') : 'No answer has those words. Write to <a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a>: we read every message.';
+    }
+  })();
   /* ---------- service status (support page): checked live from your browser ---------- */
   const stBox = $('[data-status]');
   if (stBox) {

@@ -935,3 +935,10 @@ a.adm-tile, .adm-tile { display: flex; flex-direction: column; align-items: flex
 .hub-or::before, .hub-or::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .14); }
 .hub-must .hub-x { display: none; }
 .btn-danger { background: #b3261e; color: #fff; border-color: #b3261e; } .btn-danger:hover { background: #d0342b; }
+/* 0.31: My devices */
+.hub-devices { list-style: none; padding: 0; margin: .6rem 0; display: grid; gap: .4rem; }
+.hub-devices li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .5rem .7rem; border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; }
+.hub-devices li span { display: grid; } .hub-devices small { color: var(--muted, #9aa3c7); }
+/* 0.31: help centre search */
+.help-search { display: grid; gap: .35rem; margin: 0 0 1rem; } .help-search label { font-weight: 700; }
+.help-search input { min-height: 44px; padding: .55rem .8rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .2); background: rgba(8, 12, 30, .6); color: inherit; font: inherit; }
