@@ -86,6 +86,8 @@
   .ps-bar { gap: 4px; } .ps-bar button, .ps-lang { min-width: 40px; height: 40px; }
 }
 @media (max-width: 380px) { .ps-bar [data-a="cc"] { display: none; } }
+/* a phone held upright: tighter stat cards and chips, so the longer languages (Filipino's titles wrap to two lines) still fit each slide */
+@media (max-width: 480px) { .ps-stats { gap: 10px; margin-bottom: 14px; } .ps-stats li { padding: 12px 8px; } .ps-chips { gap: 8px; margin-top: 12px; } }
 @media (max-height: 520px) { .ps-slide h1 { font-size: 3rem; } .ps-slide h2 { font-size: 1.8rem; } .ps-logo { width: 64px; } }
 @media (prefers-reduced-motion: reduce) { .ps-slide, .ps-on [style*="--i"], .ps-float, .ps-logo, .ps-bg { transition: none !important; animation: none !important; } .ps-slide { transform: none; } }
 @media (forced-colors: active) { .ps-bar button, .ps-stats li, .ps-loop li { border: 1px solid CanvasText; } }

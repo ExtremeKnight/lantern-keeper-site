@@ -55,6 +55,7 @@ module.exports = function buildPitch() {
 <link rel="stylesheet" href="assets/pitch.css">
 <meta property="og:title" content="Lantern Keeper: the presentation">
 <meta property="og:image" content="https://lk.exenova.is-local.host/assets/img/og.png">
+<link rel="canonical" href="https://lk.exenova.is-local.host/pitch.html">
 <script>document.documentElement.classList.add('js')</script>
 </head>
 <body class="pitch-body">

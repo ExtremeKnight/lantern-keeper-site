@@ -40,6 +40,7 @@
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
     reveals.forEach(el => io.observe(el));
   } else reveals.forEach(el => el.classList.add('in'));
+  window.LKSITE = 1; // (the page's safety net: without this, 3 seconds after loading every section is shown, so a script that failed never leaves the page blank)
 
   /* ---------- which device is this? (for the download buttons) ---------- */
   function device() {
