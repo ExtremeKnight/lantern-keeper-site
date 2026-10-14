@@ -1,7 +1,8 @@
 
 (() => {
 'use strict';
-const LK_VERSION = "0.30.1";
+const LK_TEST_HOOKS = false;
+const LK_VERSION = "0.31.0";
 const LK_PUSH = true;
 const LK_BUILD = "public";
 const LK_CLOUD = {"url":"https://odnjaegbkudwsfrwnjiy.supabase.co","key":"sb_publishable_IUdpT3MRtokyJD3SsNNF0Q_eZAovpor","privacyUrl":"https://lk.exenova.is-local.host/privacy-policy.html","termsUrl":"https://lk.exenova.is-local.host/terms.html","captcha":"40488912-dbd0-40ca-9726-be9e3f983e42","coop":""};
@@ -2389,7 +2390,7 @@ const Platform = (() => {
    ===================================================================== */
 // 0.29: Developer mode (a co-op tab for a server on this computer, the PvP match overlay) is for the developer build and the
 // test page (#debug) only: players never see the switch, and a saved 'on' does nothing in a public build
-const DEV_ALLOWED = LK_BUILD === 'developer' || /debug/.test(location.hash);
+const DEV_ALLOWED = LK_BUILD === 'developer' || (LK_TEST_HOOKS && /debug/.test(location.hash)); // (0.31: #debug only in builds made for testing, tools/build.js)
 const devOn = () => DEV_ALLOWED && !!(meta && meta.settings && meta.settings.dev);
 const KEY = 'lantern-keeper', OLD_KEY = 'lantern-keeper-v1', SAVE_VERSION = 5;
 // Versioned migrations (0.27). A save says which version wrote it (v). Each step below upgrades a stored save from the
@@ -2418,8 +2419,10 @@ const defMeta = () => ({ v: SAVE_VERSION, embers: 0, best: 0, runs: 0, bossKills
   lv: { dmg: 0, hp: 0, rate: 0, tap: 0, gain: 0, still: 0, start: 0, reroll: 0, cap: 0 },
   settings: { muted: false, quiet: false, speed: 1, gfx: 'auto', shake: true, flash: true, nums: true, haptics: true, amb: true, music: true, dev: false, pvpReactOff: false,
     vol: { music: 60, sfx: 80, ui: 70, amb: 60 }, motion: 'auto', musicTrack: 'auto', // 0.19: volumes 0-100, reduced motion, menu music
-    res: 2, fx: 100, ambient: true, fps: 0, ui: 100, contrast: false, cvd: 'off', captions: false, capSize: 'm', capBg: true, hand: 'right', ctlSize: 100, ctlAlpha: 100, overscan: 0, insights: false, insightsAsked: false, ntGame: true, ntEvents: true, ntCommunity: true, ntPromos: false, ntSound: true, ntSystem: false, ntPush: false, lang: '' }, // 0.30: which notifications show (Important always) // 0.30: anonymous statistics, off until the player agrees // 0.25: display, access, touch
-  inv: {}, boostNext: [], // 0.22: the satchel, and boosts ready for the next PvE night
+    res: 2, fx: 100, ambient: true, fps: 0, ui: 100, contrast: false, cvd: 'off', captions: false, capSize: 'm', capBg: true, hand: 'right', ctlSize: 100, ctlAlpha: 100, overscan: 0, insights: false, insightsAsked: false, ntGame: true, ntEvents: true, ntCommunity: true, ntPromos: false, ntSound: true, ntSystem: false, ntPush: false, lang: '', battery: false, readable: false, outline: false, autoTap: false, streamer: false, holdTap: false }, // 0.30: which notifications show (Important always) // 0.30: anonymous statistics, off until the player agrees // 0.25: display, access, touch
+  inv: {}, boostNext: [], loadouts: {}, bossIntro: {}, // 0.31: guardians already introduced
+  // 0.31: the last loadout used in each region (weapon, keeper, charms, lighthouse)
+  // 0.22: the satchel, and boosts ready for the next PvE night
   tseq: 0, // 0.23: the Trade chest's change counter (only the server moves it)
   favs: [], seen: {}, heard: {}, // 0.26: pinned items, items ever found, music heard
   stats: { kills: 0, elites: 0, taps: 0, earned: 0, away: 0, bossTypes: {}, regions: 0, byType: {}, time: 0, use: { w: {}, k: {}, r: {} }, partners: 0 }, ach: {}, run: null,
@@ -2431,13 +2434,17 @@ const defMeta = () => ({ v: SAVE_VERSION, embers: 0, best: 0, runs: 0, bossKills
   prestige: { shards: 0, total: 0, count: 0, tree: { power: 0, walls: 0, wick: 0, memory: 0, headstart: 0, reliquary: 0 } },
   daily: { key: '', best: 0, win: false, rewarded: false }, tips: {},
   profile: { name: 'Keeper', title: 'novice', xp: 0, avatar: 'keeper', frame: 'none', banner: 'night', badges: [], since: Date.now() }, records: { wave: 0, kills: 0, embers: 0, time: 0, bossRush: 0, clear: {} },
-  history: [], mastery: {}, weekly: { key: '', base: {}, claimed: {} }, lighthouse: { id: 'old', name: 'The Last Light', owned: {} }, asc: { max: 0, best: {} },
+  history: [], mastery: {}, weekly: { key: '', base: {}, claimed: {} }, season: { key: '', pts: 0, step: 0, titles: {} }, // (0.31: 07o-season.js)
+  lighthouse: { id: 'old', name: 'The Last Light', owned: {}, deco: {} }, asc: { max: 0, best: {} },
   cloud: { user: '', rev: 0, at: 0, sig: '' }, // 0.13: which account this save is linked to, the cloud revision it matches, when, and a fingerprint of that state
   entitlements: [], // 0.13: paid cosmetics the server says this account owns
   tides: { lost: 0, map: 0, rescues: 0, merchants: 0, hazards: 0, enraged: 0, syn: {} },
   bzk: { keys: {}, base: {} }, // 0.29: Bazaar district keys earned, and where each key's task started counting
   social: { muted: [], shareAch: false },
   pvpHist: [], // 0.15: the last PvP matches, on this device
+  pvpTut: 0, familyDay: '', familyPlayed: 0, outfits: [], // (0.31: the Family settings playtime count, 13k-family.js)
+  // (0.31: saved outfits, 09t-outfits.js)
+  // 0.31: the duel's basics learnt (Learn the duel)
   feats: { init: 0, chal: {}, rc: {}, n: {}, sec: {}, fest: {}, show: { a: [], c: [] }, chalNew: 0 } }); // 0.14 feats: challenges done (when), region clears, counters, secrets, festival nights, the profile's picks // 0.14: keepers muted on this device, sharing achievements in chat // 0.13: event chains and new-stop counters
 const num = (v, d, lo = 0, hi = 1e300) => { v = +v; return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 
@@ -2473,7 +2480,7 @@ function load() {
     ds.ui = Math.round(num(st.ui, 100, 85, 150)); ds.ctlSize = Math.round(num(st.ctlSize, 100, 80, 140)); ds.ctlAlpha = Math.round(num(st.ctlAlpha, 100, 40, 100)); ds.overscan = Math.round(num(st.overscan, 0, 0, 5));
     for (const k of ['ambient', 'contrast', 'captions', 'capBg']) if (k in st) ds[k] = !!st[k];
     ds.cvd = ['off', 'rg', 'by'].includes(st.cvd) ? st.cvd : 'off'; ds.capSize = ['s', 'm', 'l'].includes(st.capSize) ? st.capSize : 'm'; ds.hand = st.hand === 'left' ? 'left' : 'right';
-    for (const k of ['shake', 'flash', 'nums', 'haptics', 'amb', 'music', 'dev', 'pvpReactOff', 'insights', 'insightsAsked', 'ntGame', 'ntEvents', 'ntCommunity', 'ntPromos', 'ntSound', 'ntSystem', 'ntPush']) if (k in st) ds[k] = !!st[k];
+    for (const k of ['shake', 'flash', 'nums', 'haptics', 'amb', 'music', 'dev', 'pvpReactOff', 'insights', 'insightsAsked', 'ntGame', 'ntEvents', 'ntCommunity', 'ntPromos', 'ntSound', 'ntSystem', 'ntPush', 'battery', 'readable', 'outline', 'autoTap', 'holdTap', 'streamer']) if (k in st) ds[k] = !!st[k]; // (0.31: the four newest were missing, so they reset at every start)
     if (st.vol && typeof st.vol === 'object') for (const k in ds.vol) ds.vol[k] = Math.round(num(st.vol[k], ds.vol[k], 0, 100));
     else { if (st.quiet) ds.vol.sfx = 35; if (st.music === false) ds.vol.music = 0; if (st.amb === false) ds.vol.amb = 0; } // saves before 0.19
     ds.motion = ['auto', 'reduce', 'full'].includes(st.motion) ? st.motion : 'auto';
@@ -2487,6 +2494,8 @@ function load() {
     }
     ds.musicTrack = typeof st.musicTrack === 'string' && /^(auto|menu|(r:)?[a-z]{2,24})$/.test(st.musicTrack) ? st.musicTrack : 'auto'; // (0.27: any track; locked ones fall back when played)
   }
+  if (s.loadouts && typeof s.loadouts === 'object' && !Array.isArray(s.loadouts)) d.loadouts = s.loadouts;
+  if (s.bossIntro && typeof s.bossIntro === 'object') for (const k in s.bossIntro) if (/^[a-z0-9_-]{1,30}$/.test(k)) d.bossIntro[k] = 1; // 0.31 // 0.31 (checked by sanitizeMeta)
   if (s.inv && typeof s.inv === 'object') for (const k in s.inv) { const n = Math.floor(num(s.inv[k], 0, 0, 99)); if (n > 0 && /^[a-z]{2,16}$/.test(k)) d.inv[k] = n; } // known ids are checked once the items are loaded
   d.tseq = Math.floor(num(s.tseq, 0, 0, 1e12));
   if (Array.isArray(s.favs)) d.favs = s.favs.filter(x => typeof x === 'string' && /^[a-z]{2,16}$/.test(x)).slice(0, 50);
@@ -2511,6 +2520,7 @@ function load() {
     if (F0.day && typeof F0.day === 'object' && typeof F0.day.d === 'string') D.day = { d: F0.day.d.slice(0, 20), r: ids(F0.day.r, x => x ? 1 : 0) };
     if (F0.show && typeof F0.show === 'object') for (const k of ['a', 'c']) if (Array.isArray(F0.show[k])) D.show[k] = F0.show[k].filter(x => typeof x === 'string' && x.length < 60).slice(0, 3); }
   if (Array.isArray(s.loPresets)) d.loPresets = s.loPresets.slice(0, 3).map(p => p && typeof p === 'object' && typeof p.kpr === 'string' && typeof p.wpn === 'string' ? { kpr: p.kpr.slice(0, 24), wpn: p.wpn.slice(0, 24), charms: (Array.isArray(p.charms) ? p.charms : []).filter(c => typeof c === 'string').slice(0, 2).map(c => c.slice(0, 24)), at: num(p.at, 0) } : null); // 0.16 saved builds
+  d.pvpTut = s.pvpTut ? 1 : 0;
   if (Array.isArray(s.pvpHist)) d.pvpHist = s.pvpHist.filter(x => x && typeof x === 'object').slice(0, 12).map(x => ({ t: num(x.t, 0), foe: String(x.foe || '').slice(0, 24), ranked: !!x.ranked, res: ['win', 'loss', 'draw'].includes(x.res) ? x.res : 'loss', left: !!x.left }));
   if (s.social && typeof s.social === 'object') { d.social.shareAch = !!s.social.shareAch; if (Array.isArray(s.social.muted)) d.social.muted = s.social.muted.filter(x => typeof x === 'string' && /^[0-9a-f-]{36}$/.test(x)).slice(-200); }
   if (Array.isArray(s.entitlements)) d.entitlements = s.entitlements.filter(x => typeof x === 'string').map(x => x.slice(0, 64)).slice(0, 200);
@@ -3257,7 +3267,7 @@ const CODEX_B = {
   bell: { where: 'Endless waves 15, 35...', desc: 'Tolls rings that dim the lantern when they reach the tower.', tip: 'Kill it quickly: every toll costs you firepower.' },
   tempest: { where: 'Storm Waters, and Endless waves 20, 40...', desc: 'Calls lightning down on the tower and summons Stormlings at half health.', tip: 'Storm glass halves the lightning that hits the tower.' },
 };
-const CODEX_CATS = [['c', 'Creatures'], ['b', 'Bosses'], ['w', 'Weapons'], ['r', 'Regions'], ['l', 'Landmarks'], ['ev', 'Events']];
+const CODEX_CATS = [['s', 'Story'], ['c', 'Creatures'], ['b', 'Bosses'], ['w', 'Weapons'], ['r', 'Regions'], ['l', 'Landmarks'], ['ev', 'Events']]; // (0.31: the Story, 09b-menus.js storyPages)
 function discover(kind, id) { // records a first sighting (and says so during play)
   if (!meta.codex[kind] || meta.codex[kind][id]) return;
   meta.codex[kind][id] = 1; meta.codexNew = 1;
@@ -3313,6 +3323,10 @@ const itemPrice = it => it.key === dailyDeal() ? Math.ceil(it.price * .75) : it.
 
 /* ---------- Validate the content-dependent parts of the save (runs once, after the tables above exist) ---------- */
 function sanitizeMeta() {
+  { const L = meta.loadouts && typeof meta.loadouts === 'object' ? meta.loadouts : {}, out = {}; // 0.31
+    for (const id in L) { const l = L[id]; if (!RGK[id] || !l || typeof l !== 'object') continue;
+      out[id] = { wpn: WPK[l.wpn] ? l.wpn : '', kpr: KPK[l.kpr] ? l.kpr : '', charms: Array.isArray(l.charms) ? l.charms.filter(c => CHK[c]).slice(0, 6) : [], lh: typeof l.lh === 'string' ? l.lh.slice(0, 40) : '' }; }
+    meta.loadouts = out; }
   const a = meta.raw_arsenal, k = meta.raw_keepers, l = meta.raw_look, w = meta.raw_world, ch = meta.raw_charms;
   const cx = meta.raw_codex;
   if (cx) for (const kk of ['c', 'b', 'ev', 'l']) if (cx[kk] && typeof cx[kk] === 'object') for (const id in cx[kk]) if (cx[kk][id]) meta.codex[kk][String(id)] = 1;
@@ -4378,6 +4392,7 @@ function applyDisplay(st = meta.settings) {
   root.style.setProperty('--os', (st.overscan || 0) + 'vmin'); b.classList.toggle('os', (st.overscan || 0) > 0);
   const cap = document.getElementById('captions'); if (cap) { cap.dataset.size = st.capSize || 'm'; cap.classList.toggle('bg', st.capBg !== false); }
   fpsCap = st.fps || 0;
+  if (typeof applyAccess === 'function') applyAccess(st); // 0.31: battery saver, easy-read text
 }
 // ----- captions for important sounds (the sound itself is unchanged) -----
 const CAPTIONS = { bosswarn: 'Boss approaching', bossdie: 'Boss defeated', phase: 'The boss changes', hurt: 'Tower hit', wave: 'New wave', over: 'The light went out',
@@ -4466,6 +4481,73 @@ function renderInstall() {
   if (b) b.hidden = !installEvt;
 }
 document.getElementById('bInstall').onclick = async () => { if (!installEvt) return; const e = installEvt; installEvt = null; e.prompt(); try { await e.userChoice; } catch (er) { /* closed */ } renderInstall(); };
+
+/* ---- src\js\05c-access.js ---- */
+/* =====================================================================
+   0.31: MORE WAYS TO PLAY COMFORTABLY (Settings > Accessibility and Graphics)
+   - Battery saver: the Low graphics preset and 30 frames a second, whatever else is chosen; the game suggests it once
+     when a phone or laptop runs low (below 20%, not charging).
+   - Easy-read text: a plain, widely spaced typeface (Verdana, Tahoma or Arial, as dyslexia style guides advise) for
+     every menu and label, with more space between letters, words and lines.
+   - Creature outlines: a bright ring around every creature (gold for guardians), easy to pick out from the sea and
+     the effects.
+   - Assisted tapping: for one hand, or none: the lighthouse taps the nearest creature by itself, three times a
+     second (a hand taps up to nine). Not in PvP; nights played with it go on no leaderboard.
+   Only Assisted tapping changes how a night plays; the others change how it looks (tests check both).
+   ===================================================================== */
+const BATTERY_FPS = 30;
+const batteryOn = () => !!(meta && meta.settings && meta.settings.battery);
+// what the graphics settings come to with the battery saver on
+function gfxNow(st = meta.settings) { return st.battery ? Object.assign({}, GFX_PRESETS.low) : gfxValues(st); }
+function applyAccess(st = meta.settings) {
+  const b = document.body; if (!b) return;
+  b.classList.toggle('readable', !!st.readable);
+  b.classList.toggle('battery', !!st.battery);
+  b.classList.toggle('streamer', !!st.streamer); // 0.31
+  if (st.battery) fpsCap = fpsCap && fpsCap < BATTERY_FPS ? fpsCap : BATTERY_FPS;
+}
+// once, when the device is running low: offer the battery saver
+let batteryAsked = false;
+async function batteryCheck() {
+  if (batteryAsked || batteryOn() || !navigator.getBattery) return;
+  try {
+    const bat = await navigator.getBattery(); const look = () => {
+      if (batteryAsked || batteryOn() || bat.charging || bat.level >= .2) return; batteryAsked = true;
+      toastQ.push([I18n.t('Battery low'), I18n.t('Settings > Graphics > Battery saver makes the game use less power.')]);
+    };
+    look(); bat.addEventListener('levelchange', look); bat.addEventListener('chargingchange', look);
+  } catch (e) { /* not offered here */ }
+}
+// ----- assisted tapping -----
+const AUTO_TAP_EVERY = 1 / 3;
+function autoTapOn() { return !!(meta.settings.autoTap && run && !run.pvp && !Replay.on); }
+function autoTapStep() {
+  if (!autoTapOn() || mode !== 'play' || run.tapCool > 0 || (run.autoT = (run.autoT || 0)) > run.time) return;
+  const C = G.core; let best = null, bd = Infinity;
+  for (const e of run.enemies) { if (e.dead || e.faded || e.y < 0 || e.x < 0 || e.x > W) continue; const d = (e.x - C.x) ** 2 + (e.y - C.y) ** 2; if (d < bd) { bd = d; best = e; } }
+  if (!best) return;
+  run.autoT = run.time + AUTO_TAP_EVERY; run.assist = 1; // (the night goes on no leaderboard)
+  Cmd.dispatch({ t: 'TAP', x: best.x, y: best.y, auto: 1 });
+}
+// ----- 0.31: hold to keep tapping -----
+// A finger (or the mouse button) held on the night taps where it is, five times a second, and follows it. Slower than
+// a quick tapper (taps can come 9 a second), so it is no advantage and the night stays on the leaderboards. The taps
+// are ordinary TAP commands made in the simulation step, so replays stay exact. Not in PvP; off in replays.
+const HOLD_TAP_EVERY = .2;
+const Hold = { id: null, x: 0, y: 0, next: 0 };
+function holdTapStep() {
+  if (Hold.id === null || !meta.settings.holdTap || !run || run.pvp || Replay.on || mode !== 'play' || run.tapCool > 0 || run.time < Hold.next) return;
+  Hold.next = run.time + HOLD_TAP_EVERY; Cmd.dispatch({ t: 'TAP', x: Hold.x, y: Hold.y });
+}
+function holdStart(ev, x, y) { if (!meta.settings.holdTap || !run || run.pvp || Replay.on) return; Hold.id = ev.pointerId; Hold.x = x; Hold.y = y; Hold.next = run.time + HOLD_TAP_EVERY; }
+function holdEnd(ev) { if (Hold.id !== null && (!ev || ev.pointerId === Hold.id)) Hold.id = null; }
+setTimeout(() => batteryCheck(), 8000); // (not at start: the home screen first)
+
+// ----- 0.31: streamer mode (Settings > Privacy): what shouldn't go out on a stream or a video stays off the screen:
+// room codes and friend codes are masked, other keepers' names become "Keeper 2", "Keeper 3"..., chat is hidden ------
+const streamerOn = () => !!(meta && meta.settings && meta.settings.streamer);
+const streamerCode = t => streamerOn() ? String(t).replace(/(Room code:?\s*)[A-Z0-9]{4,8}/gi, '$1••••').replace(/\b(LK-[0-9A-F]{4}-)[0-9A-F]{4}\b/g, '$1••••') : t;
+const streamerName = (name, slot) => streamerOn() ? 'Keeper ' + ((slot || 0) + 1) : name;
 
 /* ---- src\js\05c-select.js ---- */
 /* =====================================================================
@@ -4610,6 +4692,7 @@ function embersTo(x, y, n) { for (let i = 0; i < n; i++) { const a = Math.random
 
 const texts = [];
 function addText(x, y, t, kind) {
+  if (typeof t === 'string' && /[A-Za-z]{2,}/.test(t)) t = I18n.t(t); // 0.31: words on the night in the player's language (numbers stay as they are)
   if (!meta.settings.nums && (kind === 'crit' || kind === 'tap' || kind === 'hurt')) return; // info texts (repaired, dimmed) always show
   if (texts.length > 36) texts.shift();
   // a label landing on another fresh one moves up a line instead of printing over it
@@ -4688,7 +4771,7 @@ const Net = {
    Replays play in a sandbox: your real save is set aside and restored afterwards, nothing is saved or earned.
    Positions depend on the play area, so a replay plays back only at the window size it was recorded at.
    ===================================================================== */
-const REC_T = { TAP: 1, ABILITY: 1, PICK: 1, REROLL: 1, ROUTE: 1, EVENT: 1, CONTINUE: 1, QUIT: 1, RELIC: 1 }; // commands that change the simulation
+const REC_T = { TAP: 1, ABILITY: 1, PICK: 1, REROLL: 1, LOCK: 1, ROUTE: 1, EVENT: 1, CONTINUE: 1, QUIT: 1, RELIC: 1 }; // commands that change the simulation
 const REPLAY_KEY = 'lantern-keeper-replay';
 const Rec = {
   cur: null,
@@ -4728,6 +4811,14 @@ const Replay = {
     else if (rec.cfg.exp) startExpedition(rec.cfg.exp.region, rec.cfg.exp.seed); else { bossRushSetup = !!rec.cfg.bossRush; ascSetup = rec.cfg.asc || 0; newRun(false); }
     return null;
   },
+  // 0.31: start, then run on unseen to a number of seconds before the end ("Watch the last 30 seconds")
+  startNearEnd(rec, secs = 30) {
+    const bad = this.start(rec); if (bad) return bad;
+    const end = rec.result && rec.result.tick || 0, target = end - Math.round(secs / STEP); if (target <= 0) return null;
+    this.headless = true; let guard = 0;
+    while (this.on && run && run.tick < target && guard++ < 4e6) { this.pump(0); if (this.on && run && mode === 'play') { update(STEP); fx(STEP); } }
+    this.headless = false; this.hold = .7; return null;
+  },
   // Feed recorded commands whose tick has come. Decisions (picks, routes, events) wait a moment so viewers can see them.
   pump(dt) {
     if (!this.on || !run) return;
@@ -4739,6 +4830,15 @@ const Replay = {
       Cmd.dispatch(c, 'replay');
       if (!wasPlay || mode !== 'play') { this.hold = .7; if (!this.headless) break; }
     }
+  },
+  // 0.31: leaving a replay part-way (the Leave replay button, Esc, Back, or End run on the pause screen): your own game
+  // back exactly as it was, and nothing said about the replay matching or not
+  stop() {
+    if (!this.on) return;
+    meta = JSON.parse(this.backup); this.backup = null; this.on = false; this.rec = null; this.outcome = null;
+    $('#app').classList.remove('replaying'); speed = meta.settings.speed;
+    run = null; mode = 'over'; goHome();
+    if (!this.headless) toastQ.push([I18n.t('Replay closed'), I18n.t('Your own game is just as you left it.')]);
   },
   finish(win) { // called instead of the game-over / victory screens while replaying
     const res = runResult(win), orig = this.rec.result;
@@ -4773,7 +4873,7 @@ const COOP_CONNECT_MS = 10000, P2P_CONNECT_MS = 20000; // how long to wait for a
 const cleanPeerInfo = i => { i = i && typeof i === 'object' ? i : {}; const lv = {}; for (const d of SHOP) lv[d.k] = Math.max(0, Math.min(60, Math.floor(+((i.lv || {})[d.k]) || 0)));
   return { keeper: KPK[i.keeper] ? i.keeper : KEEPERS[0].id, name: String(i.name || '').replace(/[<>\u0000-\u001f]/g, '').slice(0, 16) || 'Keeper',
     wpn: WPK[i.wpn] ? i.wpn : 'lantern', wlv: Math.max(1, Math.min(10, Math.floor(+i.wlv || 1))), charms: Array.isArray(i.charms) ? i.charms.filter(c => CHK[c]).slice(0, CHARM_SLOTS) : [], lv,
-    look: coopLook(i.look), dev: ['touch', 'mouse', 'keyboard', 'pad'].includes(i.dev) ? i.dev : '', plat: ['web', 'desktop', 'android', 'ios'].includes(i.plat) ? i.plat : '' }; }; // (0.29: how they play, for the lobby)
+    look: coopLook(i.look), dev: ['touch', 'mouse', 'keyboard', 'pad'].includes(i.dev) ? i.dev : '', plat: ['web', 'desktop', 'android', 'ios'].includes(i.plat) ? i.plat : '', watch: !!i.watch }; }; // (0.31: watch: a spectator) // (0.29: how they play, for the lobby)
 // A partner's look: known ids only (anything else is drawn as the default)
 const coopLook = l => { l = l && typeof l === 'object' ? l : {}; const o = {}; for (const k of ['coat', 'beam', 'hat', 'scarf', 'skin']) { const id = String(l[k] || '').slice(0, 16); o[k] = (LOOKS[k] || []).some(x => x.id === id) ? id : ''; } return o; };
 const coopLookDraw = l => { const f = (k, id) => (LOOKS[k].find(x => x.id === id) || LOOKS[k][0]); l = l || {}; return { coatIt: f('coat', l.coat), beam: f('beam', l.beam).col, hatIt: f('hat', l.hat), scarfIt: f('scarf', l.scarf), skinIt: f('skin', l.skin) }; }; // 0.14: the partner's own loadout builds their lantern
@@ -4799,7 +4899,9 @@ const Coop = {
   join(code) { Platform.save(COOP_URL_KEY, this.url); this.connect(() => this.raw({ type: 'join', room: code, info: this.myInfo() })); },
   hostOnline() { this.close(); this.transport = 'cloud'; this.setStatus('Opening an online room...'); CloudRelay.handle({ type: 'host' }); },
   joinOnline(code) { this.close(); this.transport = 'cloud'; this.setStatus('Joining...'); CloudRelay.join(code, this.myInfo()); },
-  myInfo: () => ({ keeper: meta.keepers.equip, name: meta.profile.name, wpn: meta.arsenal.equip, wlv: meta.arsenal.lv[meta.arsenal.equip] || 1, charms: meta.charms.slots.slice(), lv: Object.assign({}, meta.lv), look: { coat: lookOf('coat').id, beam: lookOf('beam').id, hat: lookOf('hat').id, scarf: lookOf('scarf').id, skin: lookOf('skin').id }, dev: (typeof Input !== 'undefined' && Input.device) || '', plat: Platform.kind }), // (dev, plat: 0.29, shown in the lobby)
+  watchNext: false, // 0.31: join the next room as a spectator
+  watching() { return this.role === 'guest' && this.watchNext; },
+  myInfo: () => ({ watch: !!Coop.watchNext, keeper: meta.keepers.equip, name: meta.profile.name, wpn: meta.arsenal.equip, wlv: meta.arsenal.lv[meta.arsenal.equip] || 1, charms: meta.charms.slots.slice(), lv: Object.assign({}, meta.lv), look: { coat: lookOf('coat').id, beam: lookOf('beam').id, hat: lookOf('hat').id, scarf: lookOf('scarf').id, skin: lookOf('skin').id }, dev: (typeof Input !== 'undefined' && Input.device) || '', plat: Platform.kind }), // (dev, plat: 0.29, shown in the lobby)
   raw(m) { if (this.transport === 'cloud') return CloudRelay.handle(m); if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
   // host: to one partner (slot) or all; partner: to the host
   send(data, to) {
@@ -4818,7 +4920,7 @@ const Coop = {
   },
   setStatus(t) {
     if (this.role && !Lobby.timer) Lobby.start(); else if (!this.role && Lobby.timer) Lobby.stop(); /* 0.29: the lobby ticks while in a room */
-    this.status = t; if ($('#coopStatus')) $('#coopStatus').textContent = t; renderCoop(); },
+    this.status = t; if ($('#coopStatus')) $('#coopStatus').textContent = streamerCode(t); renderCoop(); }, // (0.31: streamer mode masks the code)
   wait(t) { $('#coopWait').hidden = !t; $('#coopWait').textContent = t || ''; },
   // ---------- reconnecting (relay only: a direct phone link can't be rebuilt without pairing again) ----------
   dropped() {
@@ -4870,6 +4972,7 @@ const Coop = {
       const p = run.peers[slot];
       if (p && was && !was.away) {} // the host reconnected: this partner never left and is still in the night
       else if (p && was) { p.away = false; p.idle = 0; toastQ.push([`${info.name} is back`, `${k.name} takes their lantern back`]); this.sendStart(slot); coopSendPicks(slot); }
+      else if (info.watch) { toastQ.push([`${info.name} is watching`, 'A spectator: they see the night but don\'t play']); this.sendStart(slot); } // 0.31
       else { run.peers[slot] = coopKeeper(info, k); toastQ.push([`${info.name} joined`, `${k.name} lights a lantern on the gallery`]); this.sendStart(slot); }
     }
     const n = this.peers.size;
@@ -4911,17 +5014,17 @@ const Coop = {
     if (kind !== 'endless' && RGK[kind]) startExpedition(kind); else newRun(false);
     if (!run) return;
     run.peers = {}; Lobby.ready.clear(); // (everyone readies again for the next night)
-    for (const [slot, p] of this.peers) run.peers[slot] = Object.assign(coopKeeper(p.info, KPK[p.info.keeper] || KEEPERS[0]), { away: p.away });
+    for (const [slot, p] of this.peers) if (!p.info.watch) run.peers[slot] = Object.assign(coopKeeper(p.info, KPK[p.info.keeper] || KEEPERS[0]), { away: p.away }); // (0.31: spectators have no lantern)
     Rec.stop(); // co-op nights aren't replayable from one side
     for (const slot of this.peers.keys()) this.sendStart(slot);
     coopStart(); // 0.14: starting upgrades go to every keeper, then the night begins
   },
-  sendStart(slot) { const p = run.peers[slot]; if (p) this.send({ t: 'START', slot, kpr: p.kpr, weather: run.weather, region: run.exp ? run.exp.region : '' }, slot); },
+  sendStart(slot) { const p = run.peers[slot], w = !p && this.peers.has(slot) && (this.peers.get(slot).info || {}).watch; if (p || w) this.send({ t: 'START', slot, kpr: p ? p.kpr : run.kpr, weather: run.weather, region: run.exp ? run.exp.region : '', watch: !!w }, slot); }, // (0.31: a spectator gets the night too)
   tickHost(dt) {
     if (this.role !== 'host' || !run || !run.peers) return;
     const peers = Object.entries(run.peers);
     for (const [, p] of peers) { p.tapCool -= dt; if (p.abCd > 0 && mode === 'play') p.abCd = Math.max(0, p.abCd - dt); }
-    this.syncT -= dt; if (this.syncT > 0 || !peers.some(([, p]) => !p.away)) return; this.syncT = 1 / (this.transport === 'cloud' ? ONLINE_SYNC_HZ : 15);
+    this.syncT -= dt; if (this.syncT > 0 || ![...this.peers.values()].some(p => !p.away)) return; this.syncT = 1 / (this.transport === 'cloud' ? ONLINE_SYNC_HZ : 15); // (0.31: spectators get the pictures too)
     const r2 = v => Math.round(v * 1000) / 1000, s = run.s;
     this.send({ t: 'SYNC', mode, tm: Math.round(run.time * 10) / 10, wave: run.wave, st: run.exp ? Math.max(1, run.exp.at[0] + 1) : 0, win: mode === 'over' && !$('#victory').hidden,
       hp: Math.round(run.hp), mh: Math.round(s.maxHp), sh: Math.round(run.shield), left: run.spawnLeft + run.enemies.filter(e => !e.dead && e.type !== 'orb').length + (run.bossState === 'pending' || run.bossState === 'warn' ? 1 : 0), em: Math.round(run.embers),
@@ -4954,7 +5057,8 @@ const Coop = {
     run.hostLeft = d.left; run.coopStage = d.st || 0; run.keepers = d.n || 2; run.squall = d.sq || 0; run.frozenT = d.fz || 0;
     Object.assign(run, { wave: d.wave, hp: d.hp, shield: d.sh, spawnLeft: d.left, dimT: d.dim, flareT: d.flare, hurt: Math.max(run.hurt, d.hurt), weather: d.weather });
     Object.assign(run.s, { maxHp: d.mh, twin: d.s.twin, aura: d.s.aura, auraR: d.s.auraR * U, slow: d.s.slow });
-    const ab = d.ab && d.ab[this.slot]; if (ab) [run.abCd, run.abMax, run.repairCd, run.pendingPicks, run.myLane] = ab;
+    const ab = d.ab && d.ab[this.slot]; if (ab) { const [cd, mx, rcd, pend, lane] = ab; run.abMax = mx; run.pendingPicks = pend; run.myLane = lane;
+      run.abCd = coopPredicted('abPend', run.abCd, cd, mx); run.repairCd = coopPredicted('repPend', run.repairCd || 0, rcd, REPAIR_CD); }
     run.lanes = d.ln || 1; run.linkN = d.lk || 0; run.interT = d.inter || 0; run.coopKeepers = Array.isArray(d.kp) ? d.kp : [];
     const seen = new Set();
     run.enemies = d.en.map(([id, type, nx, ny, nr, hpf, bid, elite, fl, phase, owner]) => {
@@ -4989,20 +5093,31 @@ const Coop = {
   },
   tickClient(dt) { // smooth creatures toward their latest positions, move bolts between snapshots
     if (Net.mode !== 'client' || !run) return;
-    run.time += dt; this.since += dt; if (run.abCd > 0) run.abCd = Math.max(0, run.abCd - dt); run.hurt = Math.max(0, run.hurt - dt);
+    run.time += dt; this.since += dt; if (run.abCd > 0) run.abCd = Math.max(0, run.abCd - dt); if (run.repairCd > 0) run.repairCd = Math.max(0, run.repairCd - dt); run.hurt = Math.max(0, run.hurt - dt);
     const k = Math.min(1, dt * 14);
     for (const e of run.enemies) { e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k; e.hit -= dt; }
     const kc = Math.min(1, dt * 10);
     for (const b of run.bolts) { b.x += b.vx * dt + (b.cx || 0) * kc; b.y += b.vy * dt + (b.cy || 0) * kc; b.cx -= (b.cx || 0) * kc; b.cy -= (b.cy || 0) * kc; }
   },
 };
+// 0.31: a partner's ability and repair. A press starts the cooldown at once on the partner's screen; for a moment the
+// host's older snapshots (sent before the press arrived) can't undo it, so the button no longer flashes back to ready.
+// After that the host's number is the truth: a press the host refused (paused, a pick on screen) frees the button again.
+const COOP_PRESS_WAIT = 1.5;
+function coopPredicted(key, local, host, max) {
+  if (run[key] != null && host >= max - COOP_PRESS_WAIT - .5) run[key] = null; // the host took the press
+  if (run[key] != null && run.time - run[key] < COOP_PRESS_WAIT) return Math.max(local, host);
+  run[key] = null; return host;
+}
 // On a partner's side, gameplay commands go to the host (as screen fractions) instead of running locally.
 Net.send = c => {
-  if (c.t === 'REPAIR' || c.t === 'CREROLL') { Coop.send({ t: 'CMD', c: { t: c.t } }); sfx('pick'); return; }
+  if (Coop.watching()) return; // 0.31: a spectator only watches
+  if (c.t === 'REPAIR') { if (!run || run.repairCd > 0) return; run.repairCd = REPAIR_CD; run.repPend = run.time; Coop.send({ t: 'CMD', c: { t: 'REPAIR' } }); sfx('pick'); return; }
+  if (c.t === 'CREROLL') { Coop.send({ t: 'CMD', c: { t: c.t } }); sfx('pick'); return; }
   if (c.t === 'CPICK' || c.t === 'VOTE') { Coop.send({ t: 'CMD', c: { t: c.t, k: c.k, v: c.v } }); if (c.t === 'VOTE') { Coop.myVote = c.v; renderCoopVote(); } sfx('pick'); return; }
   if (c.t === 'PING') { Coop.send({ t: 'CMD', c: { t: 'PING', p: c.p } }); coopPingShow(Coop.slot, c.p); return; }
   if (c.t === 'TAP') { P(1, c.x, c.y, 0, 0, .3, '#9fd8ff', 0); Coop.send({ t: 'CMD', c: { t: 'TAP', nx: c.x / W, ny: c.y / H } }); sfx('tap'); }
-  else if (c.t === 'ABILITY') { if (run && run.abCd <= 0) { run.abCd = run.abMax; Coop.send({ t: 'CMD', c: { t: 'ABILITY' } }); sfx('pick'); } }
+  else if (c.t === 'ABILITY') { if (run && run.abCd <= 0) { run.abCd = run.abMax; run.abPend = run.time; Coop.send({ t: 'CMD', c: { t: 'ABILITY' } }); sfx('pick'); } }
 };
 // The co-op partner who sent a command (host side), or null for the host's own input.
 const peerOf = c => c && c.from === 'remote' && run && run.peers && run.peers[c.slot] || null;
@@ -5157,7 +5272,7 @@ async function p2pApply(code) {
 }
 function renderCoop() {
   const st = $('#coopStatus'); if (!st) return;
-  st.textContent = Coop.status;
+  st.textContent = streamerCode(Coop.status); // (0.31: streamer mode masks room codes)
   const host = Coop.role === 'host', ready = (host && Coop.peers.size > 0 || Coop.role === 'guest' && Coop.serverOwner) && mode === 'home'; // (0.26: the owner of a server room starts it)
   $('#rowServerRun').hidden = !!Coop.role || Coop.transport === 'cloud' || !Coop.relayRuns;
   $('#bCoopStart').hidden = !ready; $('#coopModeBox').hidden = !ready;
@@ -5217,6 +5332,7 @@ const CoopServer = {
     return true;
   },
   joined(slot, info) { // the first keeper in is the owner; their Workshop builds the tower
+    if (info && info.watch) return; // (0.31: a spectator never owns the room)
     if (this.owner && Coop.peers.has(this.owner)) return;
     this.owner = slot; meta.lv = Object.assign({}, meta.lv, info.lv || {}); meta.profile.name = info.name || 'Keeper';
   },
@@ -5313,7 +5429,7 @@ const Lobby = {
       owner: Coop.server && slot === CoopServer.owner }));
     return out;
   },
-  card: i => ({ name: i.name, keeper: i.keeper, wpn: i.wpn, look: i.look, dev: i.dev || '', plat: i.plat || '' }),
+  card: i => ({ name: i.name, keeper: i.keeper, wpn: i.wpn, look: i.look, dev: i.dev || '', plat: i.plat || '', watch: !!i.watch }),
   broadcast() { if (Coop.role === 'host' && Coop.peers.size) Coop.send({ t: 'ROSTER', seats: this.seats() }); },
   n: 0,
   tick() { // in a night: only the connection check, every 6 seconds (online rooms count their messages)
@@ -5336,7 +5452,7 @@ const Lobby = {
     return false;
   },
   setReady(v) { this.myReady = !!v; Coop.send({ t: 'CMD', c: { t: 'READY', v: this.myReady } }); renderCoop(); },
-  allReady() { return [...Coop.peers.keys()].every(s => this.ready.get(s) || Coop.peers.get(s).away); },
+  allReady() { return [...Coop.peers.keys()].every(s => this.ready.get(s) || Coop.peers.get(s).away || (Coop.peers.get(s).info || {}).watch); },
   invite() {
     const text = Coop.transport === 'cloud' ? `Join my Lantern Keeper night: open Co-op, then Online, and enter ${Coop.room}` : `Join my Lantern Keeper night: room ${Coop.room}`;
     if (navigator.share && matchMedia('(pointer: coarse)').matches) return navigator.share({ title: 'Lantern Keeper co-op', text }).catch(() => {});
@@ -5360,6 +5476,7 @@ function lobbySeat(s, me) {
   if (s.away) { st.className += ' away'; st.textContent = 'Reconnecting'; }
   else if (s.host) { st.className += ' host'; st.textContent = 'Host'; }
   else if (s.owner) { st.className += ' host'; st.textContent = 'Room owner'; }
+  else if (s.watch) { st.className += ' ok'; st.textContent = 'Watching'; }
   else { st.className += s.ready ? ' ok' : ' wait'; st.textContent = s.ready ? 'Ready' : 'Not ready'; }
   const q = document.createElement('small'); q.className = 'seatNet ' + (s.q || '').toLowerCase(); q.textContent = s.q ? (s.q + (s.rtt != null && s.q !== 'Reconnecting' ? ` · ${s.rtt} ms` : '')) : '';
   if (!s.q) q.hidden = true; q.setAttribute('aria-label', s.q ? 'Connection: ' + q.textContent : '');
@@ -5420,11 +5537,13 @@ function validRun(r) {
   const taken = {}; if (r.taken && typeof r.taken === 'object') for (const k in r.taken) if (UPK[k]) taken[k] = Math.floor(num(r.taken[k], 0, 0, 99));
   const hp = num(r.hp, s.maxHp, 1, s.maxHp);
   const dmgBy = {}; if (r.dmgBy && typeof r.dmgBy === 'object') for (const k in r.dmgBy) if (SRC[k]) dmgBy[k] = num(r.dmgBy[k], 0);
+  const hurtBy = {}, hurtWave = {}; if (r.hurtBy && typeof r.hurtBy === 'object') for (const k in r.hurtBy) if (/^[a-z:_-]{1,40}$/.test(k)) hurtBy[k] = num(r.hurtBy[k], 0); // 0.31
+  if (r.hurtWave && typeof r.hurtWave === 'object') for (const k in r.hurtWave) if (/^\d{1,4}$/.test(k)) hurtWave[k] = num(r.hurtWave[k], 0);
   const opts = Array.isArray(r.opts) ? r.opts.filter(k => UPK[k]).slice(0, 3) : null;
   return { wave, s, taken, hp, embers: num(r.embers, 0), kills: Math.floor(num(r.kills, 0)), bosses: Math.floor(num(r.bosses, 0)), pick: !!r.pick, flared: !!r.flared,
     // saves from before rerolls existed get the normal allowance
     flareWave: Math.floor(num(r.flareWave, 0)), rerolls: 'rerolls' in r ? Math.floor(num(r.rerolls, 0, 0, 99)) : 1 + meta.lv.reroll,
-    time: num(r.time, 0), dmgBy, opts: opts && opts.length ? opts : null,
+    time: num(r.time, 0), dmgBy, hurtBy, hurtWave, lock: typeof r.lock === 'string' && UPK[r.lock] ? r.lock : null, locksLeft: Math.floor(num(r.locksLeft, 3, 0, 3)), opts: opts && opts.length ? opts : null,
     weather: ['clear', 'mist', 'rain', 'snow', 'ash'].includes(r.weather) ? r.weather : 'clear',
     // 0.8 fields (runs saved by 0.7 get the starter weapon and keeper, which is what they were using)
     wpn: WPK[r.wpn] ? r.wpn : 'lantern', kpr: KPK[r.kpr] ? r.kpr : 'keeper', abCd: num(r.abCd, 0, 0, 600),
@@ -5453,7 +5572,7 @@ function snapshot(pick) {
   if (run.pvp) return; // a PvP match can't be resumed later
   // Saved at wave boundaries so a refresh resumes the night, not mid-fight.
   meta.run = { wave: run.wave, s: run.s, taken: run.taken, hp: run.hp, embers: run.embers, kills: run.kills, bosses: run.bosses, pick: !!pick, flared: !!run.flared,
-    flareWave: run.flareWave || 0, rerolls: run.rerolls, time: run.time, dmgBy: run.dmgBy, opts: pick && run.opts ? run.opts.map(u => u.k) : null, weather: run.weather,
+    flareWave: run.flareWave || 0, tide: run.tide || '', rerolls: run.rerolls, time: run.time, dmgBy: run.dmgBy, hurtBy: run.hurtBy || {}, hurtWave: run.hurtWave || {}, lock: run.lock || null, locksLeft: run.locksLeft === undefined ? 3 : run.locksLeft, opts: pick && run.opts ? run.opts.map(u => u.k) : null, weather: run.weather,
     wpn: run.wpn, kpr: run.kpr, abCd: run.abCd, exp: run.exp ? JSON.parse(JSON.stringify(run.exp)) : null, where: run.where || '',
     seed: run.seed, rngS: run.rng.s, tick: run.tick, charms: run.charms, relics: run.relics, daily: run.daily, bossRush: !!run.bossRush, asc: run.asc || 0, oilWaves: run.oilWaves || 0 };
   save();
@@ -5464,7 +5583,7 @@ function syncRunHp() { // a refresh mid-wave resumes with the damage already tak
   if (run && meta.run && Net.mode !== 'client' && (mode === 'play' || mode === 'pause')) meta.run.hp = Math.max(1, Math.min(meta.run.hp, run.hp));
 }
 function newRun(resume) {
-  audioInit();
+  audioInit(); veil(); // 0.31
   const snap = resume ? meta.run : null;
   run = { wave: 0, kills: 0, embers: 0, bosses: 0, cool: .3, tapCool: 0, shake: 0, hurt: 0, flash: 0, taken: {}, tapHits: 0,
     s: baseStats(), hp: 0, enemies: [], bolts: [], spawnLeft: 0, spawnT: 0, spawnGap: 1,
@@ -5475,12 +5594,13 @@ function newRun(resume) {
   if (snap) {
     // mid-wave saves replay the wave; route and pick saves don't
     Object.assign(run, { wave: snap.wave - (snap.pick || snap.where ? 0 : 1), s: snap.s, taken: snap.taken, hp: snap.hp, embers: snap.embers, kills: snap.kills, bosses: snap.bosses,
-      flared: snap.flared, flareWave: snap.flareWave, rerolls: snap.rerolls, time: snap.time, dmgBy: snap.dmgBy, weather: snap.weather,
+      flared: snap.flared, flareWave: snap.flareWave, tide: WTIDEK[snap.tide] ? snap.tide : '', rerolls: snap.rerolls, time: snap.time, dmgBy: snap.dmgBy, hurtBy: snap.hurtBy || {}, hurtWave: snap.hurtWave || {}, lock: snap.lock || null, locksLeft: snap.locksLeft === undefined ? 3 : snap.locksLeft, weather: snap.weather,
       wpn: snap.wpn, kpr: snap.kpr, abCd: snap.abCd, exp: snap.exp, seed: snap.seed, tick: snap.tick, charms: snap.charms, relics: snap.relics, daily: snap.daily, bossRush: snap.bossRush, asc: snap.asc || 0, oilWaves: snap.oilWaves || 0 });
     run.rng = makeRng(0); run.rng.s = snap.rngS >>> 0;
     Rec.stop('resumed'); // a resumed night can't be replayed from its start
     if (snap.opts) run.opts = snap.opts.map(k => UPK[k]);
   } else {
+    run.seeded = !Replay.on && seedSetup !== null; // 0.31: a night started from a chosen seed (not for the Endless board)
     run.seed = Replay.on ? Replay.rec.cfg.seed : seedSetup !== null ? seedSetup : (Math.random() * 4294967296) >>> 0; seedSetup = null; run.tick = 0; run.rng = makeRng(run.seed);
     run.bossRush = bossRushSetup; bossRushSetup = false;
     run.asc = expSetup || dailySetup || run.bossRush ? 0 : ascSetup; ascSetup = 0; // Ascension is an Endless night
@@ -5495,6 +5615,7 @@ function newRun(resume) {
     } else run.picks += P9().headstart || 0;
   }
   if (!snap && pvpSetup) pvpRunSetup(); // 0.15 PvP: standard stats for the three waves
+  if (!snap) wtideStart(); // 0.31: the tide of the week (Endless)
   run.abMax = (KPK[run.kpr] || KEEPERS[0]).cd * (hasCharm('watch') ? .75 : 1) * charmAbility(run.charms);
   if (!snap && hasCharm('compass')) run.rerolls++;
   if (!snap) run.rerolls += (KPK[run.kpr] || {}).rerollBonus || 0;
@@ -5534,6 +5655,22 @@ function startWave() {
   else banner(`Wave ${run.wave}`, w === 1 ? (meta.runs === 0 ? 'The lantern fires on its own' : 'Hold the light') : !run.exp && w % every === every - 1 ? 'A boss comes next wave' : 'Hold the light');
   $('#hint').hidden = !(meta.runs === 0 && w <= 2 && run.tapHits < 3);
   if (run.pvp) pvpWaveStart(); // 0.16 PvP survival: the wave's shape, a guardian to close phases II and III
+  packWave();
+}
+// 0.31: waves 60 and up, 100, 500 and beyond. A wave sends 5 + 1.9 creatures per wave number, so wave 500 sent 955 and
+// ~480 were on screen at once (33 ms frames on a phone, all of it drawing). Above WAVE_CAP a wave sends WAVE_CAP
+// creatures instead, each one "packed": as strong as the creatures it stands for together (health, damage, embers),
+// a little bigger, and counted as all of them (kills, mastery, stats). The same total over the same time, so the
+// difficulty is unchanged; only how many there are to draw. Not in PvP (fixed, short waves) or Boss Rush.
+const WAVE_CAP = 140, NUM_CAP = 1e300; // (NUM_CAP: creature numbers stay finite at any wave)
+function packWave() {
+  run.packK = 1;
+  if (run.pvp || run.bossRush || run.spawnLeft <= WAVE_CAP) return;
+  run.packK = run.spawnLeft / WAVE_CAP; run.spawnGap *= run.packK; run.spawnLeft = WAVE_CAP;
+}
+function packUp(e) {
+  const k = run.packK || 1; if (k <= 1 || e.boss || e.type === 'orb') return;
+  e.pack = k; e.hp = Math.min(NUM_CAP, e.hp * k); e.max = e.hp; e.dmg = Math.min(NUM_CAP, e.dmg * k); e.em *= k; e.r *= Math.min(1.45, 1 + .12 * Math.log2(k));
 }
 
 function pickType() {
@@ -5564,8 +5701,9 @@ function spawn(type, x, y, bossDef) {
   let hp = T.hp * sc;
   if (bossDef) hp *= (1 + w * .04) * (!run.exp && w === 5 && !run.asc ? .6 : 1) * (asc(7) ? 1.4 : 1); // the first boss is a teaching fight
   if (run.asc) hp *= 1 + .1 * run.asc; // Ascension: +10% health for every level
+  hp = Math.min(hp, NUM_CAP); // (0.31: past wave ~4,780 health would be Infinity: a creature no hit could ever bring down)
   const e = { type, x, y, hp, max: hp, spd: T.spd * U * (1 + Math.min(.55, w * .011)) * (asc(4) ? 1.15 : 1), r: T.r * U,
-    dmg: T.dmg * Math.pow(1.09, w - 1) * (asc(9) ? 1.3 : 1), em: T.em, col: T.col, ph: rr() * 6, hit: 0, dead: false,
+    dmg: Math.min(NUM_CAP, T.dmg * Math.pow(1.09, w - 1) * (asc(9) ? 1.3 : 1)), em: T.em, col: T.col, ph: rr() * 6, hit: 0, dead: false,
     burn: 0, burnDps: 0, chillT: 0, slowed: false, ang: 0 };
   discover(bossDef ? 'b' : 'c', bossDef ? bossDef.id : type);
   if (bossDef) { e.boss = bossDef; e.phase = 1; e.atk = 2; e.splits = 0; e.trail = []; e.born = run.time; }
@@ -5581,6 +5719,7 @@ function spawn(type, x, y, bossDef) {
   if (run.pvp && !bossDef) pvpSpawned(e); // 0.16 PvP survival waves: swarm, rush, elites, shells
   if (dailyMod('swift')) e.spd *= 1.25;
   if (dailyMod('bounty')) { e.hp *= 1.3; e.max = e.hp; }
+  wtideSpawn(e); // 0.31: the tide of the week
   return e;
 }
 
@@ -5590,9 +5729,13 @@ const AFF = {
   swift: 'Swift: moves 60% faster.',
   regen: 'Regenerating: heals 4% of its health every second unless it is burning.',
   split: 'Splitting: breaks into 3 wisps when it dies.',
+  warding: 'Warding: creatures near it take 35% less damage while it lives. Bring it down first.', // 0.31
+  dashing: 'Dashing: every few seconds it bursts forward at three times its speed.', // 0.31
 };
+const WARD_R = 70; // (0.31: how far a warding elite's shelter reaches, in units of U)
 function makeElite(e) {
-  const keys = ['armored', 'swift', 'regen', 'split'], fam = worldElite(e), aff = fam || (coopOn() && rr() < .3 ? 'twin' : keys[Math.floor(rr() * keys.length)]);
+  const keys = ['armored', 'swift', 'regen', 'split', 'warding', 'dashing'], // (0.31: warding and dashing)
+    fam = worldElite(e), aff = fam || (coopOn() && rr() < .3 ? 'twin' : keys[Math.floor(rr() * keys.length)]);
   e.elite = aff; e.hp *= 2.2; e.max = e.hp; e.r *= 1.25; e.em *= 5; e.dmg *= 1.2;
   if (aff === 'swift') e.spd *= 1.6;
   worldEliteApply(e); if (worldMech() === 'forge') e.em *= 1.5; // 0.14: the region's elite family; the Ember Empire pays more
@@ -5626,6 +5769,7 @@ function hitEnemy(e, amt, canCrit, quiet, src) {
   if (s.execute && BOLTISH[src] && e.hp < e.max * .3) amt *= 2; // Soul Lantern
   if (s.bossDmg && (e.boss || e.elite)) amt *= 1 + s.bossDmg;
   if (e.elite === 'armored' && BOLTISH[src]) amt *= .5;
+  if (run.wards && run.wards.length && e.elite !== 'warding') for (const w of run.wards) if (!w.dead && (w.x - e.x) ** 2 + (w.y - e.y) ** 2 < (WARD_R * U) ** 2) { amt *= .65; break; } // 0.31: a warding elite shelters those near it
   if (e.type === 'rimeback' && (src === 'burn' || src === 'aura' || src === 'wild')) amt *= 2; // fire melts the rime
   if ((e.boss || e.elite) && hasCharm('abyss')) amt *= 1.2;
   if (src === 'tap' && e.gape > 0 && coopBiteOk(e)) e.bitten = (e.bitten || 0) + 1; // the Abyssal Maw: taps while it gapes break the bite
@@ -5650,10 +5794,11 @@ function hitEnemy(e, amt, canCrit, quiet, src) {
 }
 
 function kill(e, src) {
-  e.dead = true; run.kills++; coopContrib(e, 0, true); worldKilled(e);
+  const n = e.pack ? Math.round(e.pack) : 1; // (0.31: a packed creature counts as all it stands for)
+  e.dead = true; run.kills += n; coopContrib(e, 0, true); worldKilled(e);
   const s = run.s;
-  if (e.type !== 'orb') { meta.stats.kills++; masteryKill(); }
-  const bt = e.boss ? e.boss.id : e.type; meta.stats.byType[bt] = (meta.stats.byType[bt] || 0) + 1;
+  if (e.type !== 'orb') { meta.stats.kills += n; masteryKill(n); }
+  const bt = e.boss ? e.boss.id : e.type; meta.stats.byType[bt] = (meta.stats.byType[bt] || 0) + n;
   if (e.em > 0) {
     const g = e.em * emberWave(ew()) * emMult() * (hasRelic('coin') ? 1.4 : 1) * (e.boss || e.elite ? 1 + s.bounty : 1);
     earn(g);
@@ -5695,7 +5840,7 @@ function bossDefeated(e) {
 
 // Embers per creature grow with the wave, linearly (0.12; was 6% a wave, compounding, which made deep nights pay billions).
 const emberWave = w => 1 + .04 * (w - 1);
-const emMult = () => (run && run.s && run.s.boostGain || 1) * (1 + .15 * meta.lv.gain) * (hasCharm('emberheart') ? 1.12 : 1) * (1 + .1 * (meta.prestige.tree.memory || 0)) * (dailyMod('glass') ? 1.5 : dailyMod('bounty') ? 2 : 1) * (run ? (run.k0 ? run.k0.s : run.s).tithe * (run.exp && run.exp.node === 'elite' ? 2 : 1) * tideEm() * (1 + .15 * (run.asc || 0)) : 1); // Ascension: +15% a level
+const emMult = () => (run && run.s && run.s.boostGain || 1) * (1 + .15 * meta.lv.gain) * (hasCharm('emberheart') ? 1.12 : 1) * (1 + .1 * (meta.prestige.tree.memory || 0)) * (dailyMod('glass') ? 1.5 : dailyMod('bounty') ? 2 : 1) * (run ? (run.k0 ? run.k0.s : run.s).tithe * (run.exp && run.exp.node === 'elite' ? 2 : 1) * tideEm() * wtideEm() * (1 + .15 * (run.asc || 0)) : 1); // Ascension: +15% a level
 
 // The one way the tower loses health. Health stays within 0..max, and the night ends here, exactly once, when it reaches 0.
 // Returns true when the tower has fallen, so callers stop processing this step.
@@ -5711,6 +5856,8 @@ function damageTower(e, mult = 1) {
     P(6, G.core.x, G.core.y, 0, 0, .3, '#9fd8ff', 60 * U);
     if (dmg <= 0) { sparks(e.x, e.y, '#9fd8ff', 10); addText(G.core.x, G.tt, 'Blocked', 'heal'); sfx('hit'); return; }
   }
+  { const hk = e.boss ? 'boss:' + e.boss.id : e.type || 'other', got = Math.min(dmg, run.hp); // 0.31: what hurt the light, for the night's report
+    (run.hurtBy || (run.hurtBy = {}))[hk] = (run.hurtBy[hk] || 0) + got; (run.hurtWave || (run.hurtWave = {}))[run.wave] = (run.hurtWave[run.wave] || 0) + got; }
   run.hp = clamp(run.hp - dmg, 0, s.maxHp); run.hurt = .4; run.shake = reduceMotion ? 0 : (e.boss ? .6 : .3);
   sparks(e.x, e.y, e.col, 12); puff(e.x, e.y, e.col, 5, e.r);
   addText(G.core.x + rrnd(-20, 20), G.tt, '-' + fmt(dmg), 'hurt');
@@ -5748,6 +5895,8 @@ function update(dt) {
   relicTick(dt);
   tickAbility(dt);
   run.tapCool -= dt; run.time += dt; run.tick++; if (run.guideT > 0) run.guideT -= dt;
+  run.wards = run.enemies.filter(x => x.elite === 'warding' && !x.dead); // 0.31: warding elites this frame
+  autoTapStep(); holdTapStep(); // 0.31: assisted tapping and hold to keep tapping (Settings > Accessibility)
   if (DEBUG && !(Number.isFinite(run.hp) && run.hp >= 0 && run.hp <= run.s.maxHp + 1e-6)) invariantFail('tower health ' + run.hp + ' / ' + run.s.maxHp);
 
   // spawning (later waves spawn in small packs)
@@ -5758,7 +5907,7 @@ function update(dt) {
       const pack = ew() >= 4 && rr() < .3 ? Math.min(run.spawnLeft, 1 + Math.floor(rrnd(1, 2 + ew() / 8))) : 1;
       let bx, by;
       for (let i = 0; i < pack; i++) {
-        const e = spawn(pickType());
+        const e = spawn(pickType()); packUp(e);
         if (rr() < (run.exp && run.exp.node === 'elite' ? .4 : (dailyMod('elite') ? .25 : eliteChance(ew()) + worldEliteChance()))) makeElite(e);
         if (i === 0) { bx = e.x; by = e.y; } else { e.x = bx + rrnd(-30, 30) * U; e.y = by + rrnd(-30, 10) * U; }
       }
@@ -5766,6 +5915,7 @@ function update(dt) {
     }
   } else if (run.bossState === 'pending') {
     run.bossState = 'warn'; run.warnT = 2.6; sfx('bosswarn');
+    if (run.boss && !meta.bossIntro[run.boss.id] && !Replay.on && !run.pvp) bossIntro(run.boss); // 0.31: the first meeting with each guardian
   } else if (run.bossState === 'warn') {
     run.warnT -= dt;
     if (run.warnT <= 0) {
@@ -5848,6 +5998,7 @@ function update(dt) {
     if (e.elite === 'regen' && e.burn <= 0) e.hp = Math.min(e.max, e.hp + e.max * .04 * dt); // fire stops regeneration
     if (e.stun > 0 && !e.boss) { e.stun -= dt; e.hit -= dt; continue; }
     let sp = e.spd * (1 - slow) * worldSpeed(e); // the Moonlit Isles' moon
+    if (e.elite === 'dashing') { e.dashT = (e.dashT === undefined ? 2.5 : e.dashT) - dt; if (e.dashT < 0) { e.dashOn = .45; e.dashT = 3.5; } if (e.dashOn > 0) { e.dashOn -= dt; sp *= 3; } } // 0.31
     if (!e.boss && W > FIELD_W) { const out = Math.abs(e.x - G.cx) - FIELD_W / 2; if (out > 0) sp *= 4; } // 0.29: the game fills screens wider than 1280; creatures cross the extra width quickly, so a wide screen is no easier
     if (run.exp && run.exp.region === 'drowned' && d < H * .38) sp *= 1.2; // Undertow
     e.ang = Math.atan2(dy, dx);
@@ -5861,7 +6012,10 @@ function update(dt) {
     e.hit -= dt;
     if (d < e.r + 22 * U && !e.dead && !e.onLamp) {
       if (e.type === 'leech') { if (leechDrain(e, dt)) return; } // a leech holds on and drains
-      else { e.dead = true; if (damageTower(e)) return; }
+      else if (e.pack > 1.5) { // 0.31: a packed creature at the light strikes as the creatures it stands for would, one after another (each hit capped as usual, the same total)
+        if (e.packT > 0) e.packT -= dt;
+        else { e.packT = .35; const f = (e.pack - 1) / e.pack; if (damageTower(e, 1 / e.pack)) return; e.pack -= 1; e.hp *= f; e.max *= f; e.dmg *= f; e.em *= f; }
+      } else { e.dead = true; if (damageTower(e)) return; }
     }
   }
   if (run.enemies.some(e => e.dead)) run.enemies = run.enemies.filter(e => !e.dead);
@@ -6017,6 +6171,7 @@ function startExpedition(regionId, seedIn, daily) {
   const r = RGK[regionId]; if (!r || (!meta.world.unlocked[regionId] && !daily) || mode !== 'home') { dailySetup = null; return; }
   // the expedition's seed: the one truly random draw (a replay passes the recorded one)
   const seed = seedIn !== undefined ? seedIn >>> 0 : (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+  if (seedIn === undefined && !daily) meta.loadouts[regionId] = { wpn: meta.arsenal.equip, kpr: meta.keepers.equip, charms: (meta.charms.slots || []).slice(), lh: meta.lighthouse.id }; // 0.31: remembered for next time
   expSetup = { region: regionId, seed, map: genRoute(seed, r.rows || 6), at: [-1, 0], node: '', left: 0, usedRepair: false, ev: null, elites: 0 };
   newRun(false);
   // later regions start with free upgrades so a fresh lantern can face stronger creatures
@@ -6128,6 +6283,7 @@ Cmd.on('EVENT', c => {
 /* ---------- region complete ---------- */
 function regionComplete() {
   if (Replay.on) return Replay.finish(true);
+  keepLastFrame(); // 0.31: for the result card
   Rec.lastId = 0; Rec.finish(runResult(true)); recordRun(true, { rid: Rec.lastId });
   if (run.daily) { // the daily challenge never counts toward world progress
     mode = 'over'; $('#hud').hidden = true; $('#bAbility').hidden = true; const rw = dailyResult(true); meta.runs++; meta.run = null; save(); sfx('bossdie');
@@ -6267,7 +6423,7 @@ function tempestAI(e, dt, sp, dx, dy, d) {
 }
 
 /* ---------- keeper abilities ---------- */
-function tickAbility(dt) { if (run.abCd > 0) run.abCd = Math.max(0, run.abCd - dt); }
+function tickAbility(dt) { if (run.abCd > 0) { run.abCd = Math.max(0, run.abCd - dt); if (run.abCd === 0 && meta.runs < 2 && !run.pvp) tip('ability', "Your keeper's ability is ready", 'The glowing button below. Use it when many creatures come close; it recharges by itself.'); } } // (0.31: the guide)
 Cmd.on('ABILITY', c => {
   const P2 = peerOf(c); // a co-op partner uses their own keeper's ability
   if (!run || mode !== 'play' || (P2 ? P2.abCd : run.abCd) > 0 || !pvpAllows('ability')) return;
@@ -6396,8 +6552,8 @@ const DAILY_MODS = [
   { id: 'bounty', name: 'Bounty night', desc: 'Creatures have +30% health and drop double embers.' },
 ];
 const DAILY_LV = { dmg: 5, hp: 5, rate: 4, tap: 2, gain: 0, still: 0, start: 1, reroll: 1, cap: 0 }; // everyone plays with the same Workshop
-function dailyToday() {
-  const d = new Date(), key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function dailyToday(at) { // (0.30.1: at = another day, for the developer build's preview; the game always asks for today)
+  const d = at ? new Date(at) : new Date(), key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   let h = 2166136261; for (const ch of key) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
   const R = mulberry32(h >>> 0);
   return { key, seed: h >>> 0, region: REGIONS[Math.floor(R() * REGIONS.length)].id, wpn: WEAPONS[Math.floor(R() * WEAPONS.length)].id,
@@ -6519,6 +6675,9 @@ function recordRun(win, extra) { // called once when any night ends (not for rep
   if (run.wpn) U.w[run.wpn] = (U.w[run.wpn] || 0) + sec; if (run.kpr) U.k[run.kpr] = (U.k[run.kpr] || 0) + sec; if (run.exp) U.r[run.exp.region] = (U.r[run.exp.region] || 0) + sec;
   gainXp(run.wave * 10 + run.kills / 5 + run.bosses * 40 + (win ? 250 : 0) + (mode9 === 'daily' ? 100 : 0), true);
   featsRun(h); // 0.14: challenges and secrets
+  if (!(mode9 === 'endless' && run.seeded)) Boards.afterNight(h); // 0.31: the leaderboards (a chosen seed doesn't count for Endless)
+  seasonLight(h); // 0.31: the season's track
+  SeedBoard.after(h); // 0.31: seed challenges with friends
 }
 const Library = {
   all() { try { const a = JSON.parse(Platform.load(LIBRARY_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.rec && x.id) : []; } catch (e) { return []; } },
@@ -6545,10 +6704,10 @@ const curLH = () => { const l = LHK[meta.lighthouse.id]; return l && lhOwned(l) 
 /* ---------- Weapon mastery: kills with a weapon, rewards are embers and a title (never stats) ---------- */
 const MASTERY_AT = [0, 100, 300, 700, 1500, 3000];
 const masteryLv = k => { let l = 0; while (l < 5 && k >= MASTERY_AT[l + 1]) l++; return l; };
-function masteryKill() {
+function masteryKill(n = 1) {
   if (Replay.on || !run || !run.wpn || Net.mode === 'client') return;
   const w = run.wpn, before = masteryLv(meta.mastery[w] || 0);
-  meta.mastery[w] = (meta.mastery[w] || 0) + 1;
+  meta.mastery[w] = (meta.mastery[w] || 0) + n;
   const after = masteryLv(meta.mastery[w]);
   if (after > before) { const g = 100 * after; earn(g, false); gainXp(50 * after, true); toastQ.push([`${WPK[w].name}: mastery ${after}`, `+${g} embers` + (after === 5 ? ' and the title Master of the Lantern' : ''), 3.5]); }
 }
@@ -6579,6 +6738,7 @@ let bossRushSetup = false;
 function startBossRush() { if (mode !== 'home') return; bossRushSetup = true; newRun(false); }
 function bossRushWin() {
   if (Replay.on) return Replay.finish(true); // like every other ending: a replay reports back instead of paying out
+  keepLastFrame(); // 0.31: for the result card
   mode = 'over'; $('#hud').hidden = true; $('#bAbility').hidden = true; $('#banner').classList.remove('go');
   Rec.lastId = 0; Rec.finish(runResult(true)); recordRun(true, { rid: Rec.lastId }); const g = 400 + Math.round(2.5 * run.kills); earn(g, false); meta.runs++; meta.run = null; checkAch(); save(); sfx('bossdie');
   $('#vicT').textContent = 'Boss Rush survived'; $('#vicS').textContent = 'All four guardians fell to your light.';
@@ -7602,10 +7762,11 @@ function coopSendPicks(slot) {
 }
 
 // ---------- repair together ----------
+const REPAIR_CD = 20; // seconds between one keeper's repairs
 Cmd.on('REPAIR', c => {
   if (!coopOn() || mode !== 'play') return;
   const slot = peerOf(c) ? c.slot : 0, K = keeperOf(slot); if (!K || K.repairCd > 0) return;
-  K.repairCd = 20; if (slot && !c.ai) K.idle = 0;
+  K.repairCd = REPAIR_CD; if (slot && !c.ai) K.idle = 0;
   const now = run.time, together = run.lastRepair && run.lastRepair.k !== slot && now - run.lastRepair.t < 3;
   let fix = run.s.maxHp * .04 * run.s.repairMult * (together ? 1.2 : 1);
   if (together) { fix += run.s.maxHp * .02; addText(G.core.x, G.tt - 26 * U, 'Reinforced!', 'heal'); asKeeper(slot, () => linkBump(2)); }
@@ -8148,10 +8309,25 @@ const LIVE_EVENTS = [
     text: '0.30 is here, so the light burns brighter this weekend: +50% embers from every night, and play 3 nights to keep the Rekindled lantern forever.',
     embers: 1.5, nights: 3, look: ['beam', 'rekindled'] },
 ];
+// 0.31: events the team schedules from the dashboard (public.game_events): the last list is kept on this device, so
+// they work offline too; an ember bonus at most double, and no looks (those come with a release)
+const EVENTS_KEY = 'lk-events';
+let CLOUD_EVENTS = (() => { try { return cloudEventsFrom(JSON.parse(Platform.load(EVENTS_KEY) || '[]')); } catch (e) { return []; } })();
+function cloudEventsFrom(rows) {
+  return (Array.isArray(rows) ? rows : []).filter(r => r && /^[a-z0-9][a-z0-9-]{2,40}$/.test(r.id) && Date.parse(r.starts_at) < Date.parse(r.ends_at))
+    .map(r => ({ id: 'cloud-' + r.id, name: String(r.name || '').slice(0, 60), text: String(r.text || '').slice(0, 300), from: Date.parse(r.starts_at), to: Date.parse(r.ends_at), embers: Math.min(2, Math.max(1, Number(r.embers) || 1)), cloud: true }));
+}
+function setCloudEvents(rows) { CLOUD_EVENTS = cloudEventsFrom(rows); Platform.save(EVENTS_KEY, JSON.stringify(rows || [])); }
+const allEvents = () => LIVE_EVENTS.concat(CLOUD_EVENTS);
 let liveOverride = null; // tests: an event id, or null for the real clock
-function liveEvent(t = Date.now()) {
-  if (liveOverride !== null) return LIVE_EVENTS.find(e => e.id === liveOverride) || null;
-  return LIVE_EVENTS.find(e => t >= e.from && t < e.to) || null;
+// 0.31: the test page can leave the built-in events off the real clock (localStorage 'lk-test-live' = ''), so tests don't
+// change with the date: a built-in event that is on today hid the festivals and dashboard events the tests looked for.
+// Never in a public build. Tests that check a built-in event pass a time or set liveOverride.
+const TEST_NO_LIVE = DEV_ALLOWED && (() => { try { return localStorage.getItem('lk-test-live') === ''; } catch (e) { return false; } })();
+function liveEvent(t) {
+  if (liveOverride !== null) return allEvents().find(e => e.id === liveOverride) || null;
+  const builtIn = !(t === undefined && TEST_NO_LIVE); if (t === undefined) t = Date.now();
+  return (builtIn && LIVE_EVENTS.find(e => t >= e.from && t < e.to)) || CLOUD_EVENTS.find(e => t >= e.from && t < e.to) || null; // (a built-in event first: it may carry a gift)
 }
 const liveEmberMult = () => { const e = liveEvent(); return e && e.embers || 1; };
 const liveNights = e => (meta.live && meta.live[e.id]) || 0;
@@ -8175,6 +8351,85 @@ LOOKS.beam.push({ id: 'spotlight', name: 'Spotlight', col: '#fff6d8', rarity: 'l
 BADGES.push({ id: 'commfounder', name: 'Community Founder', sku: SKU.commfounder, mark: '★' });
 for (const t of [{ id: 'featured', name: 'Featured Keeper', how: 'A winner of Show Us Your Lighthouse', ok: () => entitled(SKU.spotlight) }]) { TITLES.push(t); TTK[t.id] = t; }
 
+/* ---- src\js\07o-season.js ---- */
+/* =====================================================================
+   0.31: THE TIDE OF THE WEEK AND PvE SEASONS
+   - The tide of the week: every Endless night (alone, not Ascension, a Daily or Boss Rush) plays with the same rule for
+     everyone that week, with an upside and a downside. The week is the leaderboard's week (Monday to Sunday, ISO), so
+     the Endless board always compares nights under the same tide. A chosen seed plays it too (it counts for no board).
+   - Seasons: two months each (January-February is the first). Every night adds season light: Endless waves, region
+     stages and clears, the Daily. Thirty steps along the season's track, each giving embers, and a title at steps 10,
+     20 and 30 that stays yours after the season ends. Nothing is bought; the track starts again each season.
+   ===================================================================== */
+const WTIDES = [
+  { id: 'swift', name: 'Swift tide', desc: 'Creatures move 15% faster; embers +20%.', spd: 1.15, em: 1.2 },
+  { id: 'heavy', name: 'Heavy fog', desc: 'Creatures have 20% more health; embers +25%.', hp: 1.2, em: 1.25 },
+  { id: 'brittle', name: 'Brittle stone', desc: 'The tower has 20% less health; your damage +15%.', tower: .8, dmg: 1.15 },
+  { id: 'gold', name: 'Golden tide', desc: 'Embers +40%; repairs mend 30% less.', em: 1.4, repair: .7 },
+  { id: 'sharp', name: 'Sharp light', desc: '+10% critical chance; the tower has 10% less health.', crit: .1, tower: .9 },
+  { id: 'calm', name: 'Calm sea', desc: 'Creatures move 10% slower; embers -10%.', spd: .9, em: .9 },
+];
+const WTIDEK = Object.fromEntries(WTIDES.map(t => [t.id, t]));
+const WTide = {
+  force: undefined, // (tests and the developer build: a tide id, or null for none)
+  week(at) { const d = at ? new Date(at) : new Date(), x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())), day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day); const y = x.getUTCFullYear(); return `${y}-W${String(Math.ceil(((x - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7)).padStart(2, '0')}`; },
+  of(week) { let h = 2166136261; for (const ch of 'tide:' + week) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return WTIDES[(h >>> 0) % WTIDES.length]; },
+  now() { if (this.force === undefined && DEV_ALLOWED) { try { const f = localStorage.getItem('lk-test-tide'); if (f !== null) return f ? WTIDEK[f] || null : null; } catch (e) { /* */ } } // (tests: the same nights every week)
+    return this.force !== undefined ? (this.force ? WTIDEK[this.force] || null : null) : this.of(this.week()); },
+};
+const wtideRun = () => run && run.tide ? WTIDEK[run.tide] : null;
+// at the start of a new night (07-run.js newRun): an Endless night takes this week's tide
+function wtideStart() {
+  if (run.daily || run.exp || run.bossRush || run.asc || run.pvp || (typeof coopOn === 'function' && coopOn()) || (typeof Coop !== 'undefined' && Coop.role)) return; // (a co-op room: its night is made before its partners join it)
+  const t = WTide.now(); if (!t) return; run.tide = t.id;
+  if (t.tower) { run.s.maxHp *= t.tower; run.hp = run.s.maxHp; }
+  if (t.dmg) run.s.dmg *= t.dmg;
+  if (t.crit) run.s.crit = (run.s.crit || 0) + t.crit;
+  if (t.repair) run.s.repairMult = (run.s.repairMult || 1) * t.repair;
+}
+function wtideSpawn(e) { const t = wtideRun(); if (!t) return; if (t.spd) e.spd *= t.spd; if (t.hp) { e.hp *= t.hp; e.max = e.hp; } }
+const wtideEm = () => { const t = wtideRun(); return t && t.em ? t.em : 1; };
+
+// ----- seasons -----
+const SEASON_NAMES = ['First Light', 'Embers', 'the Deep', 'Storms', 'Lanterns', 'Frost'];
+const SEASON_STEPS = 30, SEASON_STEP_PTS = 200;
+function seasonKey(at) { const d = at ? new Date(at) : new Date(), n = Math.floor(d.getMonth() / 2); return { key: `${d.getFullYear()}-S${n + 1}`, name: 'Season of ' + SEASON_NAMES[n], ends: new Date(d.getFullYear(), (n + 1) * 2, 1) }; }
+function season() {
+  const s = seasonKey();
+  if (!meta.season || typeof meta.season !== 'object' || meta.season.key !== s.key) meta.season = { key: s.key, pts: 0, step: 0, titles: (meta.season && meta.season.titles) || {} };
+  return Object.assign({}, s, { pts: meta.season.pts, step: meta.season.step });
+}
+const seasonReward = n => 100 + 20 * n; // embers at step n
+// what a night is worth (called at the end of every PvE night; 07d-keeper.js)
+function seasonLight(h) {
+  if (!h || h.mode === 'pvp' || (typeof Replay !== 'undefined' && Replay.on)) return 0;
+  const pts = Math.min(400, h.mode === 'expedition' ? 20 * (h.stage || 0) + (h.win ? 80 : 0) : h.mode === 'daily' ? 60 + 10 * (h.stage || 0) : 3 * (h.wave || 0));
+  if (pts <= 0) return 0;
+  season(); meta.season.pts += pts;
+  const got = [];
+  while (meta.season.step < SEASON_STEPS && meta.season.pts >= (meta.season.step + 1) * SEASON_STEP_PTS) {
+    meta.season.step++; const n = meta.season.step; earn(seasonReward(n), false); got.push(n);
+    if (n % 10 === 0) meta.season.titles[`${meta.season.key}-${n}`] = 1;
+  }
+  if (got.length) toastQ.push([I18n.t('Season step {a}').replace('{a}', got[got.length - 1]), I18n.t('+{a} embers from the season track').replace('{a}', fmt(got.reduce((a, n) => a + seasonReward(n), 0)))]);
+  save(); return pts;
+}
+// titles from season steps 10, 20 and 30 (kept after the season ends)
+for (const [n, word] of [[10, 'Seasoned'], [20, 'Tidewise'], [30, 'Lightbearer of the Season']]) {
+  const t = { id: 'season' + n, name: word, how: `Reach step ${n} of a season's track`, ok: () => !!(meta.season && meta.season.titles && Object.keys(meta.season.titles).some(k => k.endsWith('-' + n))) };
+  TITLES.push(t); TTK[t.id] = t;
+}
+function renderSeason() {
+  const box = document.getElementById('chSeason'); if (!box) return;
+  const s = season(), t = WTide.now(), into = s.pts - s.step * SEASON_STEP_PTS, full = s.step >= SEASON_STEPS;
+  const days = Math.max(1, Math.ceil((s.ends - Date.now()) / 864e5));
+  box.innerHTML = `<div class="loCard seasonCard"><p><b>${esc(s.name)}</b> <span class="muted">${I18n.t('{a} days left').replace('{a}', days)}</span></p>
+    <p>${full ? I18n.t('Track complete: every reward claimed. A new season starts soon.') : I18n.t('Step {a} of {b}').replace('{a}', s.step).replace('{b}', SEASON_STEPS) + ' · ' + I18n.t('next: +{a} embers').replace('{a}', fmt(seasonReward(s.step + 1)))}</p>
+    <div class="bar" role="progressbar" aria-label="${esc(I18n.t('Season track'))}" aria-valuemin="0" aria-valuemax="${SEASON_STEP_PTS}" aria-valuenow="${full ? SEASON_STEP_PTS : into}"><i style="width:${full ? 100 : Math.round(into / SEASON_STEP_PTS * 100)}%"></i></div>
+    <p class="muted">${I18n.t('Season light comes from every night: Endless waves, region stages and clears, and the Daily. Titles at steps 10, 20 and 30.')}</p></div>
+    ${t ? `<div class="loCard tideCard"><p><b>${I18n.t('Tide of the week')}: ${esc(t.name)}</b></p><p>${esc(t.desc)}</p><p class="muted">${I18n.t('Every Endless night this week, for everyone: the Endless leaderboard compares nights under the same tide.')}</p></div>` : ''}`;
+}
+
 /* ---- src\js\08-picks.js ---- */
 /* =====================================================================
    UPGRADE PICKS (weighted toward your build, synergy upgrades need a partner)
@@ -8190,6 +8445,7 @@ function rollOptions() {
     for (; i < pool.length - 1; i++) { r -= pool[i].w; if (r <= 0) break; }
     opts.push(pool[i].u); pool.splice(i, 1);
   }
+  if (run.lock) { const L = avail.find(u => u.k === run.lock); if (L && !opts.includes(L)) opts[opts.length - 1] = L; } // 0.31: the card kept from the last pick (it stays through rerolls: a keep was spent on it; PICK clears it)
   return opts;
 }
 function buildChips(el) {
@@ -8215,6 +8471,7 @@ function showPick(reason, resumed, bonus) {
     : bonus ? `+${fmt(bonus)} embers. Choose one upgrade for this run.` : 'Choose one upgrade for this run.';
   if (!(resumed && run.opts)) run.opts = rollOptions();
   run.pickStart = start;
+  if (meta.runs === 0 && !run.pvp) tip('pick', 'Choose an upgrade', 'One card now, and one after every wave. Cards of the same kind (the coloured tag) grow stronger together.'); // (0.31: the guide)
   if (!start) snapshot(true); // stores the offered cards, so a refresh can't reroll them for free
   renderCards();
   buildChips($('#build')); $('#buildLabel').hidden = !Object.keys(run.taken).length;
@@ -8224,14 +8481,21 @@ function renderCards() {
   const box = $('#cards'), start = run.pickStart; box.innerHTML = '';
   for (const u of run.opts) {
     const lv = run.taken[u.k] || 0, fits = tagCount(u.t) > 0;
-    const b = document.createElement('button'); b.className = 'card' + (u.legend ? ' legend' : fits ? ' fit' : '');
+    const b = document.createElement('button'); b.className = 'card' + (u.legend ? ' legend' : fits ? ' fit' : '') + (synergyFor(u)[0] ? ' completes' : ''); // (0.31: the card that completes a synergy stands out)
     const cmp = preview(u).map(([l, a, c]) => `<span>${l}</span><b>${a} → <em>${c}</em></b>`).join('');
     b.innerHTML = `<div class="top"><span class="tg t-${u.t}"><span class="ic"></span>${TAG[u.t]}</span><span class="lv">${lv ? 'Level ' + (lv + 1) : 'New'}</span></div>
-      <span class="nm">${u.name}</span><p>${u.desc}</p>${cmp ? `<div class="cmp">${cmp}</div>` : ''}${synergyNote(u)}${run.pvp && DUEL_TXT[u.k] ? `<span class="duelFx">⚔ In the duel: ${DUEL_TXT[u.k]}</span>` : ''}${u.legend ? '<span class="fitnote">Legendary: appears rarely</span>' : u.req ? '<span class="fitnote">Combo upgrade</span>' : fits ? '<span class="fitnote">Fits your build</span>' : ''}`;
+      <span class="nm">${u.name}</span><p>${u.desc}</p>${cmp ? `<div class="cmp">${cmp}</div>` : ''}${synergyNote(u)}${run.pvp && DUEL_TXT[u.k] ? `<span class="duelFx">⚔ In the duel: ${DUEL_TXT[u.k]}</span>` : ''}${run.lock === u.k ? '<span class="fitnote kept">Kept from the last pick</span>' : ''}${u.legend ? '<span class="fitnote">Legendary: appears rarely</span>' : u.req ? '<span class="fitnote">Combo upgrade</span>' : fits ? '<span class="fitnote">Fits your build</span>' : ''}`;
     b.onclick = () => Cmd.dispatch({ t: 'PICK', k: u.k });
     box.appendChild(b);
   }
   const rb = $('#bReroll');
+  // 0.31: keep one of these cards for the next pick (3 times a night; not in PvP or co-op)
+  const lk = $('#cardLocks'), lockable = !run.pvp && !coopOn() && Net.mode !== 'client' && !start;
+  if (run.locksLeft === undefined) run.locksLeft = 3;
+  lk.hidden = !lockable || !run.opts;
+  if (!lk.hidden) { lk.innerHTML = `<span class="clT">${run.locksLeft > 0 ? I18n.t('Keep one for the next pick ({a} left):').replace('{a}', run.locksLeft) : I18n.t('No keeps left tonight.')}</span>`;
+    if (run.locksLeft > 0) for (const u of run.opts) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small ghost clB'; b.setAttribute('aria-pressed', String(run.lockPick === u.k)); b.innerHTML = `<span class="ic lockIc" aria-hidden="true"></span>${u.name}`;
+      b.onclick = () => Cmd.dispatch({ t: 'LOCK', k: run.lockPick === u.k ? '' : u.k }); lk.appendChild(b); } }
   rb.disabled = run.rerolls <= 0;
   rb.textContent = run.rerolls > 0 ? `Reroll (${run.rerolls} left)` : 'No rerolls left';
 }
@@ -8252,6 +8516,8 @@ Cmd.on('PICK', c => {
   const lv = run.taken[u.k] || 0, start = run.pickStart;
   const before = Object.assign({}, run.s), had = Object.assign({}, run.taken);
   u.ap(run.s); if (u.fx) u.fx(before, run.s); run.taken[u.k] = lv + 1; run.opts = null; sfx('pick');
+  run.lock = null; // (the kept card had its pick)
+  if (run.lockPick && run.lockPick !== u.k) { run.lock = run.lockPick; run.locksLeft = Math.max(0, (run.locksLeft === undefined ? 3 : run.locksLeft) - 1); } run.lockPick = null; // 0.31: the kept card waits for the next pick
   if (run.pvp) PVP.picked(u.k); // 0.15: the opponent sees your progress
   synergyCheck(had); // 0.13: two upgrades that work together
   P(6, G.lamp.x, G.lamp.y, 0, 0, .45, u.legend ? '#fff2b0' : '#ffcf66', (u.legend ? 160 : 90) * U); run.flash = 1;
@@ -8259,6 +8525,11 @@ Cmd.on('PICK', c => {
   afterPick();
 });
 Cmd.on('REROLL', () => reroll());
+Cmd.on('LOCK', c => { // 0.31: keep one of the offered cards for the next pick
+  if (mode !== 'pick' || !run || !run.opts || run.pvp || coopOn() || run.pickStart) return;
+  const k = String(c.k || ''); if (k && (!run.opts.some(u => u.k === k) || run.locksLeft === 0)) return; // (a card on offer, and keeps left)
+  run.lockPick = k || null; Cmd.ok(); sfx('pick'); renderCards();
+});
 
 /* ---- src\js\09-screens.js ---- */
 /* =====================================================================
@@ -8267,8 +8538,11 @@ Cmd.on('REROLL', () => reroll());
 function gameOver() {
   if (mode === 'over') return;
   if (Replay.on) return Replay.finish(false);
+  keepLastFrame(); // 0.31: for the result card
   Rec.lastId = 0; Rec.finish(runResult(false)); recordRun(false, { rid: Rec.lastId });
+  $('#overRank').hidden = true; // (0.31: filled in when the leaderboard answers)
   $('#overSeed').textContent = `Seed ${seedCode(run.seed)}` + (run.bossRush ? ' (Boss Rush)' : run.exp ? '' : ': play it again from Challenges');
+  $('#bSeedShare').hidden = !!(run.bossRush || run.exp || run.daily || run.pvp); $('#overSeedFriends').innerHTML = ''; // 0.31: seed challenges
   mode = 'over'; $('#banner').classList.remove('go');
   const w = run.wave, prevBest = meta.best, newBest = w > prevBest;
   if (!run.exp) meta.best = Math.max(meta.best, w); // best wave is an Endless record
@@ -8278,7 +8552,7 @@ function gameOver() {
   run.flash = 0; sfx('over');
   lastRegion = run.exp && !run.daily ? run.exp.region : ''; lastDaily = !!run.daily;
   $('#bAbility').hidden = true;
-  { const why = Replay.why(Rec.last()); $('#bReplay').hidden = !!why; $('#replayNote').hidden = !why || why.startsWith('No replay'); $('#replayNote').textContent = why || ''; }
+  { const why = Replay.why(Rec.last()); $('#bReplay').hidden = !!why; $('#bReplayEnd').hidden = !!why || !(Rec.last() && Rec.last().result && Rec.last().result.tick > 45 / STEP); $('#replayNote').hidden = !why || why.startsWith('No replay'); $('#replayNote').textContent = why || ''; }
   if (run.daily) {
     const rw = dailyResult(false);
     $('#overT').textContent = 'Daily challenge over';
@@ -8305,13 +8579,24 @@ function gameOver() {
   $('#overDmg').innerHTML = tot > 0 ? Object.entries(run.dmgBy).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
     `<div class="dmgRow"><span>${SRC[k]}</span><span class="trk"><i style="width:${(v / tot * 100).toFixed(1)}%"></i></span><span>${Math.round(v / tot * 100)}%</span></div>`).join('')
     : '<p class="sub">No damage dealt.</p>';
+  // 0.31: what hurt the light, and the night's hardest wave
+  const hurt = Object.entries(run.hurtBy || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]), htot = hurt.reduce((a, [, v]) => a + v, 0);
+  const hardest = Object.entries(run.hurtWave || {}).sort((a, b) => b[1] - a[1])[0];
+  $('#overHurtH').hidden = !htot;
+  $('#overHurt').innerHTML = htot ? hurt.slice(0, 5).map(([k, v]) => `<div class="dmgRow hurtRow"><span>${causeName(k).replace(/^an? /, '').replace(/^./, c => c.toUpperCase())}</span><span class="trk"><i style="width:${(v / htot * 100).toFixed(1)}%"></i></span><span>${Math.round(v / htot * 100)}%</span></div>`).join('')
+    + (hardest && hurt.length ? `<p class="sub">${I18n.t('Hardest wave: {a} ({b} of the damage taken)').replace('{a}', hardest[0]).replace('{b}', Math.round(hardest[1] / htot * 100) + '%')}</p>` : '') : '';
   buildChips($('#overBuild')); $('#overBuildH').hidden = !Object.keys(run.taken).length;
   coopEnded(); // 0.14 co-op: who did what, on every keeper's screen
   checkAch();
   $('#overAch').innerHTML = run.newAch.length ? `<div class="achNew">Achievements unlocked: <b>${run.newAch.join(', ')}</b></div>` : '';
   toastQ.length = 0; toastT = 0; $('#toast').hidden = true;
-  let tip;
-  if (run.lastHit.startsWith('boss') || run.lastHit === 'orb') tip = 'Bosses come every 5 waves. Stone walls and Mend stones help you outlast them, and the lantern can shoot down the Warden\'s orbs.';
+  let tip; const worst = hurt.length ? hurt[0][0] : '', share = hurt.length ? hurt[0][1] / htot : 0, has = t => Object.keys(run.taken).some(k => UPK[k] && UPK[k].t === t);
+  const FAST = ['wisp', 'gloomwing', 'stormling', 'embereel', 'bogwisp', 'shade'], TANK = ['hulk', 'shellback', 'magmashell', 'rimeback', 'mirecrawler'], SWARM = ['drifter', 'brood', 'mistling', 'cinderling', 'leech', 'lampleech'];
+  if (worst === 'storm' || worst === 'wave') tip = 'Lightning and giant waves did the most harm. Stone walls and Mend stones in the Workshop let the light outlast the weather.';
+  else if (share > .4 && FAST.includes(worst)) tip = has('frost') ? 'Fast creatures slipped through. More Frost slows them further, and tapping the quick ones early keeps them off the tower.' : 'Fast creatures slipped through. Frost cards slow everything near the light: take one at the next pick.';
+  else if (share > .4 && TANK.includes(worst)) tip = has('fire') || has('crit') ? 'Tough creatures reached the tower. Keep stacking Fire or Crit, and save your keeper\'s ability for them.' : 'Tough creatures reached the tower. Fire and Crit cards melt armour: commit to one of them.';
+  else if (share > .4 && SWARM.includes(worst)) tip = has('volley') ? 'Swarms overwhelmed the light. More Volley cards hit more of them at once.' : 'Swarms overwhelmed the light. Volley cards hit several creatures at once: take them early.';
+  else if (run.lastHit.startsWith('boss') || run.lastHit === 'orb') tip = 'Bosses come every 5 waves. Stone walls and Mend stones help you outlast them, and the lantern can shoot down the Warden\'s orbs.';
   else if (meta.lv.dmg + meta.lv.hp + meta.lv.rate < 3) tip = 'Spend your embers in the Workshop. Polished lens and Stone walls are strong first buys.';
   else if (!meta.lv.still) tip = 'Build an Ember still in the Workshop to earn embers while you\'re away.';
   else tip = 'Upgrades of the same kind show up more often together. Try committing to Fire, Frost, Volley or Crit.';
@@ -8326,10 +8611,13 @@ function causeName(h) {
   const nm = { wisp: 'Wisp', shade: 'Shade', drifter: 'Drifter', hulk: 'Hulk', orb: 'Warden orb', mistling: 'Mistling', siren: 'Siren', stormling: 'Stormling', shellback: 'Shellback',
     gloomwing: 'Gloomwing', brood: 'Broodmother', leech: 'Tide leech', rimeback: 'Rimeback', lurker: 'Lurker',
     cinderling: 'Cinderling', ashdrifter: 'Ash drifter', magmashell: 'Magma shell', embereel: 'Ember eel', bogwisp: 'Bog wisp', mirecrawler: 'Mirecrawler', lampleech: 'Lantern leech', whisperer: 'Whisperer' }[t] || 'the fog';
-  const af = { armored: 'armored ', swift: 'swift ', regen: 'regenerating ', split: 'splitting ' }[a];
+  const af = { armored: 'armored ', swift: 'swift ', regen: 'regenerating ', split: 'splitting ', warding: 'warding ', dashing: 'dashing ' }[a];
   return af ? `an elite ${af}${nm}` : /^[AEIOU]/.test(nm) ? 'an ' + nm : 'a ' + nm;
 }
+// 0.31: a short fade from dark when a night starts or ends (not with reduced motion, nor in a replay test)
+function veil() { const v = document.getElementById('veil'); if (!v || reduceMotion || (typeof Replay !== 'undefined' && Replay.headless)) return; v.classList.remove('go'); void v.offsetWidth; v.classList.add('go'); }
 function goHome() {
+  if (run && mode !== 'home') veil();
   run = null; mode = 'home'; $('#hud').hidden = true; $('#hint').hidden = true;
   for (const id of ['#bAbility', '#coopHud', '#coopPicks', '#coopVote', '#coopWait', '#pvpTop', '#pvpWait', '#pvpReveal', '#pvpCount', '#pvpAnn', '#pvpOut', '#pvpDebug', '#pvpReactBtn', '#pvpWheel']) $(id).hidden = true; $('#pvpBubbles').textContent = ''; document.body.classList.remove('pvpFinal', 'pvpLow'); // nothing from a night stays on the home screen (a co-op partner's ability ring did)
   show('home'); refreshUI(true);
@@ -8350,6 +8638,7 @@ const SCREENS = ['notices', 'workbench', 'bazaar', 'collection', 'compat', 'cont
 // Screens that edit a draft: closing one by any other way than its own buttons drops the unsaved preview
 const sheetDrafts = {};
 function show(id) {
+  const wasFocus = document.activeElement; // (0.31: for srScreen)
   if (typeof Insights !== 'undefined') Insights.screen(id); // 0.30
   LKSel.close(false); // 0.29: an open dropdown list never outlives its screen
   if (id === 'home' && typeof Bazaar !== 'undefined' && Bazaar.back && mode === 'home') { Bazaar.back = false; openBazaar(); return; } // 0.26: back to where you stood in the Bazaar
@@ -8360,6 +8649,23 @@ function show(id) {
   if (id && id !== 'home' && toastT > 0) { toastQ.unshift(toastCur); toastT = 0; $('#toast').hidden = true; } // a sheet opened: show it again later
   const first = id && $('#' + id).querySelector('.card, .btn.primary');
   if (first && !('ontouchstart' in window)) first.focus({ preventScroll: true });
+  srScreen(id, wasFocus);
+}
+// 0.31: for screen readers (TalkBack, VoiceOver, NVDA): each sheet is a labelled region that says its name when it opens and
+// takes the focus (on phones too, where the focus is only moved for a screen reader's sake: the heading, not a button);
+// back on the home screen, the focus returns to the button that opened it
+const srOpener = {}; let srOpen = null;
+function srScreen(id, wasFocus) {
+  if (!id && srOpen && srOpen !== 'home') return; // (between two screens: keep where we came from)
+  const prev = srOpen, live = document.getElementById('srSay'); srOpen = id;
+  if (id && id !== 'home') {
+    const box = $('#' + id); if (!box) return;
+    if (id !== prev && wasFocus && wasFocus !== document.body && !box.contains(wasFocus)) srOpener[id] = wasFocus;
+    const h = box.querySelector('h1, h2'); if (!h) return;
+    if (!h.id) h.id = id + 'SrT'; if (!box.getAttribute('aria-labelledby')) box.setAttribute('aria-labelledby', h.id); if (!box.getAttribute('role')) box.setAttribute('role', 'region');
+    if ('ontouchstart' in window) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+    if (live && id !== prev) { live.textContent = ''; setTimeout(() => { live.textContent = h.textContent.trim(); }, 60); }
+  } else if (prev && prev !== 'home') { const o = srOpener[prev]; if (o && o.isConnected && !o.closest('[hidden]')) o.focus({ preventScroll: true }); }
 }
 function banner(t, s, bossy) {
   const b = $('#banner'); $('#banT').textContent = t; $('#banS').textContent = s || '';
@@ -8423,8 +8729,8 @@ function toggleMute() { meta.settings.muted = !meta.settings.muted; audioInit();
    (02c-draft.js): it previews at once and is kept only with Save changes; leaving with unsaved changes asks first. */
 let settingsFrom = 'home';
 if (!DEV_ALLOWED) { const r = document.querySelector('[data-set="dev"]'); if (r) r.closest('.setRow').remove(); } // 0.29: no Developer mode switch for players
-const SET_KEYS = ['gfx', 'motion', 'musicTrack', 'shake', 'flash', 'nums', 'haptics', 'dev', 'insights', 'ntGame', 'ntEvents', 'ntCommunity', 'ntPromos', 'ntSound', 'ntSystem', 'ntPush', 'res', 'fx', 'ambient', 'fps', 'ui', 'contrast', 'cvd', 'captions', 'capSize', 'capBg', 'hand', 'ctlSize', 'ctlAlpha', 'overscan'];
-const GFX_KEYS = ['gfx', 'res', 'fx', 'ambient'];
+const SET_KEYS = ['gfx', 'motion', 'musicTrack', 'shake', 'flash', 'nums', 'haptics', 'dev', 'insights', 'ntGame', 'ntEvents', 'ntCommunity', 'ntPromos', 'ntSound', 'ntSystem', 'ntPush', 'res', 'fx', 'ambient', 'fps', 'ui', 'contrast', 'cvd', 'captions', 'capSize', 'capBg', 'hand', 'ctlSize', 'ctlAlpha', 'overscan', 'battery', 'readable', 'outline', 'autoTap', 'holdTap', 'streamer']; // (0.31: 05c-access.js)
+const GFX_KEYS = ['gfx', 'res', 'fx', 'ambient', 'battery'];
 const setDraft = makeDraft({
   load: () => Object.assign({ vol: Object.assign({}, meta.settings.vol), sound: !meta.settings.muted }, Object.fromEntries(SET_KEYS.map(k => [k, meta.settings[k]]))),
   preview: v => applySettings(v),
@@ -8468,7 +8774,7 @@ function renderSettings() {
   renderMute();
 }
 function applyGfx() {
-  const v = gfxValues(meta.settings); // 0.25: presets (Auto starts at High and steps down on slow devices)
+  const v = gfxNow(meta.settings); // 0.25: presets (Auto starts at High and steps down on slow devices); 0.31: the battery saver overrides them
   renderCap = v.res; lowFx = !v.ambient; fxDensity = v.fx;
   perfT = 0; perfN = 0; resize();
 }
@@ -8522,6 +8828,10 @@ const toastQ = []; let toastT = 0, toastCur = null;
 function checkAch() { if (!Replay.on) checkFeats(); } // 0.14: the chains in 09i-feats.js check only each family's next step
 function tickToast(dt) {
   const el = $('#toast');
+  // 0.31: during a night a notice lets taps through to the creatures under it (a tap meant for a creature only closed the
+  // notice); it goes by itself in a few seconds. Elsewhere it can be tapped away. Checked every frame: a notice shown on
+  // the home screen stays up as the night starts.
+  const night = mode === 'play'; if (el.classList.contains('inPlay') !== night) { el.classList.toggle('inPlay', night); el.title = night ? '' : 'Tap to dismiss'; }
   const pvpCard = PVP.on() && ['out', 'announce', 'count', 'reveal', 'found', 'wait'].includes(PVP.phase); // a match card needs the space
   const overSheet = !!document.querySelector('section.sheet:not([hidden]), #appDialog:not([hidden])'); // 0.29: a menu screen or a dialog is open (notices can be tapped now: never over one)
   if (toastT > 0) { toastT -= dt; if (overSheet && toastCur && toastT > .6) toastQ.unshift([toastCur[0], toastCur[1], Math.max(1.5, toastT), toastCur[3]]); /* (cut short by a menu: shown again after it) */ if (!$('#coopVote').hidden || pvpCard || overSheet) toastT = 0; /* a co-op vote, a match card or a menu needs the space */ if (toastT <= 0) el.hidden = true; return; }
@@ -8534,7 +8844,7 @@ function tickToast(dt) {
   el.textContent = ''; el.append(Object.assign(document.createElement('b'), { textContent: t }), Object.assign(document.createElement('span'), { textContent: sub })); // text only: names come from other players
   el.classList.toggle('low', mode === 'home'); // on the home screen, above the tab bar instead of over the menu
   el.hidden = false; toastT = toastCur[2] || 2.6;
-  el.title = 'Tap to dismiss'; el.onclick = () => { toastT = 0; el.hidden = true; }; // 0.29: dismiss it; the next one in the queue follows
+  el.title = mode === 'play' ? '' : 'Tap to dismiss'; el.onclick = () => { toastT = 0; el.hidden = true; }; // 0.29: dismiss it; the next one in the queue follows
 }
 // renderAch(): 09i-feats.js (0.14)
 
@@ -8548,6 +8858,7 @@ function refreshUI(force) {
     setT($('#mStill'), r > 0 ? `Ember still +${fmt1(r)}/min` : meta.runs < 6 ? 'Tip: build an ember still in the Workshop' : '');
     setT($('#mBest'), meta.best ? `Best wave ${meta.best}` : '');
     $('#home').classList.toggle('veteran', meta.runs >= 3);
+    nextUp(); // 0.31: one suggestion of what to do next
     renderFestival();
     $('#achDot').hidden = !meta.achNew;
     $('#codexDot').hidden = !meta.codexNew;
@@ -8601,6 +8912,35 @@ function checkAway(showModal) {
   } else { earn(gain, false); save(); }
 }
 
+
+// 0.31: the first time a guardian rises, a short card says who it is and how to face it (from the Codex); the night
+// doesn't stop. Shown once per guardian on this save.
+let bossIntroT = 0;
+function bossIntro(b) {
+  meta.bossIntro[b.id] = 1; const c = CODEX_B[b.id] || {}, el = $('#bossIntro'); if (!el) return;
+  el.querySelector('.biN').textContent = b.name; el.querySelector('.biW').textContent = c.where || '';
+  el.querySelector('.biT').textContent = c.tip || c.desc || ''; el.hidden = false; el.classList.remove('out');
+  clearTimeout(bossIntroT); bossIntroT = setTimeout(() => { el.classList.add('out'); bossIntroT = setTimeout(() => { el.hidden = true; }, 500); }, reduceMotion ? 6000 : 5200);
+}
+
+// 0.31: the home screen suggests one next step: an upgrade the embers can pay for now, today's daily, then the next
+// region not cleared yet. Nothing for the first night (the guide covers it), and nothing while a night can be continued.
+let nextKey = '';
+function nextUp() {
+  const b = $('#bNext'); if (!b) return;
+  let n = null;
+  if (meta.runs >= 1 && !meta.run) {
+    const up = SHOP.filter(d => !d.max || (meta.lv[d.k] || 0) < d.max).map(d => ({ d, c: cost(d, meta.lv[d.k] || 0) })).filter(x => x.c <= meta.embers).sort((a, b) => a.c - b.c)[0];
+    const dt = dailyToday();
+    const reg = REGIONS.find(r => meta.world.unlocked[r.id] && !meta.world.cleared[r.id]);
+    if (up) n = { k: 'shop:' + up.d.k, t: `Next: buy ${up.d.name} in the Workshop (${fmt(up.c)} embers)`, go: () => openShop('home') };
+    else if (meta.runs >= 2 && meta.daily.key !== dt.key) n = { k: 'daily', t: 'Next: today\'s daily challenge', go: () => { audioInit(); startDaily(); } };
+    else if (reg) n = { k: 'reg:' + reg.id, t: `Next: sail to ${reg.name}`, go: () => { worldSel = reg.id; openWorld(); } };
+  }
+  b.hidden = !n; if (!n) { nextKey = ''; return; }
+  if (nextKey !== n.k) { nextKey = n.k; b.textContent = n.t; }
+  b.onclick = n.go;
+}
 
 /* ---- src\js\09b-menus.js ---- */
 /* =====================================================================
@@ -8718,6 +9058,7 @@ function lookThumb(slot, it) { // this item on a keeper in plain clothes (and yo
 }
 function renderKeeper() {
   if (!kd) kd = kdSaved();
+  renderOutfits(); // 0.31
   $('#kpEmb').textContent = fmt(meta.embers);
   const k = KPK[kd.kpr] || KEEPERS[0];
   $('#kpInfo').innerHTML = `<b>${k.name}</b><p>${k.desc}</p>${k.stats.length ? `<p>${k.stats.join('. ')}.</p>` : '<p>No bonuses or penalties.</p>'}
@@ -8907,7 +9248,21 @@ function renderLoadout() {
 
 /* ---------- codex (0.8.1) ---------- */
 let cxCat = 'c';
+// 0.31: the lore track: the whole tale in reading order (each act's opening, its regions' landmark stories, its closing,
+// then the ending), each page opening as you play; reading it all gives the title Lorekeeper
+function storyPages() {
+  const lm = allLandmarks(), out = [];
+  for (const a of ACTS) {
+    out.push({ got: !!meta.world.acts['in' + a.n] || a.regions.some(id => meta.world.cleared[id]), name: `Act ${ACT_NUM[a.n - 1]}: ${a.name}`, sub: 'Opening', desc: a.intro, hint: `Sail to ${RGK[a.regions[0]].name}` });
+    for (const id of a.regions) for (const l of lm.filter(x => x.region.id === id)) out.push({ got: !!(meta.codex.l && meta.codex.l[l.id]), name: l.name, sub: `${RGK[id].num}. ${RGK[id].name}`, desc: l.lore, hint: `A Landmark stop in ${RGK[id].name}` });
+    out.push({ got: !!meta.world.acts['out' + a.n] || a.regions.every(id => meta.world.cleared[id]), name: `Act ${ACT_NUM[a.n - 1]}: ${a.name}`, sub: 'Closing', desc: a.outro, hint: 'Clear every region of the act' });
+  }
+  out.push({ got: !!meta.world.campaign, name: 'The First Light', sub: 'The ending', desc: ENDING.join(' '), hint: 'Clear the First Light' });
+  return out;
+}
+{ const t = { id: 'lore', name: 'Lorekeeper', how: 'Read every page of the Codex Story', ok: () => storyPages().every(p => p.got) }; TITLES.push(t); TTK[t.id] = t; }
 function codexEntries(cat) {
+  if (cat === 's') return storyPages();
   if (cat === 'c') return CODEX_C.map(e => ({ got: !!meta.codex.c[e.id], name: e.name, sub: e.where, desc: e.desc, tip: e.tip, n: meta.stats.byType[e.id] || 0, hint: `Found: ${e.where}`, pic: ['c', e.id], traits: (TYPES[e.id] && TYPES[e.id].traits) || [] }));
   if (cat === 'b') return BOSSES.map(b => ({ got: !!meta.codex.b[b.id], name: b.name, sub: CODEX_B[b.id].where, desc: CODEX_B[b.id].desc, tip: CODEX_B[b.id].tip, n: meta.stats.byType[b.id] || 0, hint: `Found: ${CODEX_B[b.id].where}`, pic: ['b', b.id] }));
   if (cat === 'w') return WEAPONS.map(w => ({ got: !!meta.arsenal.owned[w.id], name: w.name, sub: w.rarity, art: weaponArt(w, 'art cxArt'), pv: 'w:' + w.id, desc: `${w.desc} ${w.trait}.${LORE[w.id] ? ' “' + LORE[w.id] + '”' : ''}`, hint: w.unlock ? `Clear ${RGK[w.unlock].name}` : 'Sold in the Shop' }));
@@ -9113,6 +9468,7 @@ function watchLib(id, noteSel) {
 
 function openLH() { $('#lhNote').textContent = ''; renderLH(); show('lhsheet'); }
 function renderLH() {
+  renderDecos(); // 0.31
   $('#lhNameIn').value = meta.lighthouse.name;
   $('#lhCount').textContent = `${LIGHTHOUSES.filter(lhOwned).length} / ${LIGHTHOUSES.length}`;
   $('#lhList').innerHTML = LIGHTHOUSES.map(l => { const own = lhOwned(l), sel = curLH().id === l.id;
@@ -9121,7 +9477,7 @@ function renderLH() {
   for (const b2 of document.querySelectorAll('[data-lh]')) b2.onclick = () => { meta.lighthouse.id = b2.dataset.lh; sfx('pick'); save(); renderLH(); refreshUI(true); };
 }
 
-function openChallenges() { $('#seedNote').textContent = ''; renderChallenges(); show('challenges'); }
+function openChallenges() { $('#seedNote').textContent = ''; renderChallenges(); show('challenges'); renderBoards(); }
 let ascSel = 0;
 function renderAscension() {
   const open = ascOpen(); $('#bAsc').hidden = !open; $('#chAscPick').textContent = ''; $('#chAscMods').textContent = '';
@@ -9150,7 +9506,7 @@ async function claimWeekly(id, btn) {
   } finally { wkBusy = false; renderChallenges(); }
 }
 function renderChallenges() {
-  renderAscension();
+  renderAscension(); renderSeason(); // (0.31)
   const goals = weeklyGoals();
   $('#chWeek').textContent = `(new goals every Sunday)`;
   $('#chWeekly').innerHTML = goals.map(g => { const done = g.cur >= g.n, claimed = !!meta.weekly.claimed[g.id];
@@ -9356,7 +9712,7 @@ function drawCoopKeepers() {
     const g = glow((WPK[wpn] || WEAPONS[0]).col), gs = 22 * U; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(g, x + 6 * U - gs / 2, y - 8 * U - gs / 2, gs, gs); ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = (WPK[wpn] || WEAPONS[0]).col; ctx.fillRect(x + 4 * U, y - 11 * U, 4 * U, 6 * U);
     ctx.fillStyle = KEEPER_COL[slot] || '#fff'; ctx.textAlign = 'center'; cfont(11, .9);
-    ctx.fillText(name + (ai ? ' (AI)' : ''), x, y - 16 * U);
+    ctx.fillText(streamerName(name, slot) + (ai ? ' (AI)' : ''), x, y - 16 * U); // (0.31: streamer mode)
   });
 }
 function drawCoopOverlay() {
@@ -9374,7 +9730,7 @@ function drawCoopObjective(e, r) { // wards, cores, reeds: a crystal in its keep
   ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, r * 1.6 + Math.sin(time * 4) * 2, 0, 7); ctx.stroke();
   ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(-r, r * 1.8, r * 2, 4); ctx.fillStyle = col; ctx.fillRect(-r, r * 1.8, r * 2 * clamp(e.hp / e.max, 0, 1), 4);
   const name = e.owner === mySlot() ? 'Yours' : ((coopKeepersNow().find(k => k[0] === e.owner) || [, ''])[1]);
-  ctx.textAlign = 'center'; cfont(11, .9); ctx.fillText(name, 0, -r * 1.7);
+  ctx.textAlign = 'center'; cfont(11, .9); ctx.fillText(name === 'Yours' ? name : streamerName(name, e.owner), 0, -r * 1.7); // (0.31: streamer mode)
 }
 
 /* ---- src\js\09h-world-ui.js ---- */
@@ -9383,34 +9739,85 @@ function drawCoopObjective(e, r) { // wards, cores, reeds: a crystal in its keep
    landmarks in the Codex, the ending, and the festival notice on the home screen.
    ===================================================================== */
 let worldSel = '';
-// Where each region sits on the map: its depth is the longest path back to the Fogbound Coast; regions at the same
-// depth sit side by side (a fork), so the map reads from the coast (bottom) to the First Light (top).
+// 0.31: the map reads from the top (I, the Fogbound Coast) down to the First Light (XXV), one band per act; regions at
+// the same depth sit side by side (a fork). A list view shows all 25 with their state. The view is remembered.
+let worldView = (() => { try { return Platform.load('lk-world-view') === 'list' ? 'list' : 'map'; } catch (e) { return 'map'; } })();
+const WN_H = 92; // (0.31: every tile the same height, so rows never touch: #world .wnode in menus.css)
 function worldLayout() {
   const depth = {}, D = id => depth[id] !== undefined ? depth[id] : (depth[id] = (RGK[id].req || []).length ? 1 + Math.max(...RGK[id].req.map(D)) : 0);
   for (const r of REGIONS) D(r.id);
   const rows = {}; for (const r of REGIONS) (rows[depth[r.id]] = rows[depth[r.id]] || []).push(r.id);
-  const maxD = Math.max(...Object.values(depth)), pos = {};
-  for (const [d, ids] of Object.entries(rows)) ids.forEach((id, i) => { pos[id] = { x: (i + 1) / (ids.length + 1), y: maxD - +d }; });
-  return { pos, rows: maxD + 1 };
+  const maxD = Math.max(...Object.values(depth)), pos = {}, ROW = WN_H + 16, HEAD = 36, heads = []; let y = 6, act = 0;
+  for (let d = 0; d <= maxD; d++) { const ids = rows[d] || [], a = ids.length ? actOf(ids[0]).n : act;
+    if (a !== act) { act = a; heads.push({ n: a, y }); y += HEAD; }
+    const gap = ids.length > 1 ? Math.min(.44, .88 / (ids.length - 1)) : 0; ids.forEach((id, i) => { pos[id] = { x: .5 + (i - (ids.length - 1) / 2) * gap, y }; }); y += ROW; }
+  return { pos, heads, height: y + 4 };
 }
+const ACT_NUM = ['I', 'II', 'III', 'IV', 'V'];
+function worldNext() { const open = REGIONS.filter(r => meta.world.unlocked[r.id]); return (open.find(r => !meta.world.cleared[r.id]) || open[open.length - 1] || REGIONS[0]).id; }
 function renderWorld() {
-  const cleared = REGIONS.filter(r => meta.world.cleared[r.id]).length;
-  $('#worldProg').textContent = `${cleared} / ${REGIONS.length} cleared` + (meta.world.campaign ? ' · Campaign complete' : '');
-  const { pos, rows } = worldLayout(), rowH = 74, box = $('#regionList');
-  const open = REGIONS.filter(r => meta.world.unlocked[r.id]);
-  if (!worldSel || !RGK[worldSel]) worldSel = (open.filter(r => !meta.world.cleared[r.id]).pop() || open[open.length - 1] || REGIONS[0]).id;
-  let lines = '';
-  for (const r of REGIONS) for (const q of r.req || []) { const a = pos[r.id], b = pos[q]; lines += `<line x1="${(a.x * 100).toFixed(1)}%" y1="${a.y * rowH + 30}" x2="${(b.x * 100).toFixed(1)}%" y2="${b.y * rowH + 30}" class="${meta.world.cleared[q] ? 'done' : ''}"/>`; }
-  const acts = ACTS.map(a => { const ys = a.regions.map(id => pos[id].y), top = Math.min(...ys); return `<div class="actLbl" style="top:${top * rowH - 6}px">Act ${['I', 'II', 'III', 'IV', 'V'][a.n - 1]}: ${a.name}</div>`; }).join('');
-  box.innerHTML = `<div class="wmap" style="height:${rows * rowH + 20}px"><svg class="wlinks" aria-hidden="true">${lines}</svg>${acts}` + REGIONS.map(r => {
-    const p = pos[r.id], isOpen = !!meta.world.unlocked[r.id], done = !!meta.world.cleared[r.id], st = meta.world.stars[r.id] || {};
-    return `<button class="region wnode act${actOf(r.id).n}${done ? ' done' : ''}${isOpen ? '' : ' locked'}${worldSel === r.id ? ' sel' : ''}" data-r="${r.id}" style="left:${(p.x * 100).toFixed(1)}%;top:${p.y * rowH + 6}px;--rg1:${r.pal.sky[1]}"
-      aria-label="${r.num}. ${esc(r.name)}${done ? ', cleared' : isOpen ? '' : ', locked'}"><b>${r.num}</b><span>${esc(r.name)}</span>${done ? `<i>${'★'.repeat(Object.values(st).filter(Boolean).length)}</i>` : ''}</button>`;
-  }).join('') + '</div>';
-  for (const b of box.querySelectorAll('.wnode')) b.onclick = () => { worldSel = b.dataset.r; renderWorld(); };
+  const cleared = REGIONS.filter(r => meta.world.cleared[r.id]).length, stars = REGIONS.reduce((a, r) => a + Object.values(meta.world.stars[r.id] || {}).filter(Boolean).length, 0);
+  $('#worldProg').textContent = I18n.t('{a} / {b} cleared · ★ {c} / {d}').replace('{a}', cleared).replace('{b}', REGIONS.length).replace('{c}', stars).replace('{d}', REGIONS.length * 3) + (meta.world.campaign ? ' · Campaign complete' : '');
+  const box = $('#regionList'), next = worldNext();
+  if (!worldSel || !RGK[worldSel]) worldSel = next;
+  $('#wViewMap').setAttribute('aria-selected', String(worldView === 'map')); $('#wViewList').setAttribute('aria-selected', String(worldView === 'list'));
+  box.classList.toggle('isList', worldView === 'list');
+  const starsOf = r => Object.values(meta.world.stars[r.id] || {}).filter(Boolean).length;
+  if (worldView === 'list') {
+    box.innerHTML = ACTS.map(a => { const rs = a.regions.map(id => RGK[id]), done = rs.filter(r => meta.world.cleared[r.id]).length;
+      return `<div class="wActHead" data-act="${a.n}"><b>${I18n.t('Act {a}').replace('{a}', ACT_NUM[a.n - 1])}</b> ${esc(a.name)} <small>${I18n.t('{a} / {b} cleared').replace('{a}', done).replace('{b}', rs.length)}</small></div>` + rs.map(r => { const isOpen = !!meta.world.unlocked[r.id], done1 = !!meta.world.cleared[r.id], th = isOpen ? regionThreat(r) : null;
+        return `<button type="button" class="wRow region${worldSel === r.id ? ' sel' : ''}${isOpen ? '' : ' locked'}${done1 ? ' done' : ''}${r.id === next && !done1 ? ' next' : ''}" data-r="${r.id}" style="--rg1:${r.pal.sky[1]}"><span class="wn">${r.num}</span><span class="wt"><b>${esc(r.name)}</b><small>${done1 ? I18n.t('Cleared') : isOpen ? I18n.t(r.id === next ? 'Your next region' : 'Open') : I18n.t('Locked: clear {a}').replace('{a}', esc((r.req || []).map(id => RGK[id].name).join(r.reqAll ? ' & ' : ' / ')))}</small></span><span class="ws">${done1 ? '★'.repeat(starsOf(r)) + '☆'.repeat(3 - starsOf(r)) : th ? '●'.repeat(th.pips) + '○'.repeat(5 - th.pips) : '🔒'}</span></button>`; }).join(''); }).join('');
+  } else {
+    const { pos, heads, height } = worldLayout();
+    let lines = '';
+    for (const r of REGIONS) for (const q of r.req || []) { const a = pos[r.id], b = pos[q]; lines += `<line x1="${(a.x * 100).toFixed(1)}%" y1="${a.y + WN_H / 2}" x2="${(b.x * 100).toFixed(1)}%" y2="${b.y + WN_H / 2}" class="${meta.world.cleared[q] ? 'done' : ''}"/>`; }
+    const actHeads = heads.map(h => { const a = ACTS[h.n - 1], done = a.regions.filter(id => meta.world.cleared[id]).length; return `<div class="wActHead inMap" data-act="${h.n}" style="top:${h.y}px"><b>${I18n.t('Act {a}').replace('{a}', ACT_NUM[h.n - 1])}</b> ${esc(a.name)} <small>${done} / ${a.regions.length}</small></div>`; }).join('');
+    box.innerHTML = `<div class="wmap" style="height:${height}px"><svg class="wlinks" aria-hidden="true">${lines}</svg>${actHeads}` + REGIONS.map(r => {
+      const p = pos[r.id], isOpen = !!meta.world.unlocked[r.id], done = !!meta.world.cleared[r.id];
+      return `<button type="button" class="region wnode act${actOf(r.id).n}${done ? ' done' : ''}${isOpen ? '' : ' locked'}${worldSel === r.id ? ' sel' : ''}${r.id === next && !done ? ' next' : ''}" data-r="${r.id}" style="left:${(p.x * 100).toFixed(1)}%;top:${p.y}px;--rg1:${r.pal.sky[1]}"
+        aria-label="${r.num}. ${esc(r.name)}${done ? ', cleared' : isOpen ? (r.id === next ? ', your next region' : '') : ', locked'}" aria-pressed="${worldSel === r.id}"><b>${r.num}${isOpen ? '' : ' <span class="wLock" aria-hidden="true"></span>'}</b><span>${esc(r.name)}</span>${done ? `<i>${'★'.repeat(starsOf(r))}${'☆'.repeat(3 - starsOf(r))}</i>` : ''}</button>`;
+    }).join('') + '</div>';
+  }
+  for (const b of box.querySelectorAll('[data-r]')) b.onclick = () => { worldSel = b.dataset.r; worldScrolled = true; renderWorld(); const f = box.querySelector(`[data-r="${worldSel}"]`); if (f) f.focus({ preventScroll: true }); if (matchMedia('(max-width: 859px)').matches && worldView === 'list') $('#worldCard').scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); };
+  // arrow keys: the region before or after (by number), Home and End
+  box.onkeydown = e => { if (e.key === 'PageDown' || e.key === 'PageUp') { e.preventDefault(); worldGoAct(actOf(worldSel).n + (e.key === 'PageDown' ? 1 : -1)); return; } const i = REGIONS.findIndex(r => r.id === worldSel), k = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1, Home: -99, End: 99 }[e.key]; if (k === undefined || i < 0) return;
+    e.preventDefault(); const j = Math.max(0, Math.min(REGIONS.length - 1, k === -99 ? 0 : k === 99 ? REGIONS.length - 1 : i + k)); worldSel = REGIONS[j].id; renderWorld();
+    const f = box.querySelector(`[data-r="${worldSel}"]`); if (f) { f.focus({ preventScroll: true }); worldReveal(f, false); } };
   renderWorldCard();
-  requestAnimationFrame(() => { const s = box.querySelector('.wnode.sel'); if (s && !worldScrolled) { worldScrolled = true; s.scrollIntoView({ block: 'center' }); } });
+  renderWorldActs();
+  requestAnimationFrame(() => { const s = box.querySelector('[data-r].sel'); if (s && !worldScrolled) { worldScrolled = true; worldReveal(s, true); } worldActInView(); });
 }
+// 0.31: scroll the regions' box (only it) so el shows: centred, or just into view
+function worldReveal(el, centre) {
+  const box = $('#regionList'), b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+  if (centre) box.scrollTop += r.top - b.top - (box.clientHeight - r.height) / 2;
+  else if (r.top < b.top + 34) box.scrollTop += r.top - b.top - 34; else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
+}
+// 0.31: the act bar: I to V, each with how much of it is cleared; any act can be looked at again (cleared regions can be
+// sailed again for stars), and the act being looked at is marked as the map scrolls
+function renderWorldActs() {
+  const bar = $('#wActs'); if (!bar) return;
+  bar.innerHTML = ACTS.map(a => { const done = a.regions.filter(id => meta.world.cleared[id]).length, open = a.regions.some(id => meta.world.unlocked[id]);
+    return `<button type="button" class="wAct${done === a.regions.length ? ' done' : ''}${open ? '' : ' locked'}" data-act="${a.n}" title="${esc(I18n.t('Act {a}').replace('{a}', ACT_NUM[a.n - 1]) + ': ' + a.name)}" aria-label="${esc(I18n.t('Act {a}').replace('{a}', ACT_NUM[a.n - 1]) + ', ' + a.name + ', ' + I18n.t('{a} / {b} cleared').replace('{a}', done).replace('{b}', a.regions.length))}"><b>${ACT_NUM[a.n - 1]}</b><small>${done === a.regions.length ? '✓' : done + '/' + a.regions.length}</small></button>`; }).join('');
+  for (const b of bar.querySelectorAll('[data-act]')) b.onclick = () => worldGoAct(+b.dataset.act);
+}
+function worldGoAct(n) {
+  const a = ACTS[Math.max(1, Math.min(ACTS.length, n)) - 1]; if (!a) return;
+  // the act's region to look at: the next one to clear there, else its first open one, else its first
+  const pick = a.regions.find(id => meta.world.unlocked[id] && !meta.world.cleared[id]) || a.regions.find(id => meta.world.unlocked[id]) || a.regions[0];
+  worldSel = pick; worldScrolled = true; renderWorld(); sfx('ui');
+  const box = $('#regionList'), h = box.querySelector(`.wActHead[data-act="${a.n}"]`);
+  if (h) box.scrollTop += h.getBoundingClientRect().top - box.getBoundingClientRect().top;
+  const f = box.querySelector(`[data-r="${worldSel}"]`); if (f) f.focus({ preventScroll: true }); worldActInView();
+}
+function worldActInView() {
+  const box = $('#regionList'), top = box.getBoundingClientRect().top + 40; let cur = 1;
+  for (const h of box.querySelectorAll('.wActHead[data-act]')) if (h.getBoundingClientRect().top <= top) cur = +h.dataset.act;
+  for (const b of document.querySelectorAll('#wActs [data-act]')) b.setAttribute('aria-current', String(+b.dataset.act === cur));
+}
+$('#regionList').addEventListener('scroll', () => worldActInView(), { passive: true });
+$('#wViewMap').onclick = () => { worldView = 'map'; Platform.save('lk-world-view', 'map'); worldScrolled = false; renderWorld(); };
+$('#wViewList').onclick = () => { worldView = 'list'; Platform.save('lk-world-view', 'list'); worldScrolled = false; renderWorld(); };
 let worldScrolled = false;
 function renderWorldCard() {
   const r = RGK[worldSel], el = $('#worldCard'); if (!r || !el) return;
@@ -9418,13 +9825,22 @@ function renderWorldCard() {
   const reward = [r.reward.weapon && WPK[r.reward.weapon] && WPK[r.reward.weapon].name, r.reward.keeper && KPK[r.reward.keeper] && KPK[r.reward.keeper].name, r.reward.charm && CHK[r.reward.charm] && CHK[r.reward.charm].name].filter(Boolean).join(', ');
   const needs = (r.req || []).map(id => RGK[id].name).join(r.reqAll ? ' and ' : ' or ');
   const lms = (LANDMARKS[r.id] || []).map((l, i) => meta.codex.l && meta.codex.l[landmarkId(r.id, i)] ? l[0] : '?').join(', ');
-  el.innerHTML = (isOpen ? '<button id="bSail" class="btn primary">Set sail</button>' : '') + `<div class="region wcard" style="--rg1:${r.pal.sky[1]}"><span class="num">${r.num}</span><span><b>${esc(r.name)}</b><p>${isOpen ? esc(r.desc) : `Locked: clear ${esc(needs)} first.`}</p>
+  const last = isOpen && meta.loadouts && meta.loadouts[r.id], lastOk = last && (!last.wpn || meta.arsenal.owned[last.wpn]) && (!last.kpr || meta.keepers.owned[last.kpr]),
+    differs = lastOk && (last.wpn !== meta.arsenal.equip || last.kpr !== meta.keepers.equip || JSON.stringify(last.charms) !== JSON.stringify(meta.charms.slots || []));
+  const lastTxt = differs ? [last.wpn && WPK[last.wpn].name, last.kpr && KPK[last.kpr].name, ...(last.charms || []).map(c => CHK[c] && CHK[c].name)].filter(Boolean).join(', ') : '';
+  el.innerHTML = (isOpen ? '<button id="bSail" class="btn primary">Set sail</button>' : '') + (differs ? `<button id="bLastLo" class="btn small ghost lastLo">${I18n.t('Use my last loadout here')}<small>${esc(lastTxt)}</small></button>` : '') + `<div class="region wcard" style="--rg1:${r.pal.sky[1]}"><span class="num">${r.num}</span><span><b>${esc(r.name)}</b><p>${isOpen ? esc(r.desc) : `Locked: clear ${esc(needs)} first.`}</p>
     <span class="meta"><span>Act ${['I', 'II', 'III', 'IV', 'V'][act.n - 1]}: <em>${act.name}</em></span><span>Route: <em>${r.rows || 6} stops</em></span></span>
     ${isOpen ? `<span class="meta threat"><span>Threat <em class="pips" aria-label="${th.pips} of 5">${'●'.repeat(th.pips)}${'○'.repeat(5 - th.pips)}</em></span><span>Starts like Endless wave ${th.start}, the guardian like wave ${th.guard}. <em>${th.verdict}</em></span></span>` : ''}
     <span class="meta"><span>Modifier: <em>${esc(r.mod)}</em></span><span>Guardian: <em>${boss ? esc(boss.name) : ''}</em></span><span class="rstars">${['clear', 'norepair', 'strong'].map(k => `<i class="${st[k] ? 'on' : ''}"></i>`).join('')}</span></span>
     ${isOpen ? `<span class="meta"><span>${esc(r.modDesc)}</span></span>` : ''}
     <span class="meta"><span>First clear: <em>${esc(reward)}</em>${meta.world.cleared[r.id] ? ' (earned)' : ''}</span><span>Landmarks: <em>${esc(lms)}</em></span></span></span></div>
 `; // 0.14.2: the main action first, above the details
+  const ll = $('#bLastLo'); if (ll) ll.onclick = () => { // 0.31: what was used here last time, if it is still owned
+    if (last.wpn && meta.arsenal.owned[last.wpn]) meta.arsenal.equip = last.wpn; if (last.kpr && meta.keepers.owned[last.kpr]) meta.keepers.equip = last.kpr;
+    const ch = (last.charms || []).filter(c => meta.charms.owned[c]); if (ch.length) meta.charms.slots = ch.slice(0, CHARM_SLOTS);
+    if (last.lh && typeof lhOwned === 'function' && LIGHTHOUSES.some(l => l.id === last.lh && lhOwned(l))) meta.lighthouse.id = last.lh;
+    save(); sfx('pick'); toastQ.push([I18n.t('Loadout'), I18n.t('Your last loadout for this region is on.')]); renderWorldCard(); };
+  const bar = $('#bSailBar'); if (bar) { bar.hidden = !isOpen; bar.textContent = I18n.t('Set sail: {a}').replace('{a}', r.name); bar.onclick = () => { const x = $('#bSail'); if (x) x.click(); }; }
   const sail = $('#bSail'); if (sail) sail.onclick = () => { if (mode !== 'home') return; const act = actIntro(r.id); if (act) showActCard(act, false, () => { show('home'); startExpedition(r.id); }); else startExpedition(r.id); }; // a new act begins with its card
 }
 
@@ -10142,7 +10558,8 @@ function bzTryKeys() {
 const BZ_CAM = { x: 12, y: 19, z: 20 }; // 0.29: where the camera stands, relative to you (the diorama view)
 // move with the screen: "up" walks away from the camera, "right" to the screen's right, whatever the camera's angle
 function bzScreenMove(dx, dz) { const fx = BZ_CAM.x, fz = -BZ_CAM.z, l = Math.hypot(fx, fz), ux = fx / l, uz = fz / l; return [-uz * dx + ux * -dz, ux * dx + uz * -dz]; }
-const bzStations = () => BZ_DISTRICTS.flatMap(d => d.stations.map(s => Object.assign({ district: d }, s)));
+let bzStCache = null; // (0.31: built once: the districts and stations never change; it was rebuilt several times a frame)
+const bzStations = () => bzStCache || (bzStCache = BZ_DISTRICTS.flatMap(d => d.stations.map(s => Object.assign({ district: d }, s))));
 const bzOpen = () => meta.runs >= 3; // the Bazaar itself opens after the first few nights
 const Bazaar = {
   on: false, back: false, ok3d: true, me: { x: 0, z: 2, face: 0 }, target: null, keys: {}, stick: { x: 0, z: 0 }, near: null, here: '', others: new Map(),
@@ -10151,6 +10568,7 @@ const Bazaar = {
   limitX() { for (const d of BZ_DISTRICTS) if (!d.open()) return d.x0 - 1.2; return BZ_LEN; }, // the first closed gate
 };
 function openBazaar() {
+  if (!familyOnline()) return; // 0.31: Family settings
   if (!bzOpen()) { toastQ.push(['The Lantern Bazaar', 'Opens after your first 3 nights.', 3]); return; }
   Bazaar.back = false; Bazaar.on = true; show('bazaar'); Bazaar.here = ''; bzStartQuests(); renderBazaarUi(); bzOpenedNews(); bzSel = null; if (matchMedia('(max-width: 700px), (max-height: 520px)').matches) bzPanelDown = true; /* (0.29: and on a phone held sideways) */ renderBzPanel(); /* (on a phone the panel starts lowered, so the street shows; on a computer it stays as you left it) */ // 0.29: the panel (09p-bazaar-ui.js)
   bzDropLost(); // 0.29
@@ -10170,8 +10588,28 @@ function bzUse(st) {
   sfx('pick'); Bazaar.back = true; closeBazaar('station'); st.act();
 }
 // ---------- the scene ----------
-function voxMat(col, emissive) { const T = THREE; return new T.MeshLambertMaterial({ color: new T.Color(col), emissive: emissive ? new T.Color(col) : new T.Color(0), emissiveIntensity: emissive ? .9 : 0 }); }
-function voxBox(w, h, d, col, x, y, z, emissive) { const T = THREE, m = new T.Mesh(new T.BoxGeometry(w, h, d), voxMat(col, emissive)); m.position.set(x, y, z); return m; }
+function voxMatNew(col, emissive) { const T = THREE; return new T.MeshLambertMaterial({ color: new T.Color(col), emissive: emissive ? new T.Color(col) : new T.Color(0), emissiveIntensity: emissive ? .9 : 0 }); }
+// 0.31: one material per colour and one box shape per size, shared by every box that uses them: the street had a
+// material and a geometry for each of its ~700 boxes. A box whose glow changes on its own (a street lamp, a gate's
+// lamp) asks for its own material (own = true).
+const BZ_MATS = new Map(), BZ_BOXES = new Map(), BZ_SHARED = new Set();
+function voxMat(col, emissive, own) {
+  if (own) return voxMatNew(col, emissive);
+  const k = col + (emissive ? '*' : ''); let m = BZ_MATS.get(k); if (!m) { BZ_MATS.set(k, m = voxMatNew(col, emissive)); BZ_SHARED.add(m); } return m;
+}
+// 0.31: a group's still boxes become one mesh per material (one draw each instead of one per box). Parts that move or
+// change (marked userData.dyn: the portcullis) and boxes with their own material (lamps) stay as they are. Taps still
+// find the stall: they look up the group's station, and the merged mesh is in the same group.
+function bzMerge(group) {
+  const T = THREE; group.updateMatrixWorld(true); const inv = new T.Matrix4().copy(group.matrixWorld).invert(), by = new Map(), drop = [];
+  const still = o => { for (let a = o; a && a !== group; a = a.parent) if (a.userData.dyn) return false; return true; };
+  group.traverse(o => { if (!o.isMesh || o.isInstancedMesh || !BZ_SHARED.has(o.material) || !still(o)) return;
+    const g = o.geometry.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld)); if (!by.has(o.material)) by.set(o.material, []); by.get(o.material).push(g); drop.push(o); });
+  for (const o of drop) o.parent.remove(o);
+  for (const [mat, geos] of by) { group.add(new T.Mesh(T.mergeGeometries(geos), mat)); for (const g of geos) g.dispose(); }
+}
+function voxGeo(w, h, d) { const k = w + ',' + h + ',' + d; let g = BZ_BOXES.get(k); if (!g) BZ_BOXES.set(k, g = new THREE.BoxGeometry(w, h, d)); return g; }
+function voxBox(w, h, d, col, x, y, z, emissive, own) { const m = new THREE.Mesh(voxGeo(w, h, d), voxMat(col, emissive, own)); m.position.set(x, y, z); return m; }
 function labelSprite(text, col = '#ffcf66', size = 1) { // 0.29: as wide as its text (long "Closed: ..." signs were cut off at 512 pixels)
   const T = THREE, c = document.createElement('canvas'), x = c.getContext('2d'), font = '600 52px "Jersey 10", system-ui, sans-serif';
   x.font = font; const w = Math.ceil(Math.max(160, x.measureText(text).width + 48)); c.width = Math.min(1536, w + 12); c.height = 96;
@@ -10231,9 +10669,9 @@ function buildBazaar() {
       const lab = labelSprite(st.name, '#ffffff', .8); lab.position.set(0, 3.6, 0); g.add(lab);
       const keeper = keeperVoxel({ coat: LOOKS.coat[(st.x / 7 | 0) % LOOKS.coat.length].id, skin: 'default', hat: 'none', scarf: 'none' }); keeper.position.set(0, 0, .2); keeper.scale.setScalar(.95); g.add(keeper);
       if (bzTier() === 2 || (bzTier() === 1 && st.x % 2 === 0)) { const sl = new T.PointLight('#ffc46b', 18, 8, 1.7); sl.position.set(0, 2.4, 2.4); g.add(sl); } // 0.29: each stall's own warm light (by preset)
-      g.userData.station = st.id; scene.add(g);
+      g.userData.station = st.id; bzMerge(g); scene.add(g);
     }
-    for (const lx of [d.x0 + 3, d.x0 + 15]) { scene.add(voxBox(.2, 3.2, .2, '#2b2b36', lx, 1.6, 3)); const lamp = voxBox(.55, .55, .55, '#ffcf66', lx, 3.4, 3, true); scene.add(lamp); lamps.push(lamp); }
+    for (const lx of [d.x0 + 3, d.x0 + 15]) { scene.add(voxBox(.2, 3.2, .2, '#2b2b36', lx, 1.6, 3)); const lamp = voxBox(.55, .55, .55, '#ffcf66', lx, 3.4, 3, true, true); scene.add(lamp); lamps.push(lamp); }
     if (d.id !== 'bazaar') bzBuildGate(d, scene); // 0.29: a gate between districts: shut while closed, open once unlocked
   }
   // 0.29: detail follows the graphics preset (Low: the street alone; Medium: props, string lights, stars; High and up:
@@ -10294,7 +10732,7 @@ function buildBazaar() {
   const lh = new T.Group(); lh.position.set(BZ_LEN + 6, 0, -2);
   for (let k = 0; k < 7; k++) lh.add(voxBox(3 - k * .2, 1.6, 3 - k * .2, k % 2 ? '#c0392b' : '#eef0fa', 0, .8 + k * 1.6, 0));
   lh.add(voxBox(1.8, 1.4, 1.8, '#ffcf66', 0, 12.2, 0, true)); const beam = new T.Mesh(new T.ConeGeometry(3, 26, 16, 1, true), new T.MeshBasicMaterial({ color: '#ffdf8a', transparent: true, opacity: .12, depthWrite: false }));
-  beam.rotation.z = Math.PI / 2; beam.position.set(13, 12.2, 0); const pivot = new T.Group(); pivot.position.set(0, 0, 0); pivot.add(beam); lh.add(pivot); scene.add(lh);
+  beam.rotation.z = Math.PI / 2; beam.position.set(13, 12.2, 0); const pivot = new T.Group(); pivot.position.set(0, 0, 0); pivot.add(beam); lh.add(pivot); bzMerge(lh); scene.add(lh);
   const life = bzBuildLife(scene, tier, rnd); // 0.29: townsfolk, sky lanterns, fireflies
   // you
   const me = keeperVoxel(meta.look); scene.add(me); const myName = labelSprite(meta.profile.name || 'Keeper', '#ffcf66', .7); myName.position.y = 3.2; me.add(myName);
@@ -10319,7 +10757,8 @@ function bzResize() { if (!Bazaar.renderer) return; const b = $('#bzView').getBo
 function bzTap(ev) {
   if (!Bazaar.on) return; const T = THREE, r = ev.target.getBoundingClientRect(), v = new T.Vector2((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1);
   Bazaar.ray.setFromCamera(v, Bazaar.cam); const hits = Bazaar.ray.intersectObjects(Bazaar.scene.children, true);
-  for (const h of hits) { let o = h.object; while (o && !o.userData.station && o.parent) o = o.parent;
+  for (const h of hits) { let o = h.object; while (o && !o.userData.station && o.userData.npc == null && o.parent) o = o.parent;
+    if (o && o.userData.npc != null && Bazaar.life) { const n = Bazaar.life.npcs[o.userData.npc]; if (n) { bzTalk(n); return; } }
     if (o && o.userData.station) { const st = bzStations().find(s => s.id === o.userData.station); if (st) { Bazaar.target = { x: st.x, z: st.z + 1.6, use: st.id }; return; } } }
   const g = hits.find(h => h.object === Bazaar.ground); if (g) Bazaar.target = { x: g.point.x, z: g.point.z };
 }
@@ -10338,8 +10777,10 @@ function bzStep(dt) {
   if (performance.now() - B.lastSend > 200 && (Math.abs(B.me.x - B.sentAt.x) > .05 || Math.abs(B.me.z - B.sentAt.z) > .05)) bzSend();
 }
 function bzFrame(now) {
-  const B = Bazaar; if (!B.on) return; const dt = Math.min(.05, (now - B.last) / 1000); B.last = now; B.t += dt;
-  bzStep(dt); bzTryKeys(); bzGatesStep(dt); bzLifeStep(dt);
+  const B = Bazaar; if (!B.on) return;
+  if (fpsCap && now - B.last < 1000 / fpsCap - 1.5) { B.raf = requestAnimationFrame(bzFrame); return; } // 0.31: the frame rate limit and Battery saver hold here too
+  const dt = Math.min(.05, (now - B.last) / 1000); B.last = now; B.t += dt;
+  bzStep(dt); if ((B.keyT = (B.keyT || 0) - dt) <= 0) { B.keyT = .5; bzTryKeys(); } bzGatesStep(dt); bzLifeStep(dt);
   if (!B.ch && B.t - (B.joinT || -9) > 3) { B.joinT = B.t; if (Cloud.on() && Cloud.signedIn()) bzJoin(); else renderBazaarUi(); } // 0.29: meet the others once signed in (a game reopened in the Bazaar is signed in a moment later)
   if (B.scene) {
     B.meMesh.position.set(B.me.x, 0, B.me.z); B.meMesh.rotation.y = B.me.face; B.meMesh.position.y = (B.keys.up || B.keys.down || B.keys.left || B.keys.right || B.target || B.stick.x || B.stick.z) ? Math.abs(Math.sin(B.t * 10)) * .08 : 0;
@@ -10364,14 +10805,14 @@ function bzBuildGate(d, scene) {
   const T = THREE, gate = new T.Group(); gate.position.set(d.x0 - .6, 0, 0);
   for (const z of [-BZ_HALF - .2, BZ_HALF + .1]) { gate.add(voxBox(1.1, 4.6, 1.1, '#5d5266', 0, 2.3, z)); gate.add(voxBox(1.3, .3, 1.3, '#7a6d85', 0, 4.75, z)); }
   gate.add(voxBox(.9, .7, BZ_HALF * 2 + 1.6, '#4a3f55', 0, 5.1, 0)); // the arch
-  const lamp = voxBox(.5, .5, .5, '#ffcf66', 0, 5.75, 0, true); gate.add(lamp);
-  const port = new T.Group(); port.position.y = 4.75; // the portcullis hangs from the arch; raising it shrinks it up into the arch
+  const lamp = voxBox(.5, .5, .5, '#ffcf66', 0, 5.75, 0, true, true); gate.add(lamp);
+  const port = new T.Group(); port.position.y = 4.75; port.userData.dyn = true; // the portcullis hangs from the arch; raising it shrinks it up into the arch
   for (let z = -BZ_HALF + .4; z <= BZ_HALF - .3; z += .85) port.add(voxBox(.14, 4.75, .14, '#2c2a36', 0, -2.375, z));
   for (const y of [-.9, -2.4, -3.9]) port.add(voxBox(.18, .16, BZ_HALF * 2 - .4, '#3a3746', 0, y, 0));
   for (let z = -BZ_HALF + .4; z <= BZ_HALF - .3; z += .85) port.add(voxBox(.2, .3, .2, '#3a3746', 0, -4.7, z)); // the spikes at the foot
-  gate.add(port);
+  bzMerge(port); gate.add(port); // (the bars stay still against each other: the portcullis moves as one)
   gate.userData = { gate: d.id, port, lamp, why: '', sign: null, open: false };
-  scene.add(gate); d.gate = gate;
+  bzMerge(gate); scene.add(gate); d.gate = gate;
   bzGateState(d, true);
 }
 function bzGateState(d, now) { // the portcullis and sign follow whether the district is open (now: placed, not animated)
@@ -10398,13 +10839,36 @@ function bzOpenedNews() {
 // ---------- 0.29: life on the street ----------
 // Townsfolk stroll the open part of the street and stop at stalls; paper lanterns float up over the harbour; fireflies
 // drift among the trees. How many follows the graphics preset (Low: five walkers and nothing else).
+// ---------- 0.31: the townsfolk: each has a name and something useful to say ----------
+// What they say comes from the Bazaar as it is for you now: how to open a closed district, what an open stall is for,
+// and how to get around, so it is always true. Tap a keeper (or press Confirm next to one) for a word.
+const BZ_FOLK = ['Marisol', 'Tomas', 'Lia', 'Ren', 'Juno', 'Abel', 'Sela', 'Doro', 'Ines', 'Kit', 'Bram', 'Nell'];
+function bzFolkLines() {
+  const L = [];
+  for (const d of BZ_DISTRICTS) if (!d.open()) L.push(`${d.name}: ${d.keyReady && d.keyReady() ? I18n.t('your key is ready. Walk up to its gate.') : I18n.t(d.why) + '.'}`);
+  for (const s of bzStations()) if (s.district.open()) L.push(`${s.name}: ${I18n.t(typeof s.what === 'function' ? s.what() : s.what)}.`);
+  L.push(I18n.t('Tap a stall to walk there. Places lists every one.'), I18n.t('Every gate opens with its own key: a task counted from when you first see it.'));
+  return L;
+}
+function bzTalk(n) {
+  const B = Bazaar, L = bzFolkLines(), line = L[(B.talks = (B.talks || 0) + 1) % L.length], text = `${n.name}: ${line}`;
+  // the name in gold over the message, the message in lines of about 30 letters (one long line came out too small to read)
+  bzHush(n); const g = new THREE.Group(), words = line.split(' '), rows = []; let cur = '';
+  for (const w of words) { if (cur && (cur + ' ' + w).length > 30) { rows.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) rows.push(cur);
+  const shown = rows.slice(0, 3); if (rows.length > 3) shown[2] += '...';
+  [n.name].concat(shown).forEach((t, i, a) => { const sp = labelSprite(t, i ? '#e8eaf6' : '#ffcf66', i ? .82 : .7); sp.position.y = 3.3 + (a.length - 1 - i) * .86; g.add(sp); });
+  n.m.add(g); n.say = g; n.sayT = 6; n.wait = Math.max(n.wait, 6);
+  $('#bzLive').textContent = text; sfx('pick');
+}
+function bzHush(n) { if (!n.say) return; n.m.remove(n.say); n.say.traverse(x => { if (x.isSprite) { x.material.map.dispose(); x.material.dispose(); } }); n.say = null; n.sayT = 0; }
+function bzNearFolk() { const B = Bazaar; let best = null, bd = 2.6; for (const n of (B.life ? B.life.npcs : [])) { const d = Math.hypot(n.m.position.x - B.me.x, n.m.position.z - B.me.z); if (d < bd) { bd = d; best = n; } } return best; }
 function bzBuildLife(scene, tier, rnd) {
   const T = THREE, life = { npcs: [], sky: null, skyV: [], flies: null, flyP: [] };
   const pick = slot => { const l = LOOKS[slot] || []; return l.length ? l[Math.floor(rnd() * l.length)].id : undefined; };
   for (let k = 0, n = [5, 8, 12][tier]; k < n; k++) {
     const m = keeperVoxel({ coat: pick('coat'), hat: rnd() < .6 ? pick('hat') : 'none', scarf: rnd() < .5 ? pick('scarf') : 'none', skin: pick('skin') || 'default' });
     m.scale.setScalar(.82 + rnd() * .16); m.position.set(-3 + rnd() * Math.min(Bazaar.limitX() + 2, k % 3 ? 40 : BZ_LEN), 0, -1 + rnd() * 6); /* most near the entrance, where you arrive; some further along the open street */ scene.add(m);
-    life.npcs.push({ m, tx: m.position.x, tz: m.position.z, wait: rnd() * 3, sp: 1.3 + rnd() * .9, ph: rnd() * 6, stall: false });
+    m.userData.npc = k; life.npcs.push({ m, name: BZ_FOLK[k % BZ_FOLK.length], tx: m.position.x, tz: m.position.z, wait: rnd() * 3, sp: 1.3 + rnd() * .9, ph: rnd() * 6, stall: false, say: null, sayT: 0 });
   }
   if (tier >= 1) {
     const ns = 16, sky = new T.InstancedMesh(new T.BoxGeometry(.5, .6, .5), new T.MeshBasicMaterial({ color: '#ffffff' }), ns), c = new T.Color();
@@ -10417,10 +10881,17 @@ function bzBuildLife(scene, tier, rnd) {
   }
   return life;
 }
+let bzM4 = null; // (one matrix for the sky lanterns, not a new one every frame)
 function bzLifeStep(dt) {
   const B = Bazaar, L = B.life; if (!L) return; const lim = B.limitX() - 1, t = B.t;
   for (const n of L.npcs) {
     const m = n.m;
+    if (n.say && (n.sayT -= dt) <= 0) bzHush(n);
+    // 0.31: keepers give each other (and you) room instead of walking through
+    for (const o of L.npcs) { if (o === n) continue; let dx = m.position.x - o.m.position.x, dz = m.position.z - o.m.position.z, d2 = dx * dx + dz * dz; if (d2 <= 1e-6) { dx = n.ph - o.ph || .1; dz = 0; d2 = dx * dx; } /* (on the very same spot: step apart sideways) */ if (d2 < .81) { const d = Math.sqrt(d2), p = (.9 - d) * .5; m.position.x += dx / d * p; m.position.z += dz / d * p; } }
+    { const dx = m.position.x - B.me.x, dz = m.position.z - B.me.z, d2 = dx * dx + dz * dz; if (d2 < 1 && d2 > 1e-6) { const d = Math.sqrt(d2); m.position.x += dx / d * (1 - d); m.position.z += dz / d * (1 - d); } }
+    m.position.z = Math.max(-3, Math.min(BZ_HALF - .6, m.position.z));
+    if (n.say) { m.rotation.y = Math.atan2(B.me.x - m.position.x, B.me.z - m.position.z); m.position.y = 0; continue; } // talking: facing you, standing still
     if (m.position.x > lim + .5) m.position.x = lim; // a gate came down (a day or an event ended): step back through it
     if (n.wait > 0) { n.wait -= dt; m.position.y = 0; continue; }
     const dx = n.tx - m.position.x, dz = n.tz - m.position.z, d = Math.hypot(dx, dz);
@@ -10434,7 +10905,7 @@ function bzLifeStep(dt) {
     const step = Math.min(d, n.sp * dt); m.position.x += dx / d * step; m.position.z += dz / d * step;
     m.rotation.y = Math.atan2(dx, dz); m.position.y = Math.abs(Math.sin(t * 9 + n.ph)) * .07;
   }
-  if (L.sky) { const m4 = new THREE.Matrix4();
+  if (L.sky) { const m4 = bzM4 || (bzM4 = new THREE.Matrix4());
     L.skyV.forEach((v, k) => { v.y += v.v * dt; if (v.y > 30) { v.y = -1; v.x = -10 + Math.random() * (BZ_LEN + 20); }
       m4.makeTranslation(v.x + Math.sin(t * .5 + v.ph) * .6, v.y, v.z); L.sky.setMatrixAt(k, m4); });
     L.sky.instanceMatrix.needsUpdate = true; }
@@ -10457,7 +10928,7 @@ document.addEventListener('keydown', e => { if (!Bazaar.on || bzPanelFocus || !$
 document.addEventListener('keyup', e => { const k = BZ_KEYS[e.code]; if (k) Bazaar.keys[k] = false; }, true);
 function bzAction(action) { // from 11b-actions.js, while the Bazaar is open and nothing is over it
   if (action === 'TAB_PREV' || action === 'TAB_NEXT') { bzPanelTab(action === 'TAB_NEXT' ? 1 : -1); return true; } // 0.29: into the panel
-  if (action === 'CONFIRM' || action === 'ATTACK') { if (Bazaar.near) bzUse(Bazaar.near); return true; }
+  if (action === 'CONFIRM' || action === 'ATTACK') { if (Bazaar.near) bzUse(Bazaar.near); else { const n = bzNearFolk(); if (n) bzTalk(n); } return true; } // (0.31: or a word with the keeper next to you)
   if (action === 'CANCEL' || action === 'PAUSE') { closeBazaar(); return true; }
   if (action === 'OPEN_INVENTORY') { const s = bzStations().find(x => x.id === 'satchel'); openSatchel(); Bazaar.back = true; closeBazaar('station'); return true; }
   return action.startsWith('NAV_'); // walking is the held keys and the sticks
@@ -10473,7 +10944,9 @@ function bzJoin() {
     .subscribe(st => { if (st === 'SUBSCRIBED') { ch.track(bzMe()); renderBazaarUi(); } });
   Bazaar.ch = ch;
 }
-function bzLeave() { if (Bazaar.ch) { try { Cloud.sb.removeChannel(Bazaar.ch); } catch (e) { /* gone */ } Bazaar.ch = null; } for (const o of Bazaar.others.values()) if (o.mesh && Bazaar.scene) Bazaar.scene.remove(o.mesh); Bazaar.others.clear(); }
+function bzLeave() { if (Bazaar.ch) { try { Cloud.sb.removeChannel(Bazaar.ch); } catch (e) { /* gone */ } Bazaar.ch = null; } for (const o of Bazaar.others.values()) bzDropOther(o); Bazaar.others.clear(); }
+// 0.31: a keeper who left takes their name tag with them (its texture was kept in memory); their boxes share materials, kept
+function bzDropOther(o) { if (!o.mesh) return; if (Bazaar.scene) Bazaar.scene.remove(o.mesh); o.mesh.traverse(x => { if (x.isSprite) { if (x.material.map) x.material.map.dispose(); x.material.dispose(); } }); }
 function bzSend() { const B = Bazaar; B.lastSend = performance.now(); B.sentAt = { x: B.me.x, z: B.me.z }; if (!B.ch) return; const m = bzMe(); B.ch.send({ type: 'broadcast', event: 'step', payload: { id: m.id, x: m.x, z: m.z, f: m.f } }); }
 function bzPresence(state) {
   const me = Cloud.user && Cloud.user.id, seen = new Set(), blocked = typeof Social !== 'undefined' ? Social.blocks : new Set();
@@ -10483,7 +10956,7 @@ function bzPresence(state) {
     if (!o) { o = { name: String(p.name || 'Keeper').slice(0, 16), pos: { x: +p.x || 0, z: +p.z || 0 }, to: { x: +p.x || 0, z: +p.z || 0 } }; Bazaar.others.set(key, o);
       if (Bazaar.scene) { o.mesh = keeperVoxel(p.look); const lab = labelSprite(o.name, '#ffffff', .7); lab.position.y = 3.2; o.mesh.add(lab); Bazaar.scene.add(o.mesh); } }
   }
-  for (const [key, o] of [...Bazaar.others]) if (!seen.has(key)) { if (o.mesh && Bazaar.scene) Bazaar.scene.remove(o.mesh); Bazaar.others.delete(key); }
+  for (const [key, o] of [...Bazaar.others]) if (!seen.has(key)) { bzDropOther(o); Bazaar.others.delete(key); }
   renderBazaarUi();
   if (bzTab === 'people') renderBzPanel(); // 0.29
 }
@@ -10765,8 +11238,24 @@ const Insights = {
   },
 };
 // errors: what broke, where (no stack: it can hold file paths of the player's own computer)
-window.addEventListener('error', e => Insights.error(e.message, e.lineno));
-window.addEventListener('unhandledrejection', e => Insights.error('promise: ' + ((e.reason && e.reason.message) || e.reason), 0));
+// 0.31: crash reports, asked each time: a player who doesn't share statistics is asked (once a session) whether to send
+// this one: what broke and where, the game version and the kind of device; never a name, an email or the save
+const Crash = { asked: false, last: null,
+  note(msg, line) {
+    if (/ResizeObserver|^Script error\.?$/i.test(String(msg))) return; // (the browser's own noise, not the game)
+    const sheet = document.querySelector('section.sheet:not([hidden])');
+    this.last = { msg: String(msg || '').slice(0, 200), line: line || 0, mode: typeof mode === 'string' ? mode : '', screen: sheet ? sheet.id : '' };
+    if (!meta.settings.insights) setTimeout(() => this.ask(), 400); },
+  ask(force) {
+    if (this.asked || !this.last || (DEV_ALLOWED && !force) || !Insights.allowed()) return; this.asked = true; const L = this.last;
+    appDialog({ title: 'Something went wrong', text: 'The game hit an error. Send a short report so we can fix it? It holds only what broke and where: the error, the screen, the game version and the kind of device. Never your name, email or save.',
+      html: `<pre class="crashText">${esc(L.msg)}</pre>`,
+      buttons: [{ label: 'Send report', primary: true, act: () => Insights.post({ action: 'add', install: Insights.install(), version: LK_VERSION, device: Insights.device(), events: [{ kind: 'error', data: { msg: L.msg, line: L.line, mode: L.mode, screen: L.screen, crash: 1 } }] })
+          .then(r => toastQ.push(r.ok ? ['Thank you', 'The report is on its way.', 3] : ['Not sent', 'Please try again later.', 3]), () => toastQ.push(['Not sent', 'You seem to be offline.', 3])) },
+        { label: 'Not now' }] });
+  } };
+window.addEventListener('error', e => { Insights.error(e.message, e.lineno); Crash.note(e.message, e.lineno); });
+window.addEventListener('unhandledrejection', e => { const m = 'promise: ' + ((e.reason && e.reason.message) || e.reason); Insights.error(m, 0); Crash.note(m, 0); });
 // batches: every minute or two while there is something to send, and right away when the game goes to the background
 setInterval(() => { if (Insights.q.length && Date.now() - Insights.lastFlush > 60000) Insights.flush(); Insights.maybeAsk(); }, 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) Insights.flush(true); });
@@ -10840,7 +11329,9 @@ document.addEventListener('click', e => {
 const Push = {
   plugin() { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications) || this.fake || null; },
   fake: null, // tests only
-  ok() { return (LK_PUSH || !!this.fake) && Platform.kind === 'android' && !!this.plugin() && typeof Cloud !== 'undefined' && Cloud.on(); },
+  ok() { return this.web() || ((LK_PUSH || !!this.fake) && Platform.kind === 'android' && !!this.plugin() && typeof Cloud !== 'undefined' && Cloud.on()); },
+  // 0.31: the web version (installed or in a browser tab): web push through its service worker
+  web() { return Platform.kind === 'web' && /^https:$/.test(location.protocol) && 'serviceWorker' in navigator && 'PushManager' in window && typeof Cloud !== 'undefined' && Cloud.on(); },
   token: '', wired: false,
   cats() { const st = meta.settings; return ['important', st.ntCommunity !== false && 'community', st.ntEvents !== false && 'events', st.ntGame !== false && 'game'].filter(Boolean); },
   wire() {
@@ -10852,9 +11343,16 @@ const Push = {
   },
   async save() { // the token, with the kinds this device shows, kept with the account
     if (!this.token || !Cloud.signedIn()) return;
-    try { await Cloud.sb.from('push_tokens').upsert({ token: this.token, user_id: Cloud.user.id, platform: 'android', cats: this.cats(), seen_at: new Date().toISOString() }); } catch (e) { /* next launch */ }
+    try { await Cloud.sb.from('push_tokens').upsert({ token: this.token, user_id: Cloud.user.id, platform: this.web() ? 'web' : 'android', cats: this.cats(), seen_at: new Date().toISOString() }); } catch (e) { /* next launch */ }
   },
   async on() {
+    if (this.web()) { // the browser asks; the subscription (where to send, and its keys) is the token
+      if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') return false;
+      const reg = await navigator.serviceWorker.ready, r = await fetch(LK_CLOUD.url + '/functions/v1/team-push', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: LK_CLOUD.key }, body: JSON.stringify({ action: 'key' }) }).then(x => x.json()).catch(() => ({}));
+      if (!r.key) return false; const raw = atob(r.key.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - r.key.length % 4) % 4));
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(raw, c => c.charCodeAt(0)) });
+      const j = sub.toJSON(); this.token = JSON.stringify({ endpoint: j.endpoint, keys: { p256dh: j.keys.p256dh, auth: j.keys.auth } }); await this.save(); return true;
+    }
     if (!this.ok()) return false; this.wire(); const P = this.plugin();
     let p = await P.checkPermissions(); if (p.receive === 'prompt' || p.receive === 'prompt-with-rationale') p = await P.requestPermissions();
     if (p.receive !== 'granted') return false;
@@ -10863,11 +11361,13 @@ const Push = {
   async off() {
     const t = this.token; this.token = '';
     if (t && Cloud.signedIn()) { try { await Cloud.sb.from('push_tokens').delete().eq('token', t); } catch (e) { /* removed when Firebase says it is gone */ } }
-    try { const P = this.plugin(); if (P && P.unregister) await P.unregister(); } catch (e) { /* already off */ }
+    try { if (this.web()) { const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } else { const P = this.plugin(); if (P && P.unregister) await P.unregister(); } } catch (e) { /* already off */ }
   },
 };
 // at launch and after sign-in: a device that has push on registers again (the token can change), with its kinds
 setTimeout(() => { if (meta.settings.ntPush && Push.ok() && Cloud.signedIn()) Push.on().catch(() => { /* next launch */ }); }, 4000);
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.lk === 'notice') { if (mode === 'home') Notify.open(); Notify.fetch(true); } }); // (0.31: a tapped web notice)
+if (/#notices/.test(location.hash)) setTimeout(() => { if (mode === 'home') { Notify.open(); Notify.fetch(true); } }, 1500);
 // the switch: on asks Android once; refused, it goes back off and says where to change it
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('[data-set="ntPush"]'); if (!b || !Push.ok()) return;
@@ -10889,6 +11389,114 @@ function renderNotices() {
 Notify.load();
 setTimeout(() => { Notify.badge(); Notify.fetch(); }, 3000);
 setInterval(() => Notify.fetch(), 5 * 60e3);
+
+/* ---- src\js\09s-photo.js ---- */
+/* =====================================================================
+   0.31: PHOTO MODE AND RESULT CARDS
+   - Photo mode (Pause > Photo mode): the night stays still, every button and number steps aside, and "Take photo" keeps
+     the picture with a small Lantern Keeper mark in the corner. Tap the picture to bring the buttons back.
+   - Result card (the night's end > Share result): a picture of how the night went: the last moment of the night, the
+     wave or stage, creatures, time, keeper and weapon, the tide of the week, the seed, the date.
+   Pictures are shared with the device's own share sheet (web, Android, iOS) or saved as a file (PC and older browsers).
+   Nothing is uploaded by the game.
+   ===================================================================== */
+let lastFrame = null; // the night's last moment, kept when it ends (gameOver)
+function keepLastFrame() { try { const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; c.getContext('2d').drawImage(cv, 0, 0); lastFrame = c; } catch (e) { lastFrame = null; } }
+// draw an image to fill a box, cropping what doesn't fit (like CSS cover)
+function drawCover(g, img, x, y, w, h) { if (!img || !img.width) return; const s = Math.max(w / img.width, h / img.height), iw = img.width * s, ih = img.height * s; g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih); g.restore(); }
+const PIXEL = '"Jersey 10", "Pixelify Sans", monospace';
+function mark(g, x, y, size) { g.font = `${size}px ${PIXEL}`; g.fillStyle = 'rgba(255,207,102,.92)'; g.textBaseline = 'alphabetic'; g.fillText('Lantern Keeper', x, y); }
+// ----- the result card -----
+function resultCard() {
+  const W2 = 1080, H2 = 1350, c = document.createElement('canvas'); c.width = W2; c.height = H2; const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, H2); bg.addColorStop(0, '#0b1230'); bg.addColorStop(1, '#05081a'); g.fillStyle = bg; g.fillRect(0, 0, W2, H2);
+  drawCover(g, lastFrame || cv, 0, 0, W2, 760);
+  const fade = g.createLinearGradient(0, 520, 0, 780); fade.addColorStop(0, 'rgba(5,8,26,0)'); fade.addColorStop(1, '#070b22'); g.fillStyle = fade; g.fillRect(0, 520, W2, 260);
+  const h = (meta.history || [])[0] || {}, r = run || {}, win = !!h.win, exp = h.mode === 'expedition';
+  mark(g, 60, 110, 74);
+  g.fillStyle = '#ffffff'; g.font = `150px ${PIXEL}`; g.fillText(exp ? I18n.t('Stage {a}').replace('{a}', h.stage || 1) : I18n.t('Wave {a}').replace('{a}', h.wave || r.wave || 0), 60, 900);
+  g.font = `52px ${PIXEL}`; g.fillStyle = win ? '#7be0b0' : '#ffcf66';
+  const where = exp && RGK[h.region] ? `${RGK[h.region].num}. ${RGK[h.region].name}` : { daily: I18n.t('Daily challenge'), endless: I18n.t('Endless'), ascension: I18n.t('Ascension'), bossrush: I18n.t('Boss Rush'), coop: I18n.t('Co-op') }[h.mode] || I18n.t('Endless');
+  g.fillText(where + (win ? ' · ' + I18n.t('Cleared') : ''), 60, 975);
+  const mins = Math.floor((r.time || 0) / 60), secs = Math.floor((r.time || 0) % 60);
+  const facts = [[I18n.t('Creatures'), fmt(h.kills || r.kills || 0)], [I18n.t('Time'), `${mins}:${String(secs).padStart(2, '0')}`], [I18n.t('Keeper'), (KPK[h.kpr || r.kpr] || {}).name || ''], [I18n.t('Weapon'), (WPK[h.wpn || r.wpn] || {}).name || '']];
+  facts.forEach(([k, v], i) => { const x = 60 + (i % 2) * 500, y = 1065 + Math.floor(i / 2) * 95; g.font = `30px ${PIXEL}`; g.fillStyle = '#8f98c8'; g.fillText(k.toUpperCase(), x, y); g.font = `46px ${PIXEL}`; g.fillStyle = '#eef0fa'; g.fillText(String(v).slice(0, 22), x, y + 46); });
+  const tide = r.tide && WTIDEK[r.tide] ? WTIDEK[r.tide].name + ' · ' : '';
+  g.font = `32px ${PIXEL}`; g.fillStyle = '#8f98c8';
+  g.fillText(`${tide}${r.seed !== undefined ? I18n.t('Seed') + ' ' + seedCode(r.seed) + ' · ' : ''}${new Date().toLocaleDateString()}`, 60, 1290);
+  g.textAlign = 'right'; g.fillText('lk.exenova.is-local.host', W2 - 60, 1290); g.textAlign = 'left';
+  return c;
+}
+// ----- sharing or saving a picture -----
+async function shareImage(c, name, text) {
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  if (!blob) return 'failed';
+  const P = window.Capacitor && Capacitor.Plugins;
+  if (Platform.kind !== 'web' && Platform.kind !== 'desktop' && P && P.Share && P.Filesystem) { // the phone apps: a file in the cache, then the share sheet
+    try { const data = c.toDataURL('image/png').split(',')[1], f = await P.Filesystem.writeFile({ path: name, data, directory: 'CACHE' });
+      await P.Share.share({ title: 'Lantern Keeper', text, files: [f.uri] }); return 'shared'; } catch (e) { if (/cancel/i.test(String(e && e.message))) return 'cancelled'; }
+  }
+  try { const file = new File([blob], name, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Lantern Keeper', text }); return 'shared'; } } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toastQ.push([I18n.t('Picture saved'), I18n.t('It is in your downloads.')]); return 'saved';
+}
+const stamp = () => new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+$('#bShareCard').onclick = $('#bShareCard2').onclick = () => { const c = resultCard(), h = (meta.history || [])[0] || {}; shareImage(c, `lantern-keeper-${stamp()}.png`, I18n.t('My night in Lantern Keeper: wave {a}').replace('{a}', h.wave || 0)); };
+// ----- photo mode -----
+const Photo = {
+  on: false,
+  open() { if (mode !== 'pause') return; this.on = true; document.body.classList.add('photo'); show(null); $('#photoBar').hidden = false; $('#bPhotoTake').focus({ preventScroll: true }); },
+  close() { if (!this.on) return; this.on = false; document.body.classList.remove('photo', 'photoBare'); $('#photoBar').hidden = true; if (mode === 'pause') show('pause'); },
+  take() {
+    const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const g = c.getContext('2d'); g.drawImage(cv, 0, 0);
+    const s = Math.max(18, Math.round(c.width / 40)); g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = s / 3; mark(g, s, c.height - s, s * 1.4);
+    sfx('pick'); return shareImage(c, `lantern-keeper-photo-${stamp()}.png`, I18n.t('A moment in Lantern Keeper'));
+  },
+};
+$('#bPhoto').onclick = () => Photo.open();
+$('#bPhotoTake').onclick = () => Photo.take();
+$('#bPhotoHide').onclick = () => { document.body.classList.add('photoBare'); };
+$('#bPhotoBack').onclick = () => Photo.close();
+cv.addEventListener('pointerdown', () => { if (Photo.on) document.body.classList.remove('photoBare'); });
+document.addEventListener('keydown', e => { if (Photo.on && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); Photo.close(); } }, true);
+
+/* ---- src\js\09t-outfits.js ---- */
+/* =====================================================================
+   0.31: SAVED OUTFITS (Keeper > Saved outfits)
+   Up to six named outfits: everything in Appearance (skin, hat, coat, scarf, beam, tower). "Save" keeps what the
+   preview shows; "Wear" puts an outfit on the preview, and the usual Save button keeps it (pieces not owned any more
+   are left as they are, and say so). Outfits travel with the save, to every device.
+   ===================================================================== */
+// 0.31 Supporter perk: twelve outfits for Supporters and Club members (a convenience, never anything that plays differently)
+const supporterNow = () => meta.entitlements.some(k => /^lk\.(supporter\.|club)/.test(k));
+const outfitMax = () => supporterNow() ? 12 : 6;
+function outfits() {
+  if (!Array.isArray(meta.outfits)) meta.outfits = [];
+  meta.outfits = meta.outfits.filter(o => o && typeof o === 'object' && o.look && typeof o.look === 'object').slice(0, 12) /* (kept if a membership ends: only saving more waits) */
+    .map(o => ({ name: String(o.name || '').replace(/[<>\u0000-\u001f]/g, '').slice(0, 20) || I18n.t('Outfit'), look: Object.fromEntries(LOOK_SLOTS.map(([sl]) => [sl, String(o.look[sl] || '').slice(0, 24)])) }));
+  return meta.outfits;
+}
+function renderOutfits() {
+  const box = document.getElementById('kpOutfits'); if (!box || !kd) return;
+  const list = outfits(), full = list.length >= outfitMax();
+  box.innerHTML = `<div class="outfits">${list.map((o, i) => `<div class="outfit"><b>${esc(o.name)}</b><span><button class="btn small" data-of-wear="${i}">${I18n.t('Wear')}</button><button class="btn small ghost" data-of-del="${i}" aria-label="${esc(I18n.t('Delete {a}').replace('{a}', o.name))}">✕</button></span></div>`).join('')}</div>
+    <div class="coopJoin"><input id="ofName" class="coopIn" maxlength="20" placeholder="${esc(I18n.t('Name this outfit'))}" aria-label="${esc(I18n.t('Outfit name'))}" ${full ? 'disabled' : ''}><button class="btn" id="bOfSave" ${full ? 'disabled' : ''}>${I18n.t('Save outfit')}</button></div>
+    <p class="muted" id="ofNote">${full ? (supporterNow() ? I18n.t('Twelve outfits saved (a Supporter perk): delete one to save another.') : I18n.t('Six outfits saved: delete one to save another. Supporters can keep twelve.')) : I18n.t('Keeps what the preview shows.')}</p>`;
+  for (const b of box.querySelectorAll('[data-of-wear]')) b.onclick = () => {
+    const o = list[+b.dataset.ofWear]; if (!o || kdDialog) return; let missing = 0;
+    for (const [sl] of LOOK_SLOTS) { const it = LOOKS[sl].find(x => x.id === o.look[sl]); if (it && lookOwned(sl, it)) kd.look[sl] = it.id; else if (o.look[sl]) missing++; }
+    kdTouched(); sfx('pick'); renderKeeper();
+    const n = document.getElementById('ofNote'); if (n) n.textContent = missing ? I18n.t('On the preview. {a} piece(s) you no longer own stayed as they were. Press Save to wear it.').replace('{a}', missing) : I18n.t('On the preview. Press Save to wear it.');
+  };
+  for (const b of box.querySelectorAll('[data-of-del]')) b.onclick = () => { list.splice(+b.dataset.ofDel, 1); save(); sfx('pick'); renderOutfits(); };
+  const sb = document.getElementById('bOfSave'); if (sb) sb.onclick = () => {
+    if (outfits().length >= outfitMax()) return;
+    const name = String(document.getElementById('ofName').value || '').trim() || I18n.t('Outfit {a}').replace('{a}', list.length + 1);
+    meta.outfits.push({ name, look: Object.assign({}, kd.look) }); outfits(); save(); sfx('ach'); renderOutfits();
+    const n = document.getElementById('ofNote'); if (n) n.textContent = I18n.t('Saved "{a}".').replace('{a}', name);
+  };
+}
 
 /* ---- src\js\10-render.js ---- */
 /* =====================================================================
@@ -10985,6 +11593,7 @@ function drawTower(hurt, o = null) {
   }
   const kx = cx - wt - 5 * U, ky = tt - 4 * U, ks = .42 * U; // the keeper on the gallery, with the gear of the keeper they are (0.21)
   if (o && o.foreign) { drawKeeperGear(ctx, kx, ky, ks, o.kpr, 'back'); drawKeeperFig(ctx, kx, ky, ks, o); drawKeeperGear(ctx, kx, ky, ks, o.kpr, 'front'); return; } // someone else's tower: their keeper, nothing of this run
+  drawDeco(o); // 0.31: decorations (10f-deco.js)
   const hk = Net.mode === 'client' && run && run.coopKeepers && run.coopKeepers[0], hostLook = o ? o : hk ? coopLookDraw(hk[7] || { coat: hk[4] }) : null;
   const kpr = o ? o.kpr : hk ? hk[2] : run ? run.kpr : meta.keepers.equip;
   drawKeeperGear(ctx, kx, ky, ks, kpr, 'back'); drawKeeperFig(ctx, kx, ky, ks, hostLook); drawKeeperGear(ctx, kx, ky, ks, kpr, 'front'); // in your chosen look (on a partner's screen, the host's)
@@ -11010,6 +11619,7 @@ function drawEnemy(e) {
     for (let i = 4; i < e.trail.length; i += 4) { ctx.beginPath(); ctx.arc(e.trail[i], e.trail[i + 1], r * (1 - i / 24), 0, 7); ctx.fill(); }
   }
   if (e.type !== 'orb') { ctx.fillStyle = 'rgba(6,8,22,.45)'; ctx.beginPath(); ctx.ellipse(e.x, e.y + r * .15, r * 1.25, r * 1.1, 0, 0, 7); ctx.fill(); }
+  if (meta.settings.outline && !e.faded) { ctx.lineWidth = Math.max(2, r * .14); ctx.strokeStyle = e.boss ? '#ffcf66' : e.elite ? '#ff9de0' : '#ffffff'; ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.22, 0, 7); ctx.stroke(); } // 0.31: creature outlines
   ctx.save(); ctx.translate(e.x, e.y);
   const body = e.hit > 0 ? '#ffffff' : (e.boss ? e.boss.col : e.col);
   ctx.fillStyle = body;
@@ -11110,6 +11720,8 @@ function drawEnemy(e) {
     ctx.beginPath(); ctx.arc(e.x, e.y, R2, t, t + 1.2); ctx.moveTo(e.x + Math.cos(t + 3.14) * R2, e.y + Math.sin(t + 3.14) * R2); ctx.arc(e.x, e.y, R2, t + 3.14, t + 4.34); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(e.x - R2 - 5, e.y); ctx.lineTo(e.x - R2 + 5, e.y); ctx.moveTo(e.x + R2 - 5, e.y); ctx.lineTo(e.x + R2 + 5, e.y); ctx.stroke();
   }
+  if (e.elite === 'warding') { ctx.strokeStyle = 'rgba(160,220,255,.35)'; ctx.lineWidth = Math.max(1.5, U); ctx.setLineDash([4 * U, 4 * U]); ctx.beginPath(); ctx.arc(e.x, e.y, WARD_R * U, 0, 7); ctx.stroke(); ctx.setLineDash([]); } // 0.31
+  if (e.elite === 'dashing' && e.dashOn > 0) { ctx.strokeStyle = 'rgba(255,240,200,.6)'; ctx.lineWidth = r * .5; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x - Math.cos(e.ang || 0) * r * 3, e.y - Math.sin(e.ang || 0) * r * 3); ctx.stroke(); }
   if (e.singing) { ctx.strokeStyle = 'rgba(127,214,200,.5)'; ctx.lineWidth = 1.5; for (let k = 0; k < 2; k++) { const rr = r * (1.6 + ((time * 1.2 + k * .5) % 1) * 1.6); ctx.globalAlpha = 1 - ((time * 1.2 + k * .5) % 1); ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, 7); ctx.stroke(); } }
   ctx.globalAlpha = 1;
 }
@@ -11122,6 +11734,8 @@ function drawAffix(a, x, y, s) {
   if (a === 'armored') { ctx.moveTo(0, -s * .85); ctx.lineTo(s * .75, -s * .5); ctx.lineTo(s * .6, s * .35); ctx.lineTo(0, s * .9); ctx.lineTo(-s * .6, s * .35); ctx.lineTo(-s * .75, -s * .5); ctx.closePath(); ctx.fill(); }
   else if (a === 'swift') { ctx.moveTo(-s * .7, -s * .55); ctx.lineTo(-s * .15, 0); ctx.lineTo(-s * .7, s * .55); ctx.moveTo(s * .05, -s * .55); ctx.lineTo(s * .6, 0); ctx.lineTo(s * .05, s * .55); ctx.stroke(); }
   else if (a === 'regen') { ctx.moveTo(0, -s * .7); ctx.lineTo(0, s * .7); ctx.moveTo(-s * .7, 0); ctx.lineTo(s * .7, 0); ctx.stroke(); }
+  else if (a === 'warding') { ctx.arc(0, 0, s * .7, 0, 7); ctx.moveTo(s * .3, 0); ctx.arc(0, 0, s * .3, 0, 7); ctx.stroke(); } // 0.31: rings
+  else if (a === 'dashing') { ctx.moveTo(s * .2, -s * .8); ctx.lineTo(-s * .35, s * .05); ctx.lineTo(s * .15, s * .05); ctx.lineTo(-s * .2, s * .8); ctx.stroke(); } // 0.31: a zigzag
   else if (a === 'twin') { ctx.arc(-s * .35, 0, s * .45, 0, 7); ctx.moveTo(s * .8, 0); ctx.arc(s * .35, 0, s * .45, 0, 7); ctx.stroke(); }
   else { for (const [dx, dy] of [[-s * .5, s * .3], [s * .5, s * .3], [0, -s * .45]]) { ctx.moveTo(dx + s * .28, dy); ctx.arc(dx, dy, s * .28, 0, 7); } ctx.fill(); }
   ctx.restore();
@@ -11678,7 +12292,7 @@ function drawAshBoss(e, r, B) {
   if (run && run.rooted > 0) { // the reeds' grip: taps left to break it
     const R = r * 1.9; ctx.strokeStyle = 'rgba(159,207,138,.9)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, -Math.PI / 2 + (run.rootTaps / 4) * 6.283); ctx.stroke();
-    ctx.fillStyle = '#d8ff9a'; ctx.textAlign = 'center'; cfont(18, .9); ctx.fillText(`Tap! ${run.rootTaps}`, 0, -R - 6);
+    ctx.fillStyle = '#d8ff9a'; ctx.textAlign = 'center'; cfont(18, .9); ctx.fillText(I18n.t('Tap! {a}').replace('{a}', run.rootTaps), 0, -R - 6); // (0.31: translated)
   }
 }
 // Ash drifting down, burning patches, false lights, and reeds around a rooted lamp.
@@ -11830,6 +12444,63 @@ function drawWorldEffects(dt) {
   for (const m of S.mirages || []) { ctx.globalAlpha = .45 + .15 * Math.sin(time * 5 + m.ph); ctx.fillStyle = '#9ad8ff'; ctx.beginPath(); ctx.ellipse(m.x, m.y, 12 * U, 11 * U, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
 }
 
+/* ---- src\js\10f-deco.js ---- */
+/* =====================================================================
+   0.31: LIGHTHOUSE DECORATIONS (Lighthouse > Decorations)
+   One thing in each of three places: on the gallery rail, on the rock at the foot of the tower, and on the roof. Each is
+   earned by playing (never bought) and changes only how the lighthouse looks. Drawn with the tower (10-render.js), so
+   co-op partners, previews and photos show them too.
+   ===================================================================== */
+const DECOS = [
+  { id: 'bunting', at: 'gallery', name: 'Bunting', how: 'Everyone has it', ok: () => true },
+  { id: 'lanterns', at: 'gallery', name: 'A string of lanterns', how: 'Clear the Drowned Kingdom', ok: () => !!meta.world.cleared.drowned },
+  { id: 'fairy', at: 'gallery', name: 'Fairy lights', how: 'Play 25 nights', ok: () => meta.runs >= 25 },
+  { id: 'flowers', at: 'base', name: 'Sea pinks', how: 'Everyone has it', ok: () => true },
+  { id: 'boat', at: 'base', name: 'A rowing boat', how: 'Reach wave 40 in Endless', ok: () => meta.best >= 40 },
+  { id: 'pots', at: 'base', name: 'Lobster pots', how: 'Clear Sakura Vale', ok: () => !!meta.world.cleared.sakura },
+  { id: 'flag', at: 'top', name: 'A pennant', how: 'Everyone has it', ok: () => true },
+  { id: 'vane', at: 'top', name: 'A weathervane', how: 'Clear the Storm Waters', ok: () => !!meta.world.cleared.storm },
+  { id: 'star', at: 'top', name: 'A season star', how: 'Reach step 10 of a season\'s track', ok: () => !!(meta.season && meta.season.titles && Object.keys(meta.season.titles).length) },
+];
+const DECO_AT = [['gallery', 'Gallery'], ['base', 'Rock'], ['top', 'Roof']];
+const DECOK = Object.fromEntries(DECOS.map(d => [d.id, d]));
+const decoOf = at => { const d = (meta.lighthouse.deco || {})[at], it = DECOK[d]; return it && it.at === at && it.ok() ? it : null; };
+function drawDeco(o) {
+  const { cx, tb, tt } = G, wt = 17 * U, lr = tt - 24 * U, sway = reduceMotion ? 0 : Math.sin(time * 2);
+  const pick = at => o ? (o.deco && DECOK[o.deco[at]]) || null : decoOf(at);
+  const g = pick('gallery'), b = pick('base'), t = pick('top');
+  if (g) { // along the rail, from one post to the other
+    const x0 = cx - wt - 6 * U, x1 = cx + wt + 6 * U, y = tt - 10 * U, n = 9;
+    ctx.strokeStyle = 'rgba(30,30,50,.8)'; ctx.lineWidth = Math.max(1, .6 * U); ctx.beginPath(); ctx.moveTo(x0, y); ctx.quadraticCurveTo(cx, y + 6 * U, x1, y); ctx.stroke();
+    for (let i = 1; i < n; i++) { const f = i / n, x = x0 + (x1 - x0) * f, yy = y + 6 * U * 4 * f * (1 - f) * .5 + 1;
+      if (g.id === 'bunting') { ctx.fillStyle = ['#ff6b6b', '#ffcf66', '#7be0b0', '#8fd3ff'][i % 4]; ctx.beginPath(); ctx.moveTo(x - 2.4 * U, yy); ctx.lineTo(x + 2.4 * U, yy); ctx.lineTo(x, yy + 4.5 * U + sway * .4 * U); ctx.closePath(); ctx.fill(); }
+      else if (g.id === 'lanterns') { ctx.fillStyle = '#ffb347'; ctx.fillRect(x - 1.6 * U, yy + 1 * U, 3.2 * U, 3.6 * U); const gs = 9 * U; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(glow('#ffb42e'), x - gs / 2, yy + 2.8 * U - gs / 2, gs, gs); ctx.globalCompositeOperation = 'source-over'; }
+      else { const on = (Math.floor(time * 3) + i) % 3 !== 0; ctx.fillStyle = on ? ['#fff6d8', '#9fd8ff', '#ffd1f0'][i % 3] : 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.arc(x, yy + 1.5 * U, 1.2 * U, 0, 7); ctx.fill(); }
+    }
+  }
+  if (b) { // on the rock, to the left of the door
+    const x = cx - 46 * U, y = tb + 2 * U;
+    if (b.id === 'flowers') for (let i = 0; i < 7; i++) { const fx = x + i * 5 * U - 4 * U, fy = y - (i % 2) * 2 * U; ctx.fillStyle = '#3f7a4a'; ctx.fillRect(fx, fy - 4 * U, .8 * U, 4 * U); ctx.fillStyle = i % 2 ? '#ff8fb8' : '#ffd1e0'; ctx.beginPath(); ctx.arc(fx + .4 * U, fy - 4.5 * U, 1.8 * U, 0, 7); ctx.fill(); }
+    else if (b.id === 'boat') { ctx.fillStyle = '#8a5a3c'; ctx.beginPath(); ctx.moveTo(x - 10 * U, y - 5 * U); ctx.lineTo(x + 14 * U, y - 5 * U); ctx.lineTo(x + 10 * U, y); ctx.lineTo(x - 7 * U, y); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#d6c3a0'; ctx.fillRect(x - 9 * U, y - 6.2 * U, 22 * U, 1.2 * U); ctx.fillStyle = '#5a3a28'; ctx.fillRect(x + 2 * U, y - 12 * U, .9 * U, 7 * U); }
+    else { for (const [dx, dy] of [[0, 0], [7, 0], [3.5, -5]]) { const px = x + dx * U, py = y + dy * U; ctx.fillStyle = '#7a5a3a'; ctx.fillRect(px - 3 * U, py - 5 * U, 6 * U, 5 * U); ctx.strokeStyle = '#c9a77a'; ctx.lineWidth = Math.max(1, .5 * U); ctx.strokeRect(px - 3 * U, py - 5 * U, 6 * U, 5 * U); } }
+  }
+  if (t) { // above the lamp room's cap
+    const x = cx, y = lr - 18 * U;
+    if (t.id === 'flag') { ctx.fillStyle = '#c9c9d9'; ctx.fillRect(x - .5 * U, y - 12 * U, 1 * U, 12 * U); ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.moveTo(x + .5 * U, y - 12 * U); ctx.lineTo(x + 9 * U, y - 10 * U + sway * U); ctx.lineTo(x + .5 * U, y - 8 * U); ctx.closePath(); ctx.fill(); }
+    else if (t.id === 'vane') { ctx.fillStyle = '#d9b36a'; ctx.fillRect(x - .5 * U, y - 11 * U, 1 * U, 11 * U); ctx.save(); ctx.translate(x, y - 9 * U); ctx.rotate(reduceMotion ? 0 : Math.sin(time * .7) * .5); ctx.beginPath(); ctx.moveTo(-7 * U, 0); ctx.lineTo(5 * U, -1 * U); ctx.lineTo(7 * U, 0); ctx.lineTo(5 * U, 1 * U); ctx.closePath(); ctx.fill(); ctx.fillRect(-7 * U, -2 * U, 1 * U, 4 * U); ctx.restore(); }
+    else { const s = 4 * U; ctx.fillStyle = '#ffe28a'; ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? s * .45 : s; ctx.lineTo(x + Math.cos(a) * r, y - 6 * U + Math.sin(a) * r); } ctx.closePath(); ctx.fill(); const gs = 16 * U; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(glow('#ffe28a'), x - gs / 2, y - 6 * U - gs / 2, gs, gs); ctx.globalCompositeOperation = 'source-over'; }
+  }
+}
+function renderDecos() {
+  const box = document.getElementById('lhDecos'); if (!box) return;
+  meta.lighthouse.deco = meta.lighthouse.deco && typeof meta.lighthouse.deco === 'object' ? meta.lighthouse.deco : {};
+  box.innerHTML = DECO_AT.map(([at, label]) => `<h4 class="decoAt">${I18n.t(label)}</h4><div class="decos">` + [{ id: '', name: 'Nothing', ok: () => true }].concat(DECOS.filter(d => d.at === at)).map(d => {
+    const own = d.ok(), on = (meta.lighthouse.deco[at] || '') === d.id;
+    return `<button class="deco${on ? ' sel' : ''}" data-deco="${at}:${d.id}" aria-pressed="${on}" ${own ? '' : 'aria-disabled="true"'}><b>${esc(I18n.t(d.name))}</b>${own ? '' : `<small>${esc(I18n.t(d.how))}</small>`}</button>`; }).join('') + '</div>').join('');
+  for (const b of box.querySelectorAll('[data-deco]')) b.onclick = () => { const [at, id] = b.dataset.deco.split(':'), d = DECOK[id]; if (id && !(d && d.ok())) return;
+    meta.lighthouse.deco[at] = id; save(); sfx('pick'); renderDecos(); refreshUI(true); };
+}
+
 /* ---- src\js\11-input.js ---- */
 /* =====================================================================
    INPUT  (touch, mouse and keyboard all become commands; see 06b-commands.js)
@@ -11902,12 +12573,14 @@ $('#bVicWorld').onclick = () => worldAfterVictory(() => { goHome(); openWorld();
 $('#bVicHome').onclick = () => worldAfterVictory(goHome);
 function watchReplay() { const bad = Replay.start(Rec.last()); if (bad) { $('#replayNote').hidden = false; $('#replayNote').textContent = bad; } }
 $('#bReplay').onclick = watchReplay;
+$('#bReplayEnd').onclick = () => { const bad = Replay.startNearEnd(Rec.last(), 30); if (bad) { $('#replayNote').hidden = false; $('#replayNote').textContent = bad; } }; // 0.31
+$('#bReplayLeave').onclick = () => Replay.stop(); // 0.31
 $('#bVicReplay').onclick = watchReplay;
 $('#bEvDone').onclick = () => Cmd.dispatch({ t: 'CONTINUE' });
 $('#bRouteQuit').onclick = () => { if (mode === 'route' && confirmQuit()) Cmd.dispatch({ t: 'QUIT' }); };
 $('#bPause').onclick = () => Cmd.dispatch({ t: 'PAUSE' });
 $('#bResume').onclick = () => Cmd.dispatch({ t: 'RESUME' });
-$('#bQuit').onclick = () => Cmd.dispatch({ t: 'QUIT' });
+$('#bQuit').onclick = () => Replay.on ? Replay.stop() : Cmd.dispatch({ t: 'QUIT' }); // (0.31: during a replay it says Leave replay; QUIT is a recorded command, which a replay never takes from the player)
 // Ending a night yourself is a command too, so replays of abandoned nights end at the same moment.
 Cmd.on('QUIT', () => { if (run && (mode === 'pause' || mode === 'route' || mode === 'play')) { Cmd.ok(); gameOver(); } });
 $('#bAbility').onclick = () => Cmd.dispatch({ t: 'ABILITY' });
@@ -11947,7 +12620,7 @@ function confirmQuit() { // two taps within 3 s: no browser dialog (dialogs look
   return false;
 }
 
-Cmd.on('PAUSE', () => { if (mode === 'play') { mode = 'pause'; buildChips($('#pauseBuild')); $('#bPauseMap').hidden = !(typeof Input !== 'undefined' && Input.connected().length); show('pause'); } });
+Cmd.on('PAUSE', () => { if (mode === 'play') { mode = 'pause'; $('#bQuit').textContent = I18n.t(Replay.on ? 'Leave replay' : 'End run'); buildChips($('#pauseBuild')); $('#bPauseMap').hidden = !(typeof Input !== 'undefined' && Input.connected().length); show('pause'); } });
 Cmd.on('RESUME', () => { if (mode === 'pause') { mode = 'play'; show(null); } });
 Cmd.on('SPEED', c => { speed = c.v || (speed === 3 ? 1 : speed + 1); meta.settings.speed = speed; $('#bSpeed').textContent = speed + '×'; $('#bSpeed').setAttribute('aria-label', `Game speed ${speed}×`); });
 Cmd.on('TAP', c => {
@@ -11975,7 +12648,11 @@ cv.addEventListener('pointerdown', ev => {
   ev.preventDefault();
   const r = cv.getBoundingClientRect();
   Cmd.dispatch({ t: 'TAP', x: ev.clientX - r.left, y: ev.clientY - r.top });
+  holdStart(ev, ev.clientX - r.left, ev.clientY - r.top); // 0.31: hold to keep tapping (when it's on)
 }, { passive: false });
+cv.addEventListener('pointermove', ev => { if (Hold.id === ev.pointerId) { const r = cv.getBoundingClientRect(); Hold.x = ev.clientX - r.left; Hold.y = ev.clientY - r.top; } });
+for (const t of ['pointerup', 'pointercancel']) window.addEventListener(t, holdEnd);
+cv.addEventListener('pointerleave', holdEnd);
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 // (0.29: leaving and returning, the pause, the save and the sound are handled in one place: 11c-lifecycle.js)
@@ -11997,6 +12674,7 @@ if (window.ResizeObserver) new ResizeObserver(onResize).observe($('#app'));
 // The keyboard and controllers: 11b-actions.js (0.24)
 // Android back button: close the open screen, pause a night, or leave the app from home
 Platform.onBack(() => {
+  if (Replay.on) { Replay.stop(); return true; } // 0.31: Back leaves a replay
   if (mode === 'play') { Cmd.dispatch({ t: 'PAUSE' }); return true; }
   if (mode === 'pause') { Cmd.dispatch({ t: 'RESUME' }); return true; }
   if (mode === 'home' && $('#home').hidden) { back(); return true; }
@@ -12076,6 +12754,7 @@ const Input = {
   run(action, src) {
     if (this.capture) return;
     if (typeof bazaarActive === 'function' && bazaarActive() && bzAction(action)) return; // 0.26: walking in the Bazaar
+    if (Replay.on && action === 'CANCEL' && !menuScope()) return Replay.stop(); // 0.31: Esc or B leaves a replay
     if (mode === 'play' && !menuScope()) {
       if (action === 'CONFIRM' || action === 'ATTACK') return this.strike();
       if (action === 'ABILITY') return Cmd.dispatch({ t: 'ABILITY' });
@@ -12562,7 +13241,7 @@ console.info(`Lantern Keeper ${LK_VERSION} ready on ${Platform.kind}`); // 0.28:
 nextFrame();
 
 // Debug hook (only with #debug in the URL): lets tests play whole runs headlessly.
-if (location.hash.includes('debug')) window.LK = { get meta() { return meta; }, notify: () => Notify, get run() { return run; }, get mode() { return mode; }, fmt, stillRate, save, load, UPS, SHOP, parts: () => pn, quality: () => ({ renderCap, lowFx, DPR }),
+if (DEV_ALLOWED) window.LK = { /* (the test page, #debug, and 0.30.1 the developer build, whose tools use it: never a public build) */ get meta() { return meta; }, notify: () => Notify, toasts: () => toastQ.map(q => q[0]), get run() { return run; }, get mode() { return mode; }, fmt, stillRate, save, load, UPS, SHOP, parts: () => pn, quality: () => ({ renderCap, lowFx, DPR }),
   setLv(o) { Object.assign(meta.lv, o); },
   // 0.8: world, arsenal, keepers, commands
   world: () => meta.world, cmd: c => { uiLock = 0; return Cmd.dispatch(c); },
@@ -12590,7 +13269,7 @@ if (location.hash.includes('debug')) window.LK = { get meta() { return meta; }, 
   cmdLog: () => Cmd.log(), Platform,
   region(id) { goHome(); meta.world.unlocked[id] = 1; startExpedition(id); }, regionIds: () => REGIONS.map(r => r.id), startAsc: n => startAscension(n), ascOpen: () => ascOpen(), spawn: (type, x, y) => spawn(type, x, y), targets: () => nearestTargets(), cloud: () => Cloud, social: () => Social, pvp: () => ({ PVP, D, pvpBuild, pvpCleanLoadout, duelSide, duelStart, duelResume, duelRebuild, duelStep, duelTap, duelAbility, duelHpScale, pvpTier, pvpAiPicks, pvpAiPick, pvpAiLoadout, pvpSimMatch, TOWER, DUEL_AB, PVP_LV, DUEL_CAL, PVP_CFG, AI_STYLES, PVP_REACTS, PVP_ARCH, pvpResolveFall, pvpProgress, SURV, PVP_UI, PVP_OVERLAYS, PVP_INPUT, PVP_NEXT, PVP_HUD, pvpAllows, pvpView, reactOf, duelSync, duelApplySync }), icons: () => ({ ICONS, EMO_ID, ico, iconize }), settings: () => ({ setDraft, volOf, applyMotion }), profile: () => pfDraft, musicMgr: () => ({ Music, musicContext, MUSIC_TRACKS, regionTrack, MENU_PLAYLIST }),
   wardrobe: () => ({ lookClashes, clashWhy, resolveClashes, lookItem, kdLookItems, draft: () => kd }), hookSave(fn) { if (fn) { if (!save._orig) { const o = save; save = function () { if (save._spy) save._spy(); return o.apply(this, arguments); }; save._orig = o; } save._spy = fn; } else if (save._orig) { save = save._orig; } },
-  lumens: () => Lumens,
+  lumens: () => Lumens, i18n: () => I18n, cloudEvents: () => ({ setCloudEvents, liveEvent, liveEmberMult, renderFestival }), switches: () => Switches, openKeeper: () => openKeeper(), deco: () => ({ renderDecos, DECOS, decoOf }), elites: () => ({ spawn: (t, x, y) => spawn(t, x, y), hit: (e, a, c, q, s) => hitEnemy(e, a, c, q, s) }), story: () => storyPages(), replayNearEnd: s => Replay.startNearEnd(Rec.last(), s), quick: () => QuickJoin, crash: () => Object.assign(Crash, { insights: Insights }), photo: () => ({ Photo, resultCard, shareImage }), seeds: () => SeedBoard, season: () => ({ WTide, WTIDES, season, seasonLight, seasonKey, SEASON_STEP_PTS }), access: () => ({ applyGfx, applyDisplay, gfxNow, autoTapStep, fps: () => fpsCap, lowFx: () => lowFx }), // (0.31: tests)
   items: () => ({ ITEMS, ITK, canUseItem, useItem, unqueueItem, applyBoosts, addItem, nightFinds, itemCount, PVP_ITEM_POLICY }),
   pwa: () => ({ renderInstall, isStandalone, fire: e => { installEvt = e; renderInstall(); } }),
   policyNotice: () => policyNotice(), policyNews: () => POLICY_NEWS, policyKey: () => policyKey(),
@@ -12711,7 +13390,7 @@ const Cloud = {
   init() {
     if (!this.on()) return;
     try {
-      this.sb = supabase.createClient(LK_CLOUD.url, LK_CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'lantern-keeper-auth' } });
+      this.sb = supabase.createClient(LK_CLOUD.url, LK_CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'lantern-keeper-auth', flowType: 'pkce' } }); // (0.31: pkce for Google; email codes are unchanged)
     } catch (e) { this.sb = null; return; }
     // Supabase asks that no other calls are made inside this callback, so the follow-up runs a moment later.
     this.sb.auth.onAuthStateChange((ev, session) => {
@@ -12720,10 +13399,66 @@ const Cloud = {
       if (!this.user) { this.profile = null; this.comm = null; this.pending = null; Social.close(); }
       renderAccount();
     });
+    this.googleReturn(); this.googleCheck();
     setInterval(() => this.tick(), 15000);
     window.addEventListener('online', () => this.tick(true));
   },
-  signedIn() { return !!(this.user && this.user.email_confirmed_at); },
+  signedIn() { return !!(this.user && this.user.email_confirmed_at) && !this.consentPending; },
+  // 0.31: Sign in with Google (and Discord, Twitch, Facebook, X): each button shows once the owner turns that
+  // provider on in Supabase (Authentication > Providers); the same account whichever way, matched by the verified email.
+  providers: [], consentPending: false,
+  // where Google's page opens: this page (web), the player's own browser coming back to the PC app (electron/main.js),
+  // or the phone's secure browser sheet coming back through the app's own link (com.lanternkeeper.game://auth)
+  googleWay() {
+    if (Platform.kind === 'web') return /^https?:$/.test(location.protocol) ? 'web' : '';
+    if (Platform.kind === 'desktop') return window.lkNative && window.lkNative.oauthListen ? 'desktop' : '';
+    const P = window.Capacitor && Capacitor.Plugins; return P && P.Browser && P.App ? 'mobile' : '';
+  },
+  googleCan() { return !!this.googleWay(); },
+  APP_LINK: 'com.lanternkeeper.game://auth',
+  async googleCheck() {
+    const way = this.googleWay(); if (!way) return;
+    if (way === 'desktop' && !this.googleHooked) { this.googleHooked = true; window.lkNative.onOAuth(search => this.googleCode(new URLSearchParams(search), this.googleWhy)); }
+    if (way === 'mobile' && !this.googleHooked) { this.googleHooked = true; Capacitor.Plugins.App.addListener('appUrlOpen', ({ url }) => {
+      if (!String(url).startsWith(this.APP_LINK)) return; try { Capacitor.Plugins.Browser.close(); } catch (e) { /* already closed */ }
+      this.googleCode(new URL(String(url).replace(/^[^?]*/, 'https://x/auth')).searchParams, this.googleWhy); }); }
+    try { const r = await fetch(LK_CLOUD.url + '/auth/v1/settings', { headers: { apikey: LK_CLOUD.key } }); const j = await r.json(), x = (j && j.external) || {}; this.providers = OAUTH.map(p => p[0]).filter(k => x[k]).concat(!x.x && x.twitter ? ['twitter'] : []); } catch (e) { this.providers = []; } // (X: Supabase names its older connection twitter)
+    renderAccount();
+  },
+  googleWhy: 'signin', googleProv: 'google', googleHooked: false,
+  async googleStart(why = 'signin', provider = 'google') {
+    const way = this.googleWay(); this.googleWhy = why; this.googleProv = provider;
+    const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined, scopes = undefined;
+    if (way === 'web') {
+      try { sessionStorage.setItem('lk-oauth', why + ':' + provider); } catch (e) { /* private window: the return still works */ }
+      const { error } = await this.sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname, queryParams, scopes } }); if (error) throw new Error(authErr(error)); return;
+    }
+    let redirectTo = this.APP_LINK;
+    if (way === 'desktop') { const l = await window.lkNative.oauthListen(); if (!l || !l.redirect) throw new Error('Could not start the sign-in. Close other copies of the game and try again.'); redirectTo = l.redirect; }
+    const { data, error } = await this.sb.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true, queryParams, scopes } }); if (error) throw new Error(authErr(error));
+    if (way === 'desktop') Platform.openExternal(data.url); else await Capacitor.Plugins.Browser.open({ url: data.url, presentationStyle: 'popover' });
+    const nm = oauthName(provider); acMsg = way === 'desktop' ? `${nm} opened in your browser. Sign in there, then come back here.` : `Sign in with ${nm}, then you come straight back.`; acOk = true; renderAccount();
+  },
+  // the one-time code (or an error) from the provider, by whichever way it came back
+  async googleCode(q, why, prov = this.googleProv) {
+    const nm = oauthName(prov);
+    const code = q.get('code'), err = q.get('error_description') || q.get('error'); if (!code && !err) return;
+    acBackTo = 'home'; acView = why === 'delete' ? 'delete' : 'main';
+    if (err) { acMsg = /signup|database error|13 or over|email/i.test(err) ? (/email/i.test(err) ? `${nm} did not share an email address, which every account needs. Try another way to sign in.` : `${nm} sign-in could not make the account. Try again, or use email.`) : `${nm} sign-in did not finish. Try again.`; acOk = false; }
+    else { const { error } = await this.sb.auth.exchangeCodeForSession(code); if (error) { acMsg = authErr(error); acOk = false; } else if (why === 'delete') { acMsg = `Confirmed with ${nm}. You can delete your account now (within 10 minutes).`; acOk = true; } else acMsg = ''; }
+    setTimeout(() => { show('account'); renderAccount(); }, 0);
+  },
+  // the web version: back on this page with ?code=... (or ?error=...); the address is cleaned up
+  async googleReturn() {
+    if (Platform.kind !== 'web') return;
+    const q = new URLSearchParams(location.search); if (!q.get('code') && !q.get('error')) return;
+    let why = '', prov = 'google'; try { [why, prov = 'google'] = (sessionStorage.getItem('lk-oauth') || '').split(':'); sessionStorage.removeItem('lk-oauth'); } catch (e) { /* */ }
+    history.replaceState(null, '', location.pathname + location.hash);
+    if (!why && !q.get('error')) return; // (a code that isn't ours)
+    return this.googleCode(q, why, prov);
+  },
+  google1: u => !!(u && (u.identities || []).length && (u.identities || []).every(i => i.provider !== 'email')), // signed up with Google, Discord...: no password
+  provOf: u => ((u && u.identities || []).find(i => i.provider !== 'email') || {}).provider || 'google',
   // what the device holds, minus things that change without progress (the clock, a night in progress, the link itself)
   sig: m => fnv(JSON.stringify(Object.assign({}, m, { last: 0, run: null, cloud: null }))),
   // 0.29: the same, without what changes by itself or by looking around (embers from the ember still, the total earned,
@@ -12731,7 +13466,8 @@ const Cloud = {
   // has made no choice the player must weigh between two saves
   // (keys in a fixed order, and without what only the cloud copy carries, so a save read back from the server compares too)
   core: m => fnv(stableJson(Object.assign({}, m, { last: 0, run: null, cloud: null, showcase: null, entitlements: null, embers: 0, heard: null, achNew: 0, codexNew: 0, tips: null, settings: null, policySeen: null,
-    dealSeen: null, weekly: null, feats: Object.assign({}, m.feats, { chalNew: 0 }), // 0.29: opening the Shop, a new week's starting points (set by each device on its own; claims are carried over by adopt()), the new-challenges badge
+    dealSeen: null, weekly: null, season: null, // (0.31: the season track merges like weekly claims: adopt)
+    feats: Object.assign({}, m.feats, { chalNew: 0 }), // 0.29: opening the Shop, a new week's starting points (set by each device on its own; claims are carried over by adopt()), the new-challenges badge
     stats: Object.assign({}, m.stats, { earned: 0, time: 0 }) }))),
   local: m => ({ heard: m.heard, achNew: m.achNew, codexNew: m.codexNew, tips: m.tips, settings: m.settings, policySeen: m.policySeen, dealSeen: m.dealSeen }), // what a device keeps as its own
   payload: () => JSON.parse(JSON.stringify(Object.assign({}, savedView(meta), { run: null, cloud: undefined, showcase: showcase() }))), // (never a preview) // showcase: what the public profile shows
@@ -12752,9 +13488,14 @@ const Cloud = {
     return { status: r.status, body: b };
   },
   async afterSignIn() {
+    if (!(this.user && this.user.email_confirmed_at)) return;
+    // 0.31: an account made with Google answers the sign-up questions first; nothing is linked or synced before that
+    try { const { data: c } = await this.sb.from('profiles').select('consent_pending').eq('id', this.user.id).maybeSingle(); this.consentPending = !!(c && c.consent_pending); } catch (e) { this.consentPending = false; }
+    if (this.consentPending) { acView = 'consent'; acMsg = ''; if ($('#account').hidden) { acBackTo = 'home'; show('account'); } renderAccount(); return; }
     if (!this.signedIn()) return;
     const { data } = await this.sb.from('profiles').select('display_name, show_profile, cloud_save, marketing_emails, created_at, friend_code, duel_from').eq('id', this.user.id).maybeSingle(); // (duel_from: 0.29; 0.29: my row only: other keepers' shown profiles are readable too, and two rows made this fail and every switch read Off)
     this.profile = data || null; this.off = !!(data && data.cloud_save === false);
+    Family.load(); Crew.load(); // 0.31: Family settings, the crew
     this.syncName(); // 0.30: the account's name is the name everywhere
     Billing.refresh().catch(() => {}); // what this account owns (paid cosmetics)
     if (this.user && !(this.user.user_metadata || {}).unsub) this.sb.auth.updateUser({ data: { unsub: unsubToken() } }).catch(() => {}); // 0.26: the news unsubscribe link
@@ -12788,6 +13529,7 @@ const Cloud = {
   canSyncNow: () => mode === 'home' || mode === 'over' || !run, // never in the middle of a night
   tick(force) {
     if (!this.signedIn() || this.busy || this.off || this.devHold || !this.canSyncNow()) return; // (devHold: 0.29, the developer build's tools changed the save)
+    if (this.retryAt) { if (Date.now() < this.retryAt) return; this.retryAt = 0; force = true; } // (0.31: the server asked to wait a moment)
     if (this.pending) { if (syncChoiceNow() && $('#syncChoice').hidden) showSyncChoice(); return; }
     const changed = meta.cloud.user !== this.user.id || this.sig(meta) !== meta.cloud.sig;
     if (changed || force || Date.now() - this.lastCheck > 120000) this.sync({ look: !changed });
@@ -12821,6 +13563,7 @@ const Cloud = {
     if (this.devHold) return; // (0.29: never upload a save the developer tools changed)
     const r = await this.call('save-sync', { action: 'put', baseRev, save: this.payload(), device: this.device(), replace: !!replace });
     if (r.status === 409 && r.body.disabled) { this.off = true; return; }
+    if (r.status === 429) { this.retryAt = Date.now() + Math.max(1, Math.min(60, +r.body.retry || 3)) * 1000 + 250; return; } // 0.31: saved moments ago: send this one shortly, no error
     // 0.29: the cloud moved on while this device only earned idle income (two devices open at once, each sending its Ember
     // still's embers): merge quietly, as the look-first path does, instead of asking the player to choose every minute
     if (r.status === 409 && r.body.conflict) { if (!r.body.cloud) return null; const mg = !replace && again < 3 && meta.cloud.user === this.user.id && this.mergeIdle(r.body.cloud); if (mg === 'push') return await this.push(meta.cloud.rev, false, again + 1); return mg || this.conflict(r.body.cloud); }
@@ -12858,6 +13601,7 @@ const Cloud = {
   synced() { this.lastSync = Date.now(); this.error = ''; },
   adopt(data, rev) { // replace the device save with a cloud one (keeping a night in progress on this device)
     const keepRun = meta.run, wk = meta.weekly && { key: meta.weekly.key, claimed: Object.assign({}, meta.weekly.claimed) }; // (0.29: claims made here)
+    const ss = meta.season && meta.season.key ? JSON.parse(JSON.stringify(meta.season)) : null; // (0.31: the season track here)
     { const t = JSON.stringify(Object.assign({}, data, { run: keepRun, cloud: null })); Platform.save(KEY, t); Platform.save(SEAL_KEY, sealOf(t)); } // (0.30: with its seal)
     meta = load(); sanitizeMeta();
     try { meta.run = validRun(meta.run); } catch (e) { meta.run = null; }
@@ -12865,6 +13609,16 @@ const Cloud = {
     // (claims are by id: one the cloud already has is never granted again)
     let carried = 0;
     if (wk && meta.weekly && meta.weekly.key === wk.key) for (const id of Object.keys(wk.claimed)) if (!meta.weekly.claimed[id]) { meta.weekly.claimed[id] = 1; earn(300, false); gainXp(100, false); carried++; }
+    // 0.31: the season track: the further one wins; steps reached only here keep their rewards (once), titles add up
+    if (ss) {
+      const cs = meta.season && meta.season.key === ss.key ? meta.season : null;
+      if (!cs) { meta.season = ss; carried++; }
+      else {
+        for (let n = (cs.step || 0) + 1; n <= (ss.step || 0); n++) earn(seasonReward(n), false);
+        if ((ss.step || 0) > (cs.step || 0) || (ss.pts || 0) > (cs.pts || 0)) carried++;
+        cs.pts = Math.max(cs.pts || 0, ss.pts || 0); cs.step = Math.max(cs.step || 0, ss.step || 0); cs.titles = Object.assign({}, ss.titles, cs.titles);
+      }
+    }
     if (carried) save();
     this.link(rev, data);
     applyGfx(); renderMute(); lookKey = ''; applyRegionLook(); refreshUI(true);
@@ -13002,6 +13756,17 @@ function codeField(id, label, submit) {
   inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 6); if (submit && inp.value.length === 6 && !inp.dataset.sent) { inp.dataset.sent = '1'; submit(); } });
   return f;
 }
+// 0.31: the other ways to sign in: one button for each provider the owner turned on (the logos: .btn.oauth.p-<name>), and
+// a 6-digit code by email instead of a password (the switch "emailcode", once the email for it is set up)
+const OAUTH = [['google', 'Google'], ['discord', 'Discord'], ['twitch', 'Twitch'], ['facebook', 'Facebook'], ['x', 'X']];
+const oauthName = k => k === 'twitter' ? 'X' : (OAUTH.find(p => p[0] === k) || [k, k])[1];
+function googleButton() {
+  const code = typeof Switches !== 'undefined' && Switches.list.emailcode && Switches.list.emailcode.on;
+  const list = Cloud.googleCan() ? Cloud.providers : [];
+  if (!list.length && !code) return '';
+  return el('div', { className: 'acOauth' }, [...list.map(k => acButton(`Continue with ${oauthName(k)}`, () => Cloud.googleStart('signin', k), `btn oauth p-${k}`)),
+    code ? acButton('Email me a sign-in code', () => go('codein'), 'btn oauth p-email') : '']);
+}
 function acButton(text, fn, cls = 'btn') {
   const b = el('button', { className: cls, textContent: text });
   b.onclick = async () => { if (b.disabled) return; b.disabled = true; const t = b.textContent; if (/primary|danger/.test(cls)) b.textContent = 'Please wait...';
@@ -13020,10 +13785,10 @@ const v = id => ($('#' + id) ? $('#' + id).value.trim() : '');
 // 0.26: consent at sign-up. The age question asks for the month and year of birth, works out the age here and sends
 // only the answer (13 or over; 13 to 15), never the date. The server checks the same answers (supabase migration
 // 20261004000000_consent.sql), so an account can't be made without them.
-const TERMS_VERSION = '1.6', PRIVACY_VERSION = '3.0', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
+const TERMS_VERSION = '1.7', PRIVACY_VERSION = '3.1', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
 const POLICY_KEY = 'lantern-keeper-policy', policyKey = () => 'p' + PRIVACY_VERSION + '/t' + TERMS_VERSION; // the versions this device has shown
 // When the policies change, account holders are told once, in the game, with what changed (Terms, section 10)
-const POLICY_NEWS = 'Privacy Policy 3.0 and Terms 1.6. Anonymous gameplay statistics, sent only if you agree (Settings > Privacy turns them off and deletes them), never with your name, email or account. New: the Notification Center; email choices by kind (Account > Emails; promotions only for players 18 or over); a check value beside your save; our web store (PayPal, GCash or bank transfer, sold by Exenova, refunds within 14 days); the Supporter Club, which renews every month with PayPal until you stop it; and the community on our website, where posts are public (under "A keeper" if your profile is hidden). Players under 18 need a parent’s permission to buy.';
+const POLICY_NEWS = 'Privacy Policy 3.1 and Terms 1.7. New: signing in with Google, Discord, Twitch, X or Facebook (we keep the email they send and never use the name or picture); Family settings, where a parent or guardian can limit chat, online play and spending with a PIN; crews, whose name and tag show next to members’ names; seed results shared with your friends; Quick Join rooms; ranked seasons; gifts and region bundles in our web store; web push for the web version; and on our website, downloading your data, your devices and signing out everywhere.';
 function policyNotice() {
   if (Platform.load(POLICY_KEY) === policyKey() || !Cloud.signedIn() || mode !== 'home' || !$('#syncChoice').hidden) return; // told once on each device (never over the sync choice)
   const done = () => Platform.save(POLICY_KEY, policyKey());
@@ -13065,9 +13830,24 @@ function renderAccount() {
   const note = t => el('p', { className: 'acNote', textContent: t }), msg = () => acMsg ? el('p', { className: 'acMsg' + (acOk ? ' good' : ''), textContent: acMsg, role: 'status' }) : '';
   $('#acStatus').textContent = Cloud.statusText();
   if (!Cloud.on()) { add(note('This build has no online features. Your progress is saved on this device; use Settings > Save transfer to move it by hand.')); return; }
-  if (Cloud.user && !Cloud.signedIn() && acView === 'main') { acEmail = Cloud.user.email || acEmail; acView = 'confirm'; } // signed up but not confirmed: straight to the code
+  if (Cloud.user && Cloud.consentPending) acView = 'consent'; // 0.31: made with Google: the questions first
+  else if (Cloud.user && !Cloud.signedIn() && acView === 'main') { acEmail = Cloud.user.email || acEmail; acView = 'confirm'; } // signed up but not confirmed: straight to the code
   if (!Cloud.user || !Cloud.signedIn()) {
-    if (acView === 'signup') {
+    if (acView === 'consent' && Cloud.user) {
+      add(el('h3', { className: 'sec', textContent: 'Finish your account' }), note(`Signed in with ${oauthName(Cloud.provOf(Cloud.user))} as ${Cloud.user.email}. A few questions before your progress is linked, as for every account. Accounts are for players aged 13 or over.`),
+        field('acName', 'Keeper name', 'text', meta.profile.name), birthField(), checkField('acTerms', 'I agree to the <a href="#" data-ext="terms">Terms of Service</a> and have read the <a href="#" data-ext="privacy">Privacy Policy</a>.'),
+        checkField('acNews', 'Send me occasional news emails about updates and events (you can stop them with one click, any time).'), msg(),
+        acButton('Finish', async () => {
+          const n = cleanName(v('acName')); if (n.error) throw new Error(n.error);
+          const age = ageFrom(v('acBirthM'), v('acBirthY')); if (age < 0) throw new Error('Choose the month and year you were born.');
+          const teen = age >= ACCOUNT_MIN_AGE && age < PARENT_UNDER; if (teen && !$('#acParent').checked) throw new Error('Players aged 13 to 15 need a parent or guardian to agree: tick the box when they do.');
+          if (age >= ACCOUNT_MIN_AGE && !$('#acTerms').checked) throw new Error('Please agree to the Terms of Service to make an account.');
+          const { data, error } = await Cloud.sb.rpc('complete_consent', { p_age_ok: age >= ACCOUNT_MIN_AGE, p_teen: teen, p_parent_ok: teen, p_terms: TERMS_VERSION, p_news: $('#acNews').checked, p_name: n.name, p_unsub: unsubToken(), p_adult: age >= 18 }); // (adult: promotions are for adults only, as at sign-up)
+          if (error) throw new Error(authErr(error));
+          if (data === 'deleted') { Cloud.consentPending = false; await Cloud.sb.auth.signOut({ scope: 'local' }); go('main', 'Accounts are for players aged 13 or over, so that account was removed. You can keep playing as a guest: your progress stays on this device.'); return; }
+          meta.profile.name = n.name; save(); Platform.save(POLICY_KEY, policyKey()); Cloud.consentPending = false; acView = 'main'; acMsg = 'Welcome, keeper. Your progress is being linked to your account.'; acOk = true; await Cloud.afterSignIn();
+        }, 'btn primary'), acButton('Cancel and sign out', async () => { Cloud.consentPending = false; await Cloud.sb.auth.signOut({ scope: 'local' }); go('main', 'Signed out. The account waits for these answers the next time you sign in.'); }));
+    } else if (acView === 'signup') {
       add(el('h3', { className: 'sec', textContent: 'Create an account' }), note('Your progress on this device will be linked to it. Accounts are for players aged 13 or over; anyone can keep playing as a guest.'),
         field('acName', 'Keeper name', 'text', meta.profile.name), field('acMail', 'Email', 'email', acEmail), pwField('acPw', 'Password', true), pwField('acPw2', 'Password again', false),
         birthField(), checkField('acTerms', 'I agree to the <a href="#" data-ext="terms">Terms of Service</a> and have read the <a href="#" data-ext="privacy">Privacy Policy</a>.'),
@@ -13093,8 +13873,17 @@ function renderAccount() {
       add(el('h3', { className: 'sec', textContent: 'Confirm your email' }), note(`Enter the 6-digit code sent to ${acEmail || 'your email'}.`), codeField('acCode', '6-digit code', () => btn.click()), msg(), btn,
         resendButton(async () => { const { error } = await Cloud.sb.auth.resend({ type: 'signup', email: acEmail, options: { captchaToken: Captcha.token() } }); if (error) throw new Error(authErr(error)); acMsg = 'A new code is on its way.'; acOk = true; }), Captcha.box(),
         acButton(Cloud.user ? 'Use another account' : 'Back', async () => { if (Cloud.user) await Cloud.sb.auth.signOut({ scope: 'local' }); go('main'); }));
+    } else if (acView === 'codein') { // 0.31: a code by email instead of a password (accounts that exist; making one still asks the questions)
+      add(el('h3', { className: 'sec', textContent: 'Sign in with an email code' }), note('We send a 6-digit code to your email: no password needed.'), field('acMail', 'Email', 'email', acEmail), Captcha.box(), msg(),
+        acButton('Send me a code', async () => { const mail = v('acMail'); if (!mailOk(mail)) throw new Error('That doesn\'t look like an email address.'); rememberMail(mail); acEmail = mail;
+          const { error } = await Cloud.sb.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, captchaToken: Captcha.token() } });
+          if (error && !/signups not allowed|not found|user/i.test(error.message)) throw new Error(authErr(error)); acResendAt = Date.now() + 60000; go('codein2', `If there is an account for ${mail}, a code is on its way.`, true); }, 'btn primary'),
+        acButton('Back', () => go('signin')));
+    } else if (acView === 'codein2') {
+      const btn = acButton('Sign in', async () => { const { error } = await Cloud.sb.auth.verifyOtp({ email: acEmail, token: v('acCode'), type: 'email' }); if (error) throw new Error(authErr(error)); go('main', '', true); }, 'btn primary');
+      add(el('h3', { className: 'sec', textContent: 'Enter your code' }), note(`Enter the 6-digit code sent to ${acEmail}.`), codeField('acCode', '6-digit code', () => btn.click()), msg(), btn, acButton('Back', () => go('codein')));
     } else if (acView === 'signin') {
-      add(el('h3', { className: 'sec', textContent: 'Sign in' }), field('acMail', 'Email', 'email', acEmail), pwField('acPw', 'Password', false), Captcha.box(), msg(),
+      add(el('h3', { className: 'sec', textContent: 'Sign in' }), googleButton(), field('acMail', 'Email', 'email', acEmail), pwField('acPw', 'Password', false), Captcha.box(), msg(),
         acButton('Sign in', async () => {
           const mail = v('acMail'); if (!mailOk(mail)) throw new Error('That doesn\'t look like an email address.'); rememberMail(mail);
           const { error } = await Cloud.sb.auth.signInWithPassword({ email: mail, password: $('#acPw').value, options: { captchaToken: Captcha.token() } });
@@ -13115,7 +13904,7 @@ function renderAccount() {
         }, 'btn primary'), acButton('Back', () => go('signin')));
     } else {
       add(el('p', { className: 'acLead', textContent: 'Protect your progress' }), note('Create an account to keep your lighthouse safe and sync it across your devices, and to play online with friends. You can keep playing without one.'), msg(),
-        acButton('Create an account', () => go('signup'), 'btn primary'), acButton('I have an account', () => go('signin')));
+        acButton('Create an account', () => go('signup'), 'btn primary'), acButton('I have an account', () => go('signin')), googleButton());
     }
     wireEnter(box); return;
   }
@@ -13145,11 +13934,13 @@ function renderAccount() {
         if (($('#acRestart').value || '').trim().toUpperCase() !== 'START OVER') throw new Error('Type START OVER to confirm.');
         await Cloud.startOver(); go('main', 'A fresh start: the first night is waiting.', true);
       }, 'btn danger'), acButton('Keep my progress', () => go('main')));
+  } else if (acView === 'family') { renderFamilyView(add, note, msg); // 0.31: parental controls
   } else if (acView === 'delete') {
     add(el('h3', { className: 'sec', textContent: 'Delete your account' }), note('This permanently deletes your account, your cloud save, your friends, parties and messages, and your profile. Your progress stays on this device. Purchased cosmetics can\'t be restored after deletion.'),
-      pwField('acPw', 'Your password, to confirm', false), Captcha.box(), msg(),
+      ...(Cloud.google1(u) ? [note(Cloud.googleCan() ? `Your account signs in with ${oauthName(Cloud.provOf(u))}: confirm with it first, then delete within 10 minutes.` : `Your account signs in with ${oauthName(Cloud.provOf(u))}: confirm it in the web version (Account > Delete), or set a password with "Change password" and use it here.`),
+        Cloud.googleCan() ? acButton(`Confirm with ${oauthName(Cloud.provOf(u))}`, () => Cloud.googleStart('delete', Cloud.provOf(u))) : ''] : [pwField('acPw', 'Your password, to confirm', false), Captcha.box()]), msg(),
       acButton('Delete my account', async () => {
-        const r = await Cloud.call('delete-account', { password: $('#acPw').value, captchaToken: Captcha.token() }); if (!r.body.deleted) throw new Error(r.body.error || 'Could not delete the account.');
+        const r = await Cloud.call('delete-account', Cloud.google1(u) && !$('#acPw') ? { oauth: true } : { password: $('#acPw').value, captchaToken: Captcha.token() }); if (!r.body.deleted) throw new Error(r.body.error || 'Could not delete the account.');
         meta.cloud = { user: '', rev: 0, at: 0, sig: '' }; setEntitlements([]); save(); await Cloud.sb.auth.signOut(); go('main', 'Your account has been deleted. Your progress stays on this device.', true);
       }, 'btn danger'), acButton('Keep my account', () => go('main')));
   } else {
@@ -13158,7 +13949,7 @@ function renderAccount() {
     const s = Cloud.lastSync, rev = meta.cloud && meta.cloud.user === u.id ? meta.cloud.rev : 0;
     add(el('div', { className: 'acSync' }, [el('p', { textContent: Cloud.statusText() }), el('p', { className: 'acNote', textContent: rev ? `Cloud save version ${rev} · this device: ${Cloud.device() || Platform.kind}` : 'This device isn\'t linked to the cloud save yet.' })]),
       el('div', { className: 'saveBtns' }, [acButton('Sync now', () => Cloud.sync({ look: true }), 'btn primary')]));
-    if (P.friend_code) add(note(`Friend code: ${P.friend_code} (share it so friends can add you)`));
+    if (P.friend_code) add(note(`Friend code: ${streamerOn() ? '••••••••' : P.friend_code} (share it so friends can add you)`)); // (0.31: streamer mode)
     if (P.display_name && P.display_name !== meta.profile.name) add(el('div', { className: 'saveBtns' }, [acButton(`Use "${meta.profile.name}" as my public name`, () => Cloud.setName(meta.profile.name))]));
     add(el('h3', { className: 'sec', textContent: 'Privacy' }));
     const toggle = (key, label, sub) => { const on = !!P[key]; const row = el('div', { className: 'setRow' }, [el('div', {}, [el('b', { textContent: label }), el('p', { textContent: sub })])]);
@@ -13195,7 +13986,7 @@ function renderAccount() {
       acButton('Store', () => Platform.openExternal('https://lk.exenova.is-local.host/store.html')),
       acButton('Community', () => Platform.openExternal('https://lk.exenova.is-local.host/community.html'))]),
       note('Sign in there with this same account: news and devlogs from the team, feedback, bug reports, ideas, artwork and the Supporter Club.'));
-    add(el('h3', { className: 'sec', textContent: 'Account' }), el('div', { className: 'saveBtns' }, [acButton('Change email', () => go('email')), acButton('Change password', () => go('password'))]),
+    add(el('h3', { className: 'sec', textContent: 'Account' }), el('div', { className: 'saveBtns' }, [acButton('Change email', () => go('email')), acButton('Change password', () => go('password')), acButton(I18n.t('Family settings'), async () => { await Family.load(); go('family'); })]), // (0.31: 13k-family.js)
       el('div', { className: 'saveBtns' }, [acButton('Download my data', () => acDownload()), acButton('Sign out everywhere', async () => { await Cloud.sb.auth.signOut({ scope: 'global' }); setEntitlements([]); go('main', 'Signed out on every device. Your progress stays on this device.', true); })]),
       el('div', { className: 'saveBtns' }, [acButton('Sign out', async () => { await Push.off(); /* (0.30: this phone's push token goes first, while still signed in) */ await Cloud.sb.auth.signOut({ scope: 'local' }); /* 0.29: this device only (the default signed out every device, whose syncs then failed quietly); Sign out everywhere is its own button */ setEntitlements([]); /* paid cosmetics belong to the account */ go('main', 'Signed out. Your progress stays on this device.', true); }), acButton('Start over', () => go('restart'), 'btn ghost'), acButton('Delete account', () => go('delete'), 'btn ghost')]));
     if (P.created_at) add(note(`Keeper since ${new Date(P.created_at).toLocaleDateString()}`));
@@ -13491,7 +14282,7 @@ function renderCoopConn() {
     const ok = CloudRelay.ready();
     $('#coopOnlineNote').textContent = !Cloud.on() ? 'Online play arrives with the online version of the game. Use Local network or Phone to phone meanwhile.'
       : ok ? `Play with anyone, anywhere, as ${(Cloud.profile && Cloud.profile.display_name) || meta.profile.name}. Share the 5-letter room code.` : 'Online co-op needs a free account, so rooms stay safe. Sign in, or play on the same Wi-Fi without one.';
-    $('#bOnlineHost').hidden = !ok; $('#onlineJoinBox').hidden = !ok; $('#bOnlineSignIn').hidden = !Cloud.on() || ok;
+    $('#bOnlineHost').hidden = !ok; $('#onlineJoinBox').hidden = !ok; $('#bQuickJoin').hidden = !ok; $('#rowOnlineOpen').hidden = !ok; // (0.31: Quick Join) $('#bOnlineSignIn').hidden = !Cloud.on() || ok;
     $('#rowOnlineServer').hidden = !ok || !COOP_SERVER; // 0.28: the game's own co-op server
   }
 }
@@ -13499,8 +14290,10 @@ Coop.onlineFailed = function (msg) {
   this.role = ''; this.transport = ''; Net.mode = 'local'; this.reconnecting = false;
   $('#coopFallbackMsg').textContent = msg; $('#coopFallback').hidden = false; this.setStatus('');
 };
-$('#bOnlineHost').onclick = () => { $('#coopFallback').hidden = true; if (COOP_SERVER && $('#onlineServerRun').checked) Coop.hostGameServer(); else Coop.hostOnline(); };
+$('#bOnlineHost').onclick = () => { if (!familyOnline()) return; Coop.watchNext = false; $('#coopFallback').hidden = true; if (COOP_SERVER && $('#onlineServerRun').checked) Coop.hostGameServer(); else Coop.hostOnline(); }; // (0.31: Family settings)
 $('#bOnlineJoin').onclick = () => {
+  if (!familyOnline()) return; // 0.31
+  Coop.watchNext = !!$('#onlineWatch').checked; // 0.31: spectate
   const c = $('#coopCodeOnline').value.trim().toUpperCase();
   if (COOP_SERVER && /^[A-Z]{4}$/.test(c)) { $('#coopFallback').hidden = true; return Coop.joinGameServer(c); } // a server-run room (4 letters)
   if (!/^[A-Z]{5}$/.test(c)) return Coop.setStatus(COOP_SERVER ? 'Room codes have 5 letters (or 4 for a server-run night).' : 'Online room codes have 5 letters.');
@@ -13615,6 +14408,7 @@ function renderLumens() {
     if (Lumens.balance != null && Lumens.balance < pr) { Lumens.msg = `${it.name} costs ${fmt(pr)} Lumens; you have ${fmt(Lumens.balance)}. Get more below.`; return renderStore(); }
     appDialog({ title: `Buy ${it.name}?`, text: `${fmt(pr)} Lumens. It's a look: wear it from the Keeper screen. It never changes how you play.`,
       buttons: [{ label: `Buy for ${fmt(pr)} Lumens`, primary: true, act: lumenAct(async () => { await Lumens.spend(sl, id); sfx('buy'); return `${it.name} is yours. Wear it from the Keeper screen.`; }) }, { label: 'Cancel', ghost: true }] }); };
+  for (const b of box.querySelectorAll('[data-bundle]')) b.onclick = () => webBuy(b.dataset.bundle); // 0.31
   for (const b of box.querySelectorAll('[data-col]')) b.onclick = () => { const c = COLK[b.dataset.col], pr = Lumens.colPrice(c.id);
     if (Lumens.balance != null && Lumens.balance < pr) { Lumens.msg = `The ${c.name} costs ${fmt(pr)} Lumens; you have ${fmt(Lumens.balance)}. Get more below.`; return renderStore(); }
     appDialog({ title: `Buy the ${c.name}?`, text: `${fmt(pr)} Lumens for all of it: ${collectionContents(c).map(([k, v]) => k.toLowerCase() + ' (' + v + ')').join(', ')}. Looks only: they never change how you play.`,
@@ -13629,7 +14423,7 @@ function colCard(c) {
   const own = Lumens.ownsCol(c.id), pr = Lumens.colPrice(c.id), signed = Lumens.on();
   return `<div class="colCard${own ? ' owned' : ''}" style="--c1:${c.banner[1]};--c2:${c.banner[2]}"><div class="colPics">${['coat', 'hat', 'scarf', 'stripe'].map(sl => `<img class="lkArt" src="${lookThumb(sl, lookItem(sl, c[sl].id))}" alt="">`).join('')}</div>
     <b>${esc(c.name)}</b><p>${esc(c.desc)}</p><ul class="colHas" aria-label="Contains">${collectionContents(c).map(([k, v]) => `<li>✓ ${esc(k)}: ${esc(v)}</li>`).join('')}</ul>
-    ${own ? '<span class="own">Yours</span>' : pr == null ? '<span class="how">Not for sale right now</span>' : `<button class="btn primary" data-col="${c.id}" ${!signed || Lumens.busy ? 'disabled' : ''} aria-label="Buy the ${esc(c.name)} for ${pr} Lumens">${ico('lumen')} ${fmt(pr)}</button>`}</div>`;
+    ${own ? '<span class="own">Yours</span>' : pr == null ? '<span class="how">Not for sale right now</span>' : `<button class="btn primary" data-col="${c.id}" ${!signed || Lumens.busy ? 'disabled' : ''} aria-label="Buy the ${esc(c.name)} for ${pr} Lumens">${ico('lumen')} ${fmt(pr)}</button>`}${!own && signed && WebStore.on() && WebStore.price('lk.bundle.' + c.id) ? `<button class="btn small ghost" data-bundle="lk.bundle.${c.id}">${esc(I18n.t('Or as a bundle with 300 Lumens: {a}').replace('{a}', WebStore.price('lk.bundle.' + c.id)))}</button>` : ''}</div>`; // (0.31: region bundles, from the web store)
 }
 
 /* ---- src\js\13e-trade.js ---- */
@@ -13914,7 +14708,7 @@ function webBuy(sku) {
   if (!Cloud.signedIn()) return openAccountFromShop();
   const cur = WebStore.cur(), other = cur === 'PHP' ? 'USD' : 'PHP', s = WebStore.settings || {}, manual = !!s.manual_on;
   const gcash = manual && !!(s.gcash_number || s.gcash_qr), bank = manual && !!s.bank_details;
-  const what = p.kind === 'lumens' ? `${fmt(p.lumens)} Lumens, kept in your account.` : p.kind === 'club' ? 'One month in the Supporter Club. It does not renew by itself.' : 'Looks only, kept in your account on every device.';
+  const what = p.kind === 'lumens' ? `${fmt(p.lumens)} Lumens, kept in your account.` : p.kind === 'club' ? 'One month in the Supporter Club. It does not renew by itself.' : p.kind === 'bundle' ? (p.blurb || 'A collection and 300 Lumens.') + ' Kept in your account on every device.' : 'Looks only, kept in your account on every device.';
   appDialog({ title: `${p.label}: ${WebStore.price(sku)}`, text: `${what} One-time payment. Choose how to pay. Sold by Exenova; see the Terms for refunds. If you are under 18, ask a parent first.`,
     buttons: [
       ...(p.kind !== 'club' ? [{ label: 'PayPal or card', primary: true, act: () => webPayPal(sku, cur) }] : []),
@@ -13995,6 +14789,239 @@ function webOrdersHtml() {
   return `<h3 class="sec">Web store orders</h3>${WebStore.orders.map(o => `<div class="purch"><span>${esc((WebStore.product(o.sku) || {}).label || o.sku)}${o.env && o.env !== 'live' ? ' <span class="testTag">Test</span>' : ''} · ${o.method === 'grant' ? '' : (o.currency === 'PHP' ? '₱' : '$') + (o.amount_cents / 100).toFixed(2) + ' ' + o.currency + ' · '}${PAY_HOW[o.method] || o.method}${o.reference ? ' · ref ' + esc(o.reference) : ''}</span><span>${ORDER_STATE[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}${o.status === 'created' && o.method === 'paypal' ? ` <button class="btn small" data-wscheck="${o.id}">Check</button>` : ''}</span></div>`).join('')}`;
 }
 function wireWebOrders(box) { for (const b of box.querySelectorAll('[data-wscheck]')) b.onclick = () => WebStore.check(b.dataset.wscheck); }
+
+/* ---- src\js\13g-switches.js ---- */
+/* =====================================================================
+   0.30.1: switches the team can flip without a new release (supabase: public.game_switches), read when the game starts
+   and every five minutes while it is open, online only:
+   - a part of the game switched off (co-op, PvP, the Bazaar, the store, trading): its button explains, with the
+     team's message, instead of opening it. Nothing already running is stopped.
+   - a notice: a short message on the home screen (planned maintenance, a known problem).
+   Offline, or before the answer comes, everything is available as usual.
+   ===================================================================== */
+const SWITCH_BUTTONS = [['coop', '#bCoop'], ['pvp', '#bPvp'], ['bazaar', '#bBazaar'], ['store', '#bStore'], ['trade', '#bSatTrade']];
+const Switches = {
+  list: {}, at: 0,
+  off(k) { const r = this.list[k]; return !!r && r.on === false; },
+  async load() {
+    if (!Cloud.on() || !Cloud.sb || !navigator.onLine) return;
+    try { const { data, error } = await Cloud.sb.from('game_switches').select('key, on, message'); if (error || !Array.isArray(data)) return;
+      this.list = Object.fromEntries(data.map(r => [r.key, r])); this.at = Date.now(); this.draw(); } catch (e) { /* keep what we had */ }
+    try { const { data: ev, error: e2 } = await Cloud.sb.from('game_events').select('id, name, text, starts_at, ends_at, embers').eq('published', true).gt('ends_at', new Date(Date.now() - 864e5).toISOString()).order('starts_at').limit(20); // 0.31: events from the dashboard
+      if (!e2 && Array.isArray(ev)) { setCloudEvents(ev); if (mode === 'home') renderFestival(); } } catch (e) { /* the last list stays */ }
+  },
+  draw() {
+    let n = document.getElementById('swNotice'); const r = this.list.notice, show = !!(r && r.on && r.message);
+    if (!show) { if (n) n.remove(); } else {
+      if (!n) { n = document.createElement('p'); n.id = 'swNotice'; n.setAttribute('role', 'status'); n.setAttribute('translate', 'no'); const h = document.getElementById('home'); if (h) h.prepend(n); }
+      n.textContent = r.message; }
+    for (const [k, sel] of SWITCH_BUTTONS) { const b = document.querySelector(sel); if (b) b.classList.toggle('swOff', this.off(k)); }
+  },
+};
+// a switched-off part: its button says why (the team's message, or a general one)
+document.addEventListener('click', e => {
+  for (const [k, sel] of SWITCH_BUTTONS) {
+    if (!Switches.off(k) || !e.target.closest || !e.target.closest(sel)) continue;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const r = Switches.list[k];
+    appDialog({ title: I18n.t('Not available right now'), text: (r && r.message) || I18n.t('This part of the game is switched off for a short while. Please try again later.'), buttons: [{ label: I18n.t('OK'), primary: true }] });
+    return;
+  }
+}, true);
+setTimeout(() => Switches.load(), 2500); setInterval(() => Switches.load(), 5 * 60e3);
+addEventListener('online', () => Switches.load());
+
+/* ---- src\js\13h-leaderboards.js ---- */
+/* =====================================================================
+   0.31: leaderboards. The daily challenge (everyone has the same region, weapon, keeper and seed that day) and the
+   Endless night (by week, Monday to Sunday, UTC). Signed in, a night's result is sent when it ends; the server keeps
+   each keeper's best per board and checks that it looks possible (supabase/functions/leaderboards). A save that was
+   changed outside the game never sends results. Hidden profiles show as "A keeper". Offline: nothing is sent.
+   ===================================================================== */
+const Boards = {
+  isoWeek(d = new Date()) { const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())), day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+    const y = t.getUTCFullYear(), w = Math.ceil(((t - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7); return `${y}-W${String(w).padStart(2, '0')}`; },
+  endless() { return 'endless:' + this.isoWeek(); },
+  daily() { return 'daily:' + dailyToday().key; },
+  can() { return Cloud.on() && Cloud.signedIn() && !meta.edited && !Cloud.devHold && navigator.onLine; },
+  last: null, // (what the server said about the night that just ended)
+  // a night ended (recordRun): the solo Endless night and the daily challenge go to their boards
+  async afterNight(h) {
+    this.last = null; if (!this.can() || Replay.on || (run && run.assist)) return; // (0.31: nights with assisted tapping go on no board)
+    const board = h.mode === 'daily' && run && run.daily ? 'daily:' + run.daily.key : h.mode === 'endless' ? this.endless() : null; if (!board) return;
+    const result = { wave: h.wave, stage: h.stage, win: h.win, kills: h.kills, time: h.time, wpn: h.wpn, kpr: h.kpr, region: h.region };
+    try { const r = await Cloud.call('leaderboards', { action: 'submit', board, result }); if (r.status === 200) { this.last = r.body; this.showRank(); } } catch (e) { /* offline: the night still counts here */ }
+  },
+  showRank() {
+    const el = $('#overRank'), m = this.last && this.last.me; if (!el) return;
+    if (!m) { el.hidden = true; return; }
+    const what = this.last.board.startsWith('daily:') ? 'today\'s daily board' : 'this week\'s Endless board';
+    el.textContent = I18n.t(this.last.best ? `New best: #{a} of {b} on ${what}` : `#{a} of {b} on ${what} (your best stays)`).replace('{a}', m.rank).replace('{b}', m.total);
+    el.hidden = false;
+  },
+  async top(board) { const r = await Cloud.call('leaderboards', { action: 'top', board, limit: 50 }); return r.status === 200 ? r.body.rows : []; },
+  async me(board) { if (!Cloud.signedIn()) return null; const r = await Cloud.call('leaderboards', { action: 'me', board }); return r.status === 200 ? r.body.me : null; },
+};
+// the Challenges screen's boards: today's daily and this week's Endless, the top 50 and your place
+let boardTab = 'daily';
+async function renderBoards() {
+  const box = $('#chBoards'); if (!box) return;
+  if (!Cloud.on()) { box.innerHTML = `<p class="sub">${I18n.t('Leaderboards need accounts, which this version of the game doesn\'t have.')}</p>`; return; }
+  const board = boardTab === 'daily' ? Boards.daily() : Boards.endless();
+  box.innerHTML = `<div class="boardTabs" role="tablist"><button class="btn small${boardTab === 'daily' ? ' primary' : ''}" role="tab" aria-selected="${boardTab === 'daily'}" data-bt="daily">${I18n.t('Today\'s daily')}</button><button class="btn small${boardTab === 'endless' ? ' primary' : ''}" role="tab" aria-selected="${boardTab === 'endless'}" data-bt="endless">${I18n.t('Endless this week')}</button></div><p class="sub">${I18n.t('Loading...')}</p>`;
+  for (const b of box.querySelectorAll('[data-bt]')) b.onclick = () => { boardTab = b.dataset.bt; renderBoards(); };
+  let rows = [], me = null; try { [rows, me] = await Promise.all([Boards.top(board), Boards.me(board)]); } catch (e) { box.querySelector('.sub').textContent = I18n.t('The leaderboard could not load. Check the connection.'); return; }
+  if (boardTab !== (board.startsWith('daily:') ? 'daily' : 'endless')) return; // (the other tab was chosen meanwhile)
+  const res = r => r.stage ? I18n.t('Stage {a}').replace('{a}', r.stage) + (r.win ? ' ✓' : '') : I18n.t('Wave {a}').replace('{a}', r.wave);
+  const list = rows.length ? `<ol class="boardList">${rows.map(r => `<li class="${me && r.rank === me.rank && r.score === me.score ? 'me' : ''}"><b>#${r.rank}</b><span class="bn" translate="no">${esc(r.name)}</span><span>${res(r)}</span><span class="muted">${fmt(r.kills)} ${I18n.t('kills')}</span></li>`).join('')}</ol>`
+    : `<p class="sub">${I18n.t('No results yet: be the first.')}</p>`;
+  const mine = me ? `<p class="boardMe">${I18n.t('You: #{a} of {b}').replace('{a}', me.rank).replace('{b}', me.total)} · ${res(me)}</p>` : Cloud.signedIn() ? `<p class="sub">${I18n.t(boardTab === 'daily' ? 'Play today\'s daily to get on this board.' : 'Play an Endless night to get on this board.')}</p>` : `<p class="sub">${I18n.t('Sign in to get on the boards.')}</p>`;
+  const why = meta.edited ? `<p class="sub">${I18n.t('This save was changed outside the game, so its results don\'t go on the boards.')}</p>` : '';
+  box.querySelector('.sub').outerHTML = mine + why + list;
+}
+
+/* ---- src\js\13i-seeds.js ---- */
+/* =====================================================================
+   0.31: SEED CHALLENGES WITH FRIENDS
+   A seed brings the same night for everyone (Challenges > Play a seed). After a night from a chosen seed, a signed-in
+   keeper's best result for it is kept (public.seed_results, through seed_submit), and the seed box and the night's end
+   show it beside their friends' results on that seed (seed_board: accepted friends only). "Challenge a friend" shares the
+   seed as a link that opens the game with it ready to play (#seed=LK-...).
+   ===================================================================== */
+const SeedBoard = {
+  last: null,
+  can: () => Cloud.signedIn() && !Cloud.off,
+  async after(h) {
+    this.last = null; if (!run || !run.seeded || h.mode !== 'endless' || Replay.on || !this.can()) return;
+    const code = seedCode(run.seed);
+    try {
+      const { data, error } = await Cloud.sb.rpc('seed_submit', { p_seed: code, p_wave: Math.max(1, run.wave), p_kills: run.kills || 0, p_secs: Math.round(run.time || 0), p_tide: run.tide || '' });
+      if (error) return; this.last = Object.assign({ seed: code }, data);
+      const rows = await this.board(code); this.drawOver(code, rows);
+    } catch (e) { /* offline: the night still counts here */ }
+  },
+  async board(code) { if (!this.can()) return []; const { data, error } = await Cloud.sb.rpc('seed_board', { p_seed: code }); return error ? [] : data || []; },
+  list(rows) {
+    return rows.length ? `<ol class="seedBoard">${rows.map(r => `<li class="${r.me ? 'me' : ''}"><b>${esc(r.name)}</b><span>${I18n.t('wave {a}').replace('{a}', r.wave)}</span></li>`).join('')}</ol>` : '';
+  },
+  drawOver(code, rows) {
+    const el = document.getElementById('overSeedFriends'); if (!el) return;
+    const friends = rows.filter(r => !r.me).length, mine = rows.findIndex(r => r.me);
+    el.innerHTML = friends ? `<p class="muted">${I18n.t('On this seed: #{a} of {b} with your friends').replace('{a}', mine + 1).replace('{b}', rows.length)}</p>${this.list(rows.slice(0, 5))}` : '';
+  },
+  async drawPicker() {
+    const el = document.getElementById('seedFriends'), s = parseSeed($('#seedIn').value); if (!el) return;
+    if (s === null || !this.can()) { el.innerHTML = ''; return; }
+    const code = seedCode(s), rows = await this.board(code);
+    if (seedCode(parseSeed($('#seedIn').value) || 0) !== code) return; // (typed on meanwhile)
+    el.innerHTML = rows.length ? `<p class="muted">${I18n.t('You and your friends on this seed:')}</p>${this.list(rows)}` : `<p class="muted">${I18n.t('No one you know has played this seed yet.')}</p>`;
+  },
+  shareText(code, wave) { return I18n.t('Can you beat wave {a} in Lantern Keeper? Same night, same creatures: seed {b}').replace('{a}', wave).replace('{b}', code); },
+  shareUrl: code => 'https://lk.exenova.is-local.host/play/#seed=' + code,
+  async share(code, wave) {
+    const text = this.shareText(code, wave), url = this.shareUrl(code);
+    try { if (navigator.share) { await navigator.share({ title: 'Lantern Keeper', text, url }); return 'shared'; } } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+    try { await navigator.clipboard.writeText(text + ' ' + url); toastQ.push([I18n.t('Copied'), I18n.t('Send it to a friend: the link opens the game with this seed.')]); return 'copied'; } catch (e) { return 'failed'; }
+  },
+};
+// the seed box: friends' results for the seed typed
+let seedTyping = 0;
+$('#seedIn').addEventListener('input', () => { clearTimeout(seedTyping); seedTyping = setTimeout(() => SeedBoard.drawPicker(), 350); });
+// "Challenge a friend" at the end of a night
+$('#bSeedShare').onclick = () => { if (run && run.seed !== undefined) SeedBoard.share(seedCode(run.seed), run.wave); };
+// a shared link: #seed=LK-1A2B-3C4D opens Challenges with the seed ready
+(function seedLink() {
+  const m = /seed=(LK-[0-9A-F]{4}-[0-9A-F]{4})/i.exec(location.hash); if (!m) return;
+  setTimeout(() => { if (mode !== 'home') return; $('#seedIn').value = m[1].toUpperCase(); openChallenges(); SeedBoard.drawPicker();
+    const n = $('#seedNote'); if (n) n.textContent = I18n.t('A friend sent you this seed. Press Play to take it on.'); $('#seedIn').scrollIntoView({ block: 'center' }); }, 600);
+})();
+
+/* ---- src\js\13j-quickjoin.js ---- */
+/* =====================================================================
+   0.31: QUICK JOIN (Co-op > Online)
+   A host can open their room to anyone: while it waits for keepers, it is listed for Quick Join (public.coop_open_rooms,
+   renewed every 20 seconds, gone when the night starts, the room fills or closes). "Quick Join" finds the freshest open
+   room with a free seat and joins it like a code would. Keepers who blocked each other are never matched.
+   ===================================================================== */
+const QuickJoin = {
+  timer: 0, listed: '',
+  open() { try { return Platform.load('lk-coop-open') === '1'; } catch (e) { return false; } },
+  setOpen(on) { try { Platform.save('lk-coop-open', on ? '1' : '0'); } catch (e) { /* */ } this.tick(); },
+  // the host's listing, kept fresh while the room waits
+  async tick() {
+    if (!Cloud.signedIn()) return;
+    // only rooms over the internet (the account's relay, or the game's server); never a local network or phone-to-phone room
+    const code = Coop.server ? Coop.room : Coop.transport === 'cloud' ? CloudRelay.code : '';
+    // who may list it: the host, or in a server-run room its owner (the first keeper in); free seats from the room's roster
+    const seats = Coop.server ? (Lobby.roster || []) : Coop.role === 'host' ? Lobby.seats() : [];
+    const mine = Coop.server ? seats.some(x => x.owner && x.slot === Coop.slot) : Coop.role === 'host';
+    const waiting = mine && /^[A-Z]{4,5}$/.test(code || '') && mode !== 'play' && mode !== 'pick' && mode !== 'pause';
+    const free = COOP_MAX + 1 - seats.length;
+    try {
+      if (waiting && this.open() && free > 0) { await Cloud.sb.rpc('coop_list_open', { p_code: code, p_free: free }); this.listed = code; }
+      else if (this.listed) { this.listed = ''; await Cloud.sb.rpc('coop_unlist'); }
+    } catch (e) { /* offline: the listing simply goes stale */ }
+  },
+  async find() {
+    if (!Cloud.signedIn()) { openAccount(); acBackTo = 'coop'; return; }
+    Coop.setStatus(I18n.t('Looking for an open room…'));
+    let code = null; try { const { data } = await Cloud.sb.rpc('coop_quick'); code = data; } catch (e) { /* */ }
+    if (!code) { Coop.setStatus(I18n.t('No open rooms right now. Host one and tick "Open to anyone", or try again in a minute.')); return null; }
+    $('#coopCodeOnline').value = code; $('#bOnlineJoin').click(); return code;
+  },
+};
+QuickJoin.timer = setInterval(() => QuickJoin.tick(), 20000);
+$('#onlineOpen').checked = QuickJoin.open();
+$('#onlineOpen').onchange = () => QuickJoin.setOpen($('#onlineOpen').checked);
+$('#bQuickJoin').onclick = () => QuickJoin.find();
+// 0.31: a spectator's screen: no ability button or tap hint, a "Watching" badge
+setInterval(() => { const w = !!(typeof Coop !== 'undefined' && Coop.watching()); document.body.classList.toggle('watching', w); }, 500);
+
+/* ---- src\js\13k-family.js ---- */
+/* =====================================================================
+   0.31: FAMILY SETTINGS (Account > Family settings): parental controls, behind a PIN that a parent or guardian sets.
+   Chat and friend requests, playing online with others, spending Lumens and buying: each allowed or not; and a daily
+   playtime reminder. The server keeps chat, friend requests and spending (public.family_set, chat-send, the store);
+   this file keeps online play and the reminder. Changing anything, or turning it off, needs the PIN.
+   ===================================================================== */
+const Family = {
+  rules: null, // null: off; { chat, online, buy, minutes }
+  async load() { if (!Cloud.signedIn()) { this.rules = null; return; } try { const { data } = await Cloud.sb.rpc('family_get'); this.rules = data && data.on ? data.rules : null; } catch (e) { /* offline: as before */ } },
+  allows(k) { return !this.rules || this.rules[k] !== false; },
+  played: 0, warned: false,
+  tick(dt) { // the playtime reminder: once a day's minutes have been played on this device
+    if (!this.rules || !this.rules.minutes) return;
+    const day = new Date().toDateString(); if (meta.familyDay !== day) { meta.familyDay = day; meta.familyPlayed = 0; this.warned = false; }
+    meta.familyPlayed = (meta.familyPlayed || 0) + dt;
+    if (!this.warned && meta.familyPlayed >= this.rules.minutes * 60) { this.warned = true; appDialog({ title: I18n.t('Time for a break'), text: I18n.t("You've played for {a} minutes today, the time your family set. The lighthouse will be here tomorrow.").replace('{a}', this.rules.minutes), buttons: [{ label: I18n.t('OK'), primary: true }] }); }
+  },
+};
+function renderFamilyView(add, note, msg) {
+  const R = Family.rules || { chat: true, online: true, buy: true, minutes: 0 }, on = !!Family.rules;
+  const row = (k, label) => el('label', { className: 'acCheckRow' }, [Object.assign(el('input', { type: 'checkbox', className: 'acCheck', id: 'fam_' + k }), { checked: R[k] !== false }), el('span', { textContent: label })]);
+  const pinField = (id, label) => { const i = el('input', { id, type: 'password', inputMode: 'numeric', maxLength: 8, autocomplete: 'off', className: 'acIn' }); return el('label', { className: 'acField' }, [el('span', { textContent: label }), i]); };
+  const mins = el('select', { id: 'fam_minutes', className: 'sel' }); for (const m of [0, 30, 60, 90, 120, 180]) mins.append(Object.assign(el('option', { value: String(m), textContent: m ? I18n.t('{a} minutes a day').replace('{a}', m) : I18n.t('No reminder') }), { selected: (R.minutes || 0) === m }));
+  add(el('h3', { className: 'sec', textContent: I18n.t('Family settings') }),
+    note(on ? I18n.t('On for this account. Changes need the family PIN.') : I18n.t('For a parent or guardian: choose what this account may do, and set a PIN so only you can change it.')),
+    row('chat', I18n.t('Chat, messages and friend requests')), row('online', I18n.t('Play online with others (co-op rooms, PvP, the Bazaar)')), row('buy', I18n.t('Spend Lumens and buy things')),
+    el('label', { className: 'acField' }, [el('span', { textContent: I18n.t('Playtime reminder') }), mins]),
+    on ? pinField('fam_pin', I18n.t('Family PIN')) : '', pinField('fam_new', on ? I18n.t('New PIN (optional, 4 to 8 digits)') : I18n.t('Choose a PIN (4 to 8 digits)')), msg(),
+    acButton(on ? I18n.t('Save') : I18n.t('Turn on'), async () => {
+      const rules = { chat: $('#fam_chat').checked, online: $('#fam_online').checked, buy: $('#fam_buy').checked, minutes: +$('#fam_minutes').value };
+      const { data, error } = await Cloud.sb.rpc('family_set', { p_pin: on ? $('#fam_pin').value : null, p_rules: rules, p_new_pin: $('#fam_new').value || null });
+      if (error) throw new Error(authErr(error)); if (data && data.error) throw new Error(data.error);
+      await Family.load(); go('family', I18n.t('Family settings saved.'), true);
+    }, 'btn primary'),
+    on ? acButton(I18n.t('Turn off'), async () => { const { data, error } = await Cloud.sb.rpc('family_set', { p_pin: $('#fam_pin').value, p_rules: null }); if (error) throw new Error(authErr(error)); if (data && data.error) throw new Error(data.error); await Family.load(); go('family', I18n.t('Family settings are off.'), true); }) : '',
+    acButton(I18n.t('Back'), () => go('main')));
+}
+// online play with others (co-op rooms on the internet, Quick Join, PvP, the Bazaar): said kindly when it is off
+function familyOnline() {
+  if (Family.allows('online')) return true;
+  appDialog({ title: I18n.t('Family settings'), text: I18n.t('Playing online with others is turned off for this account. A parent or guardian can change it in Account > Family settings.'), buttons: [{ label: I18n.t('OK'), primary: true }] });
+  return false;
+}
+setInterval(() => { if (!document.hidden) Family.tick(10); }, 10000); // (the reminder counts time with the game open and in view)
 
 /* ---- src\js\14-social.js ---- */
 /* =====================================================================
@@ -14164,7 +15191,7 @@ setInterval(() => { if (!Social.loaded || !Life.active || $('#social').hidden) r
    SOCIAL SCREEN (0.14): Chat, Friends, Party, Players, Community, Settings, and Moderation for moderators.
    Names and messages are always put on screen as text (never as HTML).
    ===================================================================== */
-const SOC_TABS = [['chat', 'Chat'], ['friends', 'Friends'], ['party', 'Party'], ['players', 'Players'], ['community', 'Community'], ['settings', 'Settings']];
+const SOC_TABS = [['chat', 'Chat'], ['friends', 'Friends'], ['crew', 'Crew'], ['party', 'Party'], ['players', 'Players'], ['community', 'Community'], ['settings', 'Settings']];
 const EMOTE_TEXT = { gg: '[GG]', ready: '[READY]', help: '[HELP]', left: '[LEFT]', right: '[RIGHT]', boss: '[BOSS]', run: '[RUN!]', thanks: '[THANKS]', wait: '[WAIT]', nice: '[NICE]', heal: '[HEAL]' };
 // picture emotes: 16x16 pixel icons, like the avatars (ink, then accent)
 const EMOTE_ICONS = {
@@ -14182,7 +15209,7 @@ function openSocial() {
   if (!Social.ok()) { openAccount(); acBackTo = 'profile'; acMsg = 'Sign in to chat, add friends and join parties.'; renderAccount(); return; }
   Social.unread = 0; renderSocialBadge(); show('social'); renderSocial();
   if (!Social.loaded) Social.open().then(renderSocial, e => { socMsg = e.message; renderSocial(); });
-  else Promise.all([Social.loadRecent(), Social.loadGoals(), Social.loadParty(), Social.loadFriends(), Social.loadChannel(Social.channel)]).then(renderSocial, () => {}); // fresh lists each time it opens
+  else Promise.all([Crew.load(), Social.loadRecent(), Social.loadGoals(), Social.loadParty(), Social.loadFriends(), Social.loadChannel(Social.channel)]).then(renderSocial, () => {}); // fresh lists each time it opens
 }
 function renderSocialBadge() { const b = $('#bSocial'); if (!b) return; b.hidden = !Cloud.on(); const d = $('#socialDot'); if (d) d.hidden = !Social.unread; }
 let socEmoSending = false;
@@ -14205,13 +15232,13 @@ function renderSocial() {
   if (socMsg) add(sEl('p', { className: 'acMsg', textContent: socMsg }));
   if (socProfile) return renderProfileCard(add);
   if (socUser) return renderUserMenu(add);
-  ({ chat: renderChat, friends: renderFriends, party: renderParty, players: renderPlayers, community: renderCommunity, settings: renderSocSettings, mod: renderMod })[socTab](add);
+  ({ chat: renderChat, friends: renderFriends, crew: renderCrew, party: renderParty, players: renderPlayers, community: renderCommunity, settings: renderSocSettings, mod: renderMod })[socTab](add);
 }
 
 /* ---------- chat ---------- */
-function channelLabel(ch) { if (ch === 'global') return 'Community'; if (ch.startsWith('region:')) return (RGK[ch.slice(7)] || {}).name || 'Region'; if (ch.startsWith('party:')) return 'Party'; const other = ch.slice(3).split(':').find(id => id !== Social.me()); return 'Whisper: ' + Social.nameOf(other); }
+function channelLabel(ch) { if (ch === 'global') return 'Community'; if (ch.startsWith('region:')) return (RGK[ch.slice(7)] || {}).name || 'Region'; if (ch.startsWith('party:')) return 'Party'; if (ch.startsWith('crew:')) return Crew.me && Crew.me.crew ? '[' + Crew.me.crew.tag + '] ' + I18n.t('Crew') : I18n.t('Crew'); const other = ch.slice(3).split(':').find(id => id !== Social.me()); return 'Whisper: ' + Social.nameOf(other); }
 function renderChat(add) {
-  const chans = ['global', 'region:' + (lastRegion || (meta.run && meta.run.exp && meta.run.exp.region) || 'fog')].concat(Social.party ? ['party:' + Social.party.id] : []).concat(Social.friends.map(dmChannelOf));
+  const chans = ['global', 'region:' + (lastRegion || (meta.run && meta.run.exp && meta.run.exp.region) || 'fog')].concat(Social.party ? ['party:' + Social.party.id] : []).concat(Crew.channel() ? [Crew.channel()] : []).concat(Social.friends.map(dmChannelOf)); // (0.31: the crew's channel)
   if (!chans.includes(Social.channel)) Social.channel = 'global';
   const sel = sEl('select', { className: 'coopIn soChan', value: Social.channel }); sel.setAttribute('aria-label', 'Channel');
   for (const ch of chans) { const o = sEl('option', { value: ch, textContent: channelLabel(ch) }); sel.append(o); } sel.value = Social.channel;
@@ -14286,7 +15313,8 @@ function renderProfileCard(add) {
 function renderFriends(add) {
   if (!renderFriends.t || Date.now() - renderFriends.t > 60000) { renderFriends.t = Date.now(); Social.names_(Social.friends.concat(Social.incoming, Social.outgoing), true).then(renderSocial, () => {}); } // who's around now
   const code = Cloud.profile && Cloud.profile.friend_code;
-  add(sEl('p', { className: 'acLead', textContent: `Your friend code: ${code || '...'}` }), sEl('p', { className: 'acNote', textContent: 'Share it with a friend, or add theirs below.' }));
+  add(sEl('p', { className: 'acLead', textContent: `Your friend code: ${code ? (streamerOn() ? '••••••••' : code) : '...'}` }), // (0.31: streamer mode)
+    sEl('p', { className: 'acNote', textContent: 'Share it with a friend, or add theirs below.' }));
   const inp = sEl('input', { className: 'coopIn', maxLength: 8, placeholder: 'ABCD1234', autocomplete: 'off' }); inp.setAttribute('aria-label', 'Friend code');
   add(sEl('div', { className: 'coopJoin' }, [inp, sBtn('Add friend', () => Social.addFriend(inp.value), 'btn primary')]));
   if (Social.incoming.length) { add(sEl('h3', { className: 'sec', textContent: 'Friend requests' })); for (const id of Social.incoming) add(personRow(id, [sBtn('Accept', () => Social.accept(id), 'btn small primary'), sBtn('Decline', () => Social.unfriend(id))])); }
@@ -14386,6 +15414,55 @@ setInterval(() => {
   }
 }, 1000);
 
+/* ---- src\js\14c-crews.js ---- */
+/* =====================================================================
+   0.31: CREWS (Social > Crew): keepers' own groups (public.crews: one crew per keeper, up to 30). Make one with a name,
+   a 2 to 4 letter tag and a line about it, open or by request; find one by name or tag; your crew's keepers, their
+   roles and levels; requests to accept; and the crew's own chat channel (crew:<id>), in Social > Chat.
+   ===================================================================== */
+const Crew = {
+  me: null, list: null, q: '',
+  async load() { if (!Cloud.signedIn()) { this.me = null; return; } try { const { data } = await Cloud.sb.rpc('crew_me'); this.me = data || null; } catch (e) { /* offline */ } },
+  async find(q) { this.q = q || ''; const { data, error } = await Cloud.sb.rpc('crew_list', { p_q: this.q }); if (error) throw new Error(acErrText(error)); this.list = data || []; },
+  channel() { return this.me && this.me.crew ? 'crew:' + this.me.crew.id : null; },
+};
+async function crewDo(fn, args, ok) { const { data, error } = await Cloud.sb.rpc(fn, args); if (error) throw new Error(error.message); await Crew.load(); return typeof ok === 'function' ? ok(data) : ok; }
+function renderCrew(add) {
+  const M = Crew.me;
+  if (!M) {
+    add(sEl('p', { className: 'sub', textContent: I18n.t('A crew is your own group of keepers: a name, a tag beside your names, and a chat of your own.') }));
+    const q = sEl('input', { className: 'coopIn', placeholder: I18n.t('Find a crew by name or tag'), value: Crew.q }); q.setAttribute('aria-label', I18n.t('Find a crew'));
+    add(sEl('div', { className: 'coopJoin' }, [q, sBtn(I18n.t('Find'), async () => { await Crew.find(q.value.trim()); renderSocial(); }, 'btn')]));
+    if (Crew.list === null) Crew.find('').then(renderSocial, () => {});
+    for (const c of Crew.list || []) add(sEl('div', { className: 'loCard crewCard' }, [sEl('p', {}, [sEl('b', { textContent: `[${c.tag}] ${c.name}` }), sEl('span', { className: 'muted', textContent: ` · ${c.members} / 30` + (c.open ? '' : ' · ' + I18n.t('by request')) })]),
+      c.about ? sEl('p', { className: 'muted', textContent: c.about }) : '',
+      c.members < 30 ? sBtn(c.open ? I18n.t('Join') : I18n.t('Ask to join'), () => crewDo('crew_join', { p_crew: c.id }, r => r === 'asked' ? I18n.t('Asked. An officer of the crew will answer.') : I18n.t('Welcome to the crew.'))) : '']));
+    if (Crew.list && !Crew.list.length) add(sEl('p', { className: 'muted', textContent: I18n.t('No crew by that name yet. Make one!') }));
+    add(sEl('h3', { className: 'sec', textContent: I18n.t('Make a crew') }));
+    const nm = sEl('input', { className: 'coopIn', maxLength: 24, placeholder: I18n.t('Crew name') }), tg = sEl('input', { className: 'coopIn', maxLength: 4, placeholder: 'TAG' }), ab = sEl('input', { className: 'coopIn', maxLength: 200, placeholder: I18n.t('A line about your crew (optional)') });
+    nm.setAttribute('aria-label', I18n.t('Crew name')); tg.setAttribute('aria-label', I18n.t('Crew tag')); ab.setAttribute('aria-label', I18n.t('About the crew'));
+    const open = sEl('input', { type: 'checkbox', className: 'acCheck', checked: true });
+    add(nm, tg, ab, sEl('label', { className: 'acCheckRow' }, [open, sEl('span', { textContent: I18n.t('Open: anyone can join (off: they ask, you accept)') })]),
+      sBtn(I18n.t('Make the crew'), () => crewDo('crew_create', { p_name: nm.value, p_tag: tg.value, p_about: ab.value, p_open: open.checked }, I18n.t('Your crew is ready. Its chat is in Chat.')), 'btn primary'));
+    return;
+  }
+  const C = M.crew, lead = M.role === 'owner' || M.role === 'officer';
+  add(sEl('p', { className: 'acLead', textContent: `[${C.tag}] ${C.name}` }), C.about ? sEl('p', { className: 'muted', textContent: C.about }) : '',
+    sEl('p', { className: 'sub', textContent: `${M.members.length} / 30 · ` + (C.open ? I18n.t('open') : I18n.t('by request')) + ' · ' + I18n.t('you are {a}').replace('{a}', I18n.t(M.role)) }),
+    sBtn(I18n.t('Crew chat'), async () => { socTab = 'chat'; Social.channel = Crew.channel(); await Social.loadChannel(Social.channel); renderSocial(); }, 'btn primary'));
+  if (lead && M.requests.length) { add(sEl('h3', { className: 'sec', textContent: I18n.t('Asking to join') }));
+    for (const r of M.requests) add(sEl('div', { className: 'peer' }, [sEl('b', { textContent: r.name }), sBtn(I18n.t('Accept'), () => crewDo('crew_manage', { p_user: r.id, p_what: 'accept' }, I18n.t('They are in the crew.'))), sBtn(I18n.t('Turn down'), () => crewDo('crew_manage', { p_user: r.id, p_what: 'decline' }, ''), 'btn small ghost')])); }
+  add(sEl('h3', { className: 'sec', textContent: I18n.t('Keepers') }));
+  for (const k of M.members) {
+    const me = k.id === Social.me(), acts = [];
+    if (!me && lead && k.role !== 'owner' && !(M.role === 'officer' && k.role === 'officer')) acts.push(sBtn(I18n.t('Send out'), () => crewDo('crew_manage', { p_user: k.id, p_what: 'kick' }, ''), 'btn small ghost'));
+    if (!me && M.role === 'owner' && k.role === 'member') acts.push(sBtn(I18n.t('Make officer'), () => crewDo('crew_manage', { p_user: k.id, p_what: 'officer' }, '')));
+    if (!me && M.role === 'owner' && k.role === 'officer') acts.push(sBtn(I18n.t('Make owner'), () => crewDo('crew_manage', { p_user: k.id, p_what: 'owner' }, I18n.t('They own the crew now.'))));
+    add(sEl('div', { className: 'peer crewMember' }, [sEl('b', { textContent: streamerName(k.name, M.members.indexOf(k)) }), sEl('span', { className: 'muted', textContent: ` ${I18n.t(k.role)} · ${I18n.t('level {a}').replace('{a}', k.level)}` }), ...acts]));
+  }
+  add(sBtn(I18n.t('Leave the crew'), () => crewDo('crew_leave', {}, M.role === 'owner' && M.members.length > 1 ? I18n.t('You left. The crew passed to its longest-serving officer.') : I18n.t('You left the crew.')), 'btn small ghost'));
+}
+
 /* ---- src\js\15-pvp.js ---- */
 /* =====================================================================
    PVP BATTLE (0.16): ranked 1v1, in rounds.
@@ -14425,6 +15502,8 @@ const PVP_CFG = {
 const PVP_WAVES = PVP_CFG.buildWaves, DUEL_STEP = 1 / 60, DUEL_SYNC_HZ = 15;
 const PVP_TIERS = [[0, 'Driftwood', '#9aa3c0'], [900, 'Tin Lamp', '#b8c0d8'], [1050, 'Brass Lamp', '#d8b070'], [1200, 'Silver Lens', '#d8e4f0'],
   [1350, 'Gold Lens', '#ffcf66'], [1500, 'Beacon', '#ff9a4a'], [1700, 'Lighthouse', '#ff7a9a'], [1900, 'First Light', '#fff2b0']];
+// 0.31: titles for the best tier reached in a finished ranked season (pvp_me's past seasons)
+for (const [at, nm] of [[1200, 'Silver Lens'], [1350, 'Gold Lens'], [1500, 'Beacon'], [1700, 'Lighthouse'], [1900, 'First Light']]) { const t = { id: 'pvps' + at, name: nm + ' of a Season', how: `Finish a ranked season at ${nm} or above`, ok: () => (meta.feats.n.pvpSeason || 0) >= at }; TITLES.push(t); TTK[t.id] = t; }
 function pvpTier(r) { let i = 0; PVP_TIERS.forEach((t, k) => { if (r >= t[0]) i = k; }); const t = PVP_TIERS[i], n = PVP_TIERS[i + 1]; return { name: t[1], col: t[2], at: t[0], next: n ? n[0] : null, nextName: n ? n[1] : '' }; }
 const PHASE_NAMES = ['Build', 'Survival I', 'Survival II', 'Survival III', 'Final duel'];
 let pvpSetup = null;
@@ -14558,15 +15637,20 @@ function duelHeal(i, frac) {
   const h = Math.min(S.max - S.hp, S.max * frac * S.P.heal); S.hp += h; S.st.healed += h; if (h > .5) D.fx.push(['heal', i, Math.round(h)]);
 }
 function duelHealQuiet(i, frac) { if (D.final) return; const S = D.sides[i], h = Math.min(S.max - S.hp, S.max * frac * S.P.heal); S.hp += h; S.st.healed += h; }
-function duelTap(i, x, y) {
+// 0.31: online, the guest taps where it saw the bolts, which the host's arena has moved past by the time the tap arrives.
+// The host looks at the bolts where they were (rewound along their flight, at most DUEL_REWIND seconds), so a tap that
+// was on a bolt on the guest's screen counts. The host and practice matches rewind nothing.
+const DUEL_REWIND = .3;
+function duelTap(i, x, y, rew = 0) {
   const S = D.sides[i]; if (!D.on || D.over || D.segEnd || S.tapCool > 0) return false;
   S.tapCool = TAP_CD; S.st.taps++;
   const R = .06 * Math.min(1.5, Math.sqrt((S.s.tapR || 32) / 32)), dmg = S.P.tap * TAP_K;
   let broke = 0, cracked = 0, pool = dmg;
-  const near = D.bolts.filter(b => b.side !== i && !b.dead && dist(b.x, b.y, x, y) < R * 3).sort((p, q) => dist(p.x, p.y, x, y) - dist(q.x, q.y, x, y));
+  rew = clamp(+rew || 0, 0, DUEL_REWIND); const at = b => dist(b.x - b.vx * rew, b.y - b.vy * rew, x, y);
+  const near = D.bolts.filter(b => b.side !== i && !b.dead && at(b) < R * 3).sort((p, q) => at(p) - at(q));
   for (const b of near) {
     if (pool <= 0) break;
-    if (dist(b.x, b.y, x, y) >= R && pool === dmg) break; // the first bolt must be under the finger
+    if (at(b) >= R && pool === dmg) break; // the first bolt must be under the finger
     const d = Math.min(pool, b.hp); b.hp -= d; pool -= d;
     if (b.hp <= .01) { b.dead = 1; broke++; S.st.blocked++; } else { b.dmg *= b.hp / (b.hp + d); cracked++; S.st.cracked++; } // cracked: it hits for less
   }
@@ -14723,7 +15807,7 @@ const REACT_CD = 2.5, REACT_SHOW = 2.4, REACT_RECV_GAP = 1.2;
 // Each state: enter(data) / update(dt) / exit(). PVP.go(name, data) moves between them.
 // The states that may follow each state. Anything else is refused: an eliminated keeper ('out') can only see the result.
 const PVP_NEXT = {
-  idle: ['search', 'meet', 'found'], search: ['idle', 'meet'], meet: ['found', 'end', 'idle'], found: ['build', 'end', 'idle'],
+  idle: ['search', 'meet', 'found'], search: ['idle', 'meet'], meet: ['found', 'end', 'idle'], found: ['build', 'count', 'end', 'idle'], // (found -> count: the tutorial, straight to the duel)
   build: ['wait', 'out', 'end', 'idle'], wait: ['reveal', 'announce', 'end', 'idle'], announce: ['count', 'build', 'end', 'idle'],
   reveal: ['count', 'end', 'idle'], count: ['duel', 'end', 'idle'], duel: ['announce', 'end', 'idle'], out: ['end', 'idle'], end: ['idle'],
 };
@@ -14768,7 +15852,7 @@ const PVP_ST = {
   meet: {}, // online: waiting for the opponent on the match's private channel
   found: { // "Opponent found": both loadouts and ranks, three seconds
     enter() { PVP.t = 3.2; showPvpFound(); sfx('ach'); },
-    update(dt) { if ((PVP.t -= dt) <= 0) PVP.go('build', { ph: 0 }); },
+    update(dt) { if ((PVP.t -= dt) <= 0) { if (PVP.tutorial) PVP.go('count', { n: 3 }); else PVP.go('build', { ph: 0 }); } },
     exit() { hidePvpOverlays(); },
   },
   build: { // PvE for this keeper: the opening build (ph 0) or a survival phase (ph 1..3)
@@ -14813,6 +15897,7 @@ const PVP = {
   // from the last match used to close the next match's channel when "Play again" came within 8 seconds.)
   later(fn, ms) { const m = this.match; return setTimeout(() => { if (this.match === m) fn(); }, ms); },
   go(name, data) {
+    if (name === 'idle' && this.tutorial) { this.tutorial = null; $('#hint').hidden = true; } // (leaving the tutorial, however)
     if (name === 'idle' && this.phase !== 'idle') { this.snaps = null; setTimeout(applyRegionLook); } // your own look again
     if (name !== this.phase && !(PVP_NEXT[this.phase] || []).includes(name)) { console.warn('PvP: no way from', this.phase, 'to', name); this.refused = (this.refused || 0) + 1; return false; }
     const from = PVP_ST[this.phase]; if (from && from.exit) from.exit.call(from);
@@ -14852,9 +15937,41 @@ const PVP = {
     this.foe = { name: AI_NAMES[Math.floor(Math.random() * AI_NAMES.length)] + ' (AI)', uid: '', lo: this.snaps[1], seq: [], wave: 0, ph: 0, ai: true, style: st, aiT: 0, rating: null, alive: true };
     this.go('found');
   },
-  reset() { this.snaps = null; this.snapH = null; this.cosm = { checked: 0, mismatches: [], remote: null }; this.helloed = false; this.mySeq = []; this.ph = 0; this.done = {}; this.foeDone = {}; this.foeRes = {}; this.self = { alive: true, prog: 0 }; this.surv = SURV.ACTIVE; this.final = false; this.perfectBonus = false;
+  reset() { this.tutorial = null; this.snaps = null; this.snapH = null; this.cosm = { checked: 0, mismatches: [], remote: null }; this.helloed = false; this.mySeq = []; this.ph = 0; this.done = {}; this.foeDone = {}; this.foeRes = {}; this.self = { alive: true, prog: 0 }; this.surv = SURV.ACTIVE; this.final = false; this.perfectBonus = false;
     this.result = null; this.sides = null; this.left = null; this.myWaves = 0; this.perfect = true;
     this.react = { cd: 0, lastRecv: 0, muted: !!(meta.settings && meta.settings.pvpReactOff), sent: 0, recv: 0 }; this.suggest = null; D.on = false; D.ais = []; },
+  // ----- 0.31: learn the duel. A guided round against a gentle AI keeper, straight to the duel (no build waves, no
+  // checkpoints): tap bolts away, use your ability, then hit back. It can't be lost, pays nothing, counts for nothing.
+  learn() {
+    if (this.phase === 'search') this.cancel();
+    if (this.on()) return;
+    this.ranked = false; this.friendly = false; this.match = { id: 'tutorial', seed: (Math.random() * 2147483647) >>> 0 }; this.host = true; this.reset();
+    const aiLo = Object.assign(pvpAiLoadout('random'), { wpn: 'lantern', kpr: 'keeper', charms: [] }), mine = pvpSnapshot(identityClaim(), meta, meta.entitlements), theirs = pvpSnapshot(aiLo, null, null, aiLo.st);
+    this.setSnaps([mine, theirs], [snapHash(mine), snapHash(theirs)]);
+    this.foe = { name: I18n.t('Training keeper'), uid: '', lo: this.snaps[1], seq: [], wave: 0, ph: 0, ai: true, style: 'random', aiT: 0, rating: null, alive: true };
+    this.sides = [duelSide(this.snaps[0], [], meta.profile.name, ''), duelSide(this.snaps[1], [], this.foe.name, '')]; D.sides = null; D.on = false;
+    run = duelView(this.sides[0]); this.tutorial = { step: 0, t: 0, shown: -1 };
+    this.go('found');
+  },
+  tutorialShow() {
+    const T = this.tutorial, me = D.sides && D.sides[0]; if (!T || !me) return;
+    const txt = T.step === 0 ? I18n.t('Bolts fly at your tower. Tap them to break them ({a} of 3).').replace('{a}', Math.min(3, me.st.blocked))
+      : T.step === 1 ? I18n.t('Your keeper\'s ability is ready. Press it (or Space).') : I18n.t('Now hit back: bring their tower below 70%.');
+    const h = $('#hint'); if (h.textContent !== txt) h.textContent = txt; h.hidden = false;
+  },
+  tutorialTick(dt) { // the host's duel step, while learning; true when the lesson is over
+    const T = this.tutorial, me = D.sides[0], them = D.sides[1]; T.t += dt;
+    if (me.hp < me.max * .3) me.hp = me.max * .3; // (it can't be lost)
+    if (T.step === 0 && me.st.blocked >= 3) { T.step = 1; me.cd = 0; sfx('ach'); }
+    else if (T.step === 1 && me.st.abilities >= 1) { T.step = 2; sfx('ach'); }
+    else if (T.step === 2 && them.hp < them.max * .7) { this.tutorialEnd(true); return true; }
+    this.tutorialShow(); return false;
+  },
+  tutorialEnd(done) {
+    D.on = false; $('#hint').hidden = true; this.tutorial = null;
+    if (done) { meta.pvpTut = 1; save(); toastQ.push([I18n.t('Duel basics: done'), I18n.t('Tap bolts away, time your ability, keep firing. Try a whole practice match next.'), 5]); sfx('ach'); }
+    this.leave(); this.go('idle'); run = null; goHome(); openPvp('play');
+  },
   // ----- a ranked match: meet on the match's private channel -----
   async found(m) {
     this.match = m; this.host = m.p1 === Cloud.user.id; this.reset(); this.go('meet');
@@ -14920,7 +16037,7 @@ const PVP = {
     else if (p.k === 'go' && !this.host) this.goRound(+p.ph || 0, p.perfect);
     else if (p.k === 'phase' && !this.host) this.phaseStart(+p.cp || 0, p.who, p.reason);
     else if (p.k === 'sync' && !this.host) duelApplySync(p);
-    else if (p.k === 'in' && this.host && D.on && this.phase === 'duel') { if (p.tap) duelTap(1, 1 - +p.tap[0], 1 - +p.tap[1]); if (p.ab) duelAbility(1); }
+    else if (p.k === 'in' && this.host && D.on && this.phase === 'duel') { if (p.tap) duelTap(1, +p.tap[0], +p.tap[1], p.t != null ? D.t - +p.t : 0); /* (0.31: the guest sends arena points already, duelFromScreen turned them; turning them again sent every guest tap to the far side of the arena) */ if (p.ab) duelAbility(1); }
     else if (p.k === 'r') recvPvpReaction(p.id != null ? String(p.id) : +p.i);
     else if (p.k === 'end' && !this.host) this.guestEnd(p);
     else if (p.k === 'bye') this.foeGone(true);
@@ -15027,6 +16144,7 @@ const PVP = {
       if (this.foe.ai) D.ais = [{ side: 1, t: 1, gap: .55, acc: (AI_STYLES[this.foe.style] || {}).acc || .72 }];
     } else { D.on = true; D.sides = this.sides; D.bolts = []; D.over = null; D.segEnd = null; D.final = !!this.final; D.guestBolts = new Map(); }
     document.body.classList.toggle('pvpFinal', !!this.final);
+    if (this.tutorial) { D.cp = PVP_CFG.checkpoints.length; for (const a of D.ais) { a.acc = .35; a.gap = .9; } this.tutorialShow(); } // (no checkpoints, a gentle opponent)
     duelUpdateView(0);
     banner(this.final ? '☠ Final duel' : '⚔ Duel', `${meta.profile.name} vs ${this.foe.name}`, true); sfx('boss');
   },
@@ -15035,6 +16153,7 @@ const PVP = {
       D.acc += dt; let n = 0; while (D.acc >= DUEL_STEP && n++ < 10 && !D.over && !D.segEnd) { duelStep(DUEL_STEP); D.acc -= DUEL_STEP; }
       if (!this.foe.ai && (this.syncT -= dt) <= 0) { this.syncT = 1 / DUEL_SYNC_HZ; this.send('sync', duelSync()); }
       duelShowFx(); duelUpdateView(dt); pvpContext();
+      if (this.tutorial && this.tutorialTick(dt)) return;
       if (D.over) { const w = D.over.winner; if (!this.foe.ai) this.send('end', Object.assign({ w }, this.endStats())); return this.finish(w, w === -1 ? 'draw' : w === 0 ? 'win' : 'loss'); }
       if (D.segEnd) { const e = D.segEnd; D.cp = e.cp + 1; if (!this.foe.ai) { this.send('sync', duelSync()); this.send('phase', { cp: e.cp, who: e.who, reason: e.reason }); } this.phaseStart(e.cp, e.who, e.reason); }
     } else { duelGuestTick(dt); duelShowFx(); duelUpdateView(dt); pvpContext(); }
@@ -15048,9 +16167,9 @@ const PVP = {
   tap(x, y) { // screen -> arena; the guest's arena is turned around
     if (!pvpAllows('tap')) return;
     const [ax, ay] = duelFromScreen(x, y);
-    if (this.host) { if (duelTap(0, ax, ay)) sfx('tap'); } else { this.send('in', { tap: [+ax.toFixed(3), +ay.toFixed(3)] }); P(1, x, y, 0, 0, .3, '#9fd8ff', 0); sfx('tap'); }
+    if (this.host) { if (duelTap(0, ax, ay)) sfx('tap'); } else { this.send('in', { tap: [+ax.toFixed(3), +ay.toFixed(3)], t: +D.t.toFixed(3) }); P(1, x, y, 0, 0, .3, '#9fd8ff', 0); sfx('tap'); }
   },
-  ability() { if (!pvpAllows('ability')) return; if (this.host) { if (duelAbility(0)) sfx('pick'); } else { const S = D.sides[1]; if (S.cd <= 0) { S.cd = S.cdMax; this.send('in', { ab: 1 }); sfx('pick'); } } },
+  ability() { if (!pvpAllows('ability')) return; if (this.host) { if (duelAbility(0)) sfx('pick'); } else { const S = D.sides[1]; if (S.cd <= 0) { S.cd = S.cdMax; S.abPend = D.t; this.send('in', { ab: 1 }); sfx('pick'); } } },
   guestEnd(p) {
     const w = +p.w; if (Array.isArray(p.st) && D.sides) { D.sides[0].st = Object.assign(D.sides[0].st, p.st[0]); D.sides[1].st = Object.assign(D.sides[1].st, p.st[1]); }
     if (Array.isArray(p.low) && D.sides) { D.sides[0].low = +p.low[0]; D.sides[1].low = +p.low[1]; }
@@ -15116,7 +16235,7 @@ function duelSync() {
 function duelApplySync(p) {
   if (!D.on || !Array.isArray(p.s) || !Array.isArray(p.b)) return;
   D.t = +p.t || D.t; D.segT = +p.g || D.segT; D.final = !!p.f; if (p.c != null) D.cp = +p.c || 0;
-  p.s.forEach((v, i) => { const S = D.sides[i]; if (!S || !Array.isArray(v)) return; S.hp = +v[0]; S.max = +v[1] || S.max; S.sh = +v[2] || 0; if (i === 0) S.cd = +v[3]; else if (+v[3] > S.cd || S.cd <= 0) S.cd = +v[3]; S.cdMax = +v[4] || S.cdMax; S.fz = v[5] ? 1 : 0; S.burn = v[6] ? 1 : 0; S.bfShown = String(v[7] || ''); S.low = Math.min(S.low, S.hp / S.max); });
+  p.s.forEach((v, i) => { const S = D.sides[i]; if (!S || !Array.isArray(v)) return; S.hp = +v[0]; S.max = +v[1] || S.max; S.sh = +v[2] || 0; if (i === 0) S.cd = +v[3]; else duelGuestCd(S, +v[3]); S.cdMax = +v[4] || S.cdMax; S.fz = v[5] ? 1 : 0; S.burn = v[6] ? 1 : 0; S.bfShown = String(v[7] || ''); S.low = Math.min(S.low, S.hp / S.max); });
   const had = D.guestBolts || new Map(), now = new Map();
   for (const [id, side, x, y, vx, vy, fl] of p.b) {
     const b = had.get(id);
@@ -15125,6 +16244,15 @@ function duelApplySync(p) {
   }
   D.guestBolts = now; D.bolts = [...now.values()];
   if (Array.isArray(p.fx)) for (const f of p.fx) D.fx.push(f);
+}
+// 0.31: the guest's own ability cooldown. A press starts the cooldown at once on this screen (no waiting for the host);
+// for a moment the host's older numbers can't undo it. After that the host's number is the truth: a press the host
+// refused (it came as the round ended, or never arrived) used to keep the ability locked for up to 28 seconds.
+const DUEL_PRESS_WAIT = 1.5;
+function duelGuestCd(S, host) {
+  if (S.abPend != null && host >= S.cdMax - DUEL_PRESS_WAIT - .5) S.abPend = null; // the host took the press
+  if (S.abPend != null && D.t - S.abPend < DUEL_PRESS_WAIT) { if (host > S.cd) S.cd = host; }
+  else { S.abPend = null; S.cd = host; }
 }
 function duelGuestTick(dt) {
   const k = Math.min(1, dt * 10);
@@ -15240,7 +16368,7 @@ const ROMAN = ['', 'I', 'II', 'III'];
 function openPvp(tab) { if (tab) pvpTab = tab; show('pvp'); renderPvp(); pvpLoadMe(); }
 async function pvpLoadMe() {
   if (!Cloud.signedIn()) return;
-  try { const { data } = await Cloud.sb.rpc('pvp_me'); if (data) { PVP.rating = data; meta.feats.n.pvpbest = Math.max(meta.feats.n.pvpbest || 0, data.rating || 0); renderPvp(); } } catch (e) { /* offline: shown as unknown */ }
+  try { const { data } = await Cloud.sb.rpc('pvp_me'); if (data) { PVP.rating = data; meta.feats.n.pvpbest = Math.max(meta.feats.n.pvpbest || 0, data.rating || 0); meta.feats.n.pvpSeason = Math.max(meta.feats.n.pvpSeason || 0, ...(data.past || []).map(p => p.best || 0)); renderPvp(); } } catch (e) { /* offline: shown as unknown */ } // (0.31: the best of finished seasons gives titles)
 }
 async function pvpLoadBoard() {
   pvpBoardErr = '';
@@ -15256,7 +16384,10 @@ function pvpTimeline(cur) {
 function renderPvp() {
   const box = $('#pvpBody'); if (!box || $('#pvp').hidden) return;
   const R = PVP.rating, t = pvpTier(R ? R.rating : 1000);
-  $('#pvpRate').innerHTML = R ? `<span style="color:${t.col}">${esc(t.name)}</span> · ${R.rating}` : '';
+  // 0.31: a season's first five ranked matches place a keeper; until then, no tier is shown
+  const placing = R && R.placed !== undefined && R.placed < 5, last = R && R.past && R.past[0], lt = last && pvpTier(last.best);
+  $('#pvpRate').innerHTML = R ? (placing ? `<span>${esc(I18n.t('Placement {a} of 5').replace('{a}', R.placed + 1))}</span>` : `<span style="color:${t.col}">${esc(t.name)}</span> · ${R.rating}`)
+    + `<small class="pvpSeason">${esc(I18n.t('Season {a}').replace('{a}', R.season || 1))}${lt ? ' · ' + esc(I18n.t('Last season: {a}').replace('{a}', lt.name)) : ''}</small>` : '';
   $('#pvpTabs').innerHTML = [['play', '⚔ Play'], ['board', '🏆 Ranks'], ['hist', '📜 History']].map(([id, l]) => `<button role="tab" aria-selected="${pvpTab === id}" data-pt="${id}">${l}</button>`).join('');
   for (const b of $('#pvpTabs').querySelectorAll('button')) b.onclick = () => { pvpTab = b.dataset.pt; if (pvpTab === 'board' && !pvpBoard) pvpLoadBoard(); renderPvp(); };
   if (pvpTab === 'board') {
@@ -15295,12 +16426,14 @@ function renderPvp() {
     <p class="acNote">Standard stats for everyone: Workshop and weapon levels don't count. Your keeper, weapon and charms do.</p>
     ${PVP.err ? `<p class="acMsg">${esc(PVP.err)}</p>` : ''}
     <h3 class="sec">⚔ Challenge a friend</h3><div id="pvpFriends" class="pvpFriends"></div>
+    <div class="pvpLearn"><button class="btn" id="bPvpLearn">${meta.pvpTut ? ico('check') + ' ' : ''}Learn the duel</button><p class="acNote">A guided round, about a minute: tap bolts away, use your ability, hit back. Nothing to lose.</p></div>
     <h3 class="sec">🤖 Practice against an AI keeper</h3>
     <div class="pvpStyles">${Object.entries(AI_STYLES).map(([id, st]) => `<button class="pvpStyle${PVP.style === id ? ' sel' : ''}" data-style="${id}"><b>${ico(st.ico)}</b><span>${esc(st.name)}</span><small>${esc(st.desc)}</small></button>`).join('')}</div>
     <button class="btn" id="bPvpPractice">Practice: ${esc(AI_STYLES[PVP.style].name)}</button>`;
   renderPvpFriends(); // 0.29
-  $('#bPvpFind').onclick = () => { if (!signed) { acBackTo = 'pvp'; show('account'); acView = 'main'; acMsg = ''; renderAccount(); return; } PVP.search(); };
+  $('#bPvpFind').onclick = () => { if (!familyOnline()) return; if (!signed) { acBackTo = 'pvp'; show('account'); acView = 'main'; acMsg = ''; renderAccount(); return; } PVP.search(); }; // (0.31: Family settings)
   $('#bPvpPractice').onclick = () => PVP.practice(PVP.style);
+  $('#bPvpLearn').onclick = () => PVP.learn(); // 0.31
   for (const b of box.querySelectorAll('[data-style]')) b.onclick = () => { PVP.style = b.dataset.style; renderPvp(); };
   $('#bPvpLo').onclick = () => { loBackPvp = true; openLoadout(); };
 }
@@ -15655,7 +16788,7 @@ const WS_ICON = { dmg: '🔥', hp: '🧱', rate: '⚙', tap: '✋', gain: '💰'
 const TAG_ICON = { core: '🔥', volley: '➶', fire: '♨', frost: '❄', crit: '✧', guard: '🛡', ember: '💰', legend: '★' };
 const CAT_ICON = { Milestones: '🏁', Combat: '⚔', Bestiary: '👾', Guardians: '👑', Endless: '♾', Exploration: '🧭', Collection: '🎒', Mastery: '🎯', Ascension: '⛰', Together: '🤝', PvP: '⚔', Festivals: '🎆', Secrets: '❔',
   Regions: '🌎', Arsenal: '🏹', Keepers: '👤', 'The Last Watch': '☠' };
-const CX_ICON = { c: '👾', b: '👑', w: '🏹', r: '🌎', l: '🗿', ev: '📜' };
+const CX_ICON = { s: '📖', c: '👾', b: '👑', w: '🏹', r: '🌎', l: '🗿', ev: '📜' };
 // a steady colour for anything with an id (charms have no colour of their own)
 const idCol = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 65% 66%)`; };
 
