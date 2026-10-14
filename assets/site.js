@@ -145,14 +145,15 @@
   const stBox = $('[data-status]');
   if (stBox) {
     const line = (name, state, text) => `<li class="svc svc-${state}"><span class="dot" aria-hidden="true"></span><b>${esc(name)}</b><span>${esc(text)}</span></li>`;
-    const timed = (url, ms = 6000) => { const ctl = 'AbortController' in window ? new AbortController() : null; const t = setTimeout(() => ctl && ctl.abort(), ms); const t0 = performance.now(); return fetch(url, { cache: 'no-store', signal: ctl && ctl.signal }).then(r => { clearTimeout(t); return { ok: r.ok, ms: Math.round(performance.now() - t0), r }; }); };
+    // opaque: for another site (the co-op server) that doesn't share its reply with pages: an answer at all means it is up
+    const timed = (url, ms = 6000, opaque = false) => { const ctl = 'AbortController' in window ? new AbortController() : null; const t = setTimeout(() => ctl && ctl.abort(), ms); const t0 = performance.now(); return fetch(url, { cache: 'no-store', signal: ctl && ctl.signal, mode: opaque ? 'no-cors' : 'cors' }).then(r => { clearTimeout(t); return { ok: r.ok || (opaque && r.type === 'opaque'), ms: Math.round(performance.now() - t0), r }; }); };
     const render = rows => { stBox.innerHTML = `<ul class="svc-list">${rows.join('')}</ul><p class="muted small">Checked from your browser just now · <button type="button" class="linkish" data-recheck>Check again</button></p>`; };
     const check = () => {
       stBox.innerHTML = '<p class="muted">Checking…</p>';
       const web = timed('downloads.json').then(x => line('Website and downloads', x.ok ? 'up' : 'down', x.ok ? `Working (${x.ms} ms)` : 'Not answering'), () => line('Website and downloads', 'down', 'Not answering'));
       const coop = getJSON('service.json').then(sv => {
         if (!sv.coop) return line('Co-op server', 'off', 'Not running yet. Online co-op rooms run through the online service instead; local and phone-to-phone co-op need no server.');
-        return timed(sv.coop.replace(/^ws(s?):/, 'http$1:').replace(/\/$/, '') + '/health', 20000).then(x => line('Co-op server', x.ok ? 'up' : 'down', x.ok ? `Working (${x.ms} ms; the free server may take up to a minute to wake)` : 'Not answering'), () => line('Co-op server', 'down', 'Not answering (the free server may be waking up: check again in a minute)'));
+        return timed(sv.coop.replace(/^ws(s?):/, 'http$1:').replace(/\/$/, '') + '/health', 20000, true).then(x => line('Co-op server', x.ok ? 'up' : 'down', x.ok ? `Working (${x.ms} ms; the free server may take up to a minute to wake)` : 'Not answering'), () => line('Co-op server', 'down', 'Not answering (the free server may be waking up: check again in a minute)'));
       }, () => line('Co-op server', 'unknown', 'Could not read the service list'));
       Promise.all([web, coop]).then(rows => render(rows.concat([line('Accounts, chat and cloud saves', 'info', 'Checked by the game itself: Settings > Account shows whether it can reach them.')])));
     };
