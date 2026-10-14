@@ -63,7 +63,7 @@
   }
 
   // ---------- sign in, create an account, reset a password ----------
-  const AGE_MIN = 13, PARENT_UNDER = 16, TERMS = '1.6';
+  const AGE_MIN = 13, PARENT_UNDER = 16, TERMS = '1.7';
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   function authPanel(box, done, tab = 'in') {
     const y = new Date().getFullYear();
