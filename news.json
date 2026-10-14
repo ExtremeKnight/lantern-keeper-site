@@ -1,6 +1,12 @@
 {
-  "latest": "0.30.1",
+  "latest": "0.31.0",
   "items": [
+    {
+      "version": "0.31",
+      "date": "2026-10-14",
+      "title": "Sign in your way, crews, seasons and family settings",
+      "summary": "Sign in with Google, Discord, Twitch, X or a code by email; keepers' own crews; ranked and PvE seasons; seed challenges with friends; Quick Join and watching a night; Family settings for parents; photo mode and saved outfits; gifts and region bundles; web push; five new accessibility settings; and two-step sign-in for the team. Privacy Policy 3.1 and Terms 1.7."
+    },
     {
       "version": "0.30.1",
       "date": "2026-10-09",
