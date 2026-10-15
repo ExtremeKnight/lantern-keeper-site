@@ -10,7 +10,7 @@
 const { execFileSync } = require('child_process'), readline = require('readline'), crypto = require('crypto');
 const REPO = process.env.LK_SITE_REPO || 'ExtremeKnight/lantern-keeper-site', GRAPH = 'https://graph.facebook.com/v26.0';
 const REDIRECT = 'https://lk.exenova.is-local.host/social/tiktok-auth.html';
-const env = k => (process.env[k] || '').trim(), need = (...ks) => { const miss = ks.filter(k => !env(k)); if (miss.length) { console.error(`Set ${miss.join(' and ')} in this terminal first (see social/README.md).`); process.exit(1); } };
+const env = k => (process.env[k] || '').trim().replace(/^["']|["']$/g, ''), need = (...ks) => { const miss = ks.filter(k => !env(k)); if (miss.length) { console.error(`Set ${miss.join(' and ')} in this terminal first (see social/README.md).`); process.exit(1); } };
 const secret = (name, value) => { execFileSync('gh', ['secret', 'set', name, '-R', REPO], { input: value, stdio: ['pipe', 'ignore', 'inherit'] }); console.log(`  saved secret ${name}`); };
 const variable = (name, value) => { execFileSync('gh', ['variable', 'set', name, '-R', REPO, '--body', String(value)], { stdio: ['ignore', 'ignore', 'inherit'] }); console.log(`  saved variable ${name} = ${value}`); };
 // ask for a line; hidden: don't echo it (for tokens)
@@ -23,7 +23,13 @@ async function meta() {
   need('META_APP_ID', 'META_APP_SECRET');
   console.log('Paste the user access token from the Graph API Explorer (it will not show as you paste):');
   const short = await ask('token: ', true); if (!short) throw new Error('No token pasted.');
-  const long = await getJSON(`${GRAPH}/oauth/access_token?` + new URLSearchParams({ grant_type: 'fb_exchange_token', client_id: env('META_APP_ID'), client_secret: env('META_APP_SECRET'), fb_exchange_token: short }));
+  // which app made this token? (a user token can describe itself) It must be the same app as META_APP_ID
+  const self = await getJSON(`${GRAPH}/debug_token?` + new URLSearchParams({ input_token: short, access_token: short })).catch(e => { throw new Error('Facebook did not accept the pasted token (' + e.message + '). Generate a new one in the Graph API Explorer and paste it whole.'); });
+  const tokApp = String(self.data && self.data.app_id || ''), tokApp2 = self.data && self.data.application;
+  console.log(`  The token was made in the app "${tokApp2 || '?'}" (App ID ${tokApp}), and has: ${(self.data && self.data.scopes || []).join(', ') || 'no permissions'}`);
+  if (tokApp && tokApp !== env('META_APP_ID')) throw new Error(`META_APP_ID is ${env('META_APP_ID') || '(empty)'}, but the token is from App ID ${tokApp}. Set META_APP_ID (and META_APP_SECRET) to that app's own values from App settings > Basic (not the Instagram or Threads ones), or pick the right app in the Explorer.`);
+  const long = await getJSON(`${GRAPH}/oauth/access_token?` + new URLSearchParams({ grant_type: 'fb_exchange_token', client_id: env('META_APP_ID'), client_secret: env('META_APP_SECRET'), fb_exchange_token: short }))
+    .catch(e => { throw new Error(`${e.message}. Check META_APP_SECRET: it must be the secret of App ID ${env('META_APP_ID')} (App settings > Basic > App secret > Show), with no spaces or quotes.`); });
   const pages = (await getJSON(`${GRAPH}/me/accounts?` + new URLSearchParams({ fields: 'id,name,access_token,instagram_business_account{id,username}', access_token: long.access_token }))).data || [];
   if (!pages.length) throw new Error('This sign-in manages no Facebook Page. In the Explorer, tick pages_show_list and choose the Lantern Keeper Page when Facebook asks.');
   let page = pages.find(p => /lantern keeper/i.test(p.name));
@@ -62,4 +68,4 @@ function check() {
 
 const cmd = process.argv[2];
 (cmd === 'meta' ? meta() : cmd === 'tiktok' ? tiktok() : cmd === 'check' ? Promise.resolve(check()) : Promise.reject(new Error('Use: node tools/autopost-auth.js meta | tiktok | check')))
-  .catch(e => { console.error('Stopped: ' + (e.message || e)); process.exit(1); });
+  .catch(e => { console.error('Stopped: ' + (e.message || e)); process.exitCode = 1; }); // (not process.exit: on Windows it can crash while the terminal input is still closing)
