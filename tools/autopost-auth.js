@@ -19,8 +19,11 @@ const ask = (q, hidden) => new Promise(res => { const rl = readline.createInterf
   rl.question(q, a => { rl.close(); if (hidden) process.stdout.write('\n'); res(a.trim()); }); });
 const getJSON = async (u, o) => { const r = await fetch(u, o), j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error((j.error && (j.error.message || j.error_description || j.error)) || j.error_description || r.status); return j; };
 
+// a value from the terminal's environment, or asked for (hidden for secrets); kept in this process only
+async function setting(k, q, hidden) { if (!env(k)) process.env[k] = await ask(q, hidden); if (!env(k)) throw new Error(`No ${k} given.`); }
 async function meta() {
-  need('META_APP_ID', 'META_APP_SECRET');
+  await setting('META_APP_ID', 'Meta App ID (App settings > Basic; the main app, not the Instagram or Threads one): ');
+  await setting('META_APP_SECRET', 'Meta App secret (it will not show as you paste): ', true);
   console.log('Paste the user access token from the Graph API Explorer (it will not show as you paste):');
   const short = await ask('token: ', true); if (!short) throw new Error('No token pasted.');
   // which app made this token? (a user token can describe itself) It must be the same app as META_APP_ID
@@ -47,7 +50,7 @@ async function meta() {
 }
 
 async function tiktok() {
-  need('TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET');
+  await setting('TIKTOK_CLIENT_KEY', 'TikTok Client key: '); await setting('TIKTOK_CLIENT_SECRET', 'TikTok Client secret (it will not show as you paste): ', true);
   const st = crypto.randomBytes(12).toString('hex');
   const auth = 'https://www.tiktok.com/v2/auth/authorize/?' + new URLSearchParams({ client_key: env('TIKTOK_CLIENT_KEY'), scope: 'user.info.basic,video.upload', response_type: 'code', redirect_uri: REDIRECT, state: st });
   console.log('1. Open this address, signed in to TikTok as @l4nternkeeper, and allow it:\n\n' + auth + '\n\n2. The page it lands on shows a code. Paste it here.');
