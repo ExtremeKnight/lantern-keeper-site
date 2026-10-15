@@ -21,7 +21,7 @@ const getJSON = async (u, o) => { const r = await fetch(u, o), j = await r.json(
 
 // a value from the terminal's environment, or asked for (hidden for secrets); kept in this process only
 // (an ID that isn't a number, like a placeholder left over from an example, is asked for again)
-async function setting(k, q, hidden) { const bad = () => !env(k) || (/_ID$/.test(k) && !/^\d{5,}$/.test(env(k))); if (bad()) process.env[k] = await ask(q, hidden); if (bad()) throw new Error(`${k} must be the number from App settings > Basic.`); }
+async function setting(k, q, hidden) { const bad = () => !env(k) || (/_ID$/.test(k) && !/^\d{5,}$/.test(env(k))) || (k === 'META_APP_SECRET' && !/^[0-9a-f]{32}$/i.test(env(k))); if (bad()) process.env[k] = await ask(q, hidden); if (bad()) throw new Error(`${k} doesn't look right: copy it again from App settings > Basic.`); }
 async function meta() {
   await setting('META_APP_ID', 'Meta App ID (App settings > Basic; the main app, not the Instagram or Threads one): ');
   await setting('META_APP_SECRET', 'Meta App secret (it will not show as you paste): ', true);
