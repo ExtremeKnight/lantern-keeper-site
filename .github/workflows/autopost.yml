@@ -1,0 +1,46 @@
+# Social autopilot (0.31): every 30 minutes, posts what social/schedule.json says is due to the Facebook Page, Instagram
+# and TikTok (TikTok: to the account's inbox, posted there with one tap), and records it in social/posted.json.
+# Free: this repository is public. Setup and day-to-day use: social/README.md.
+name: Social autopilot
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'Dry run: only list what would be posted now'
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: autopost
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Post what is due
+        env:
+          META_PAGE_TOKEN: ${{ secrets.META_PAGE_TOKEN }}
+          META_PAGE_ID: ${{ vars.META_PAGE_ID }}
+          META_IG_ID: ${{ vars.META_IG_ID }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+        run: node tools/autopost.js ${{ (github.event_name == 'workflow_dispatch' && inputs.dry) && '--dry' || '' }}
+      - name: Record what was posted
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain social/posted.json)" ]; then
+            git config user.name "lantern-keeper-autopilot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add social/posted.json
+            git commit -m "Autopilot: posted $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash && git push
+          fi
