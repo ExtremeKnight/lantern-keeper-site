@@ -34,12 +34,10 @@ GitHub's encrypted secrets, and nobody else sees them, Claude included.
 4. In PowerShell, in this folder (`F:\Code\lantern-keeper-site`):
 
    ```powershell
-   $env:META_APP_ID = "the App ID"; $env:META_APP_SECRET = "the App secret"
    node tools/autopost-auth.js meta
    ```
 
-
-   Paste the token when it asks (it won't show). It finds the Page and the Instagram account, makes a Page token that
+   It asks for the App ID, the App secret and the token (the secret and the token don't show as you paste). It finds the Page and the Instagram account, makes a Page token that
    doesn't expire, and saves it to GitHub.
 
 ### 3. A TikTok app for the inbox uploads
@@ -52,11 +50,10 @@ GitHub's encrypted secrets, and nobody else sees them, Claude included.
 4. In PowerShell, in this folder:
 
    ```powershell
-   $env:TIKTOK_CLIENT_KEY = "the client key"; $env:TIKTOK_CLIENT_SECRET = "the client secret"
    node tools/autopost-auth.js tiktok
    ```
 
-   Open the address it prints, allow it, copy the code the page shows, and paste it into the terminal. The sign-in
+   It asks for the client key and the client secret (the secret doesn't show). Then open the address it prints, allow it, copy the code the page shows, and paste it into the terminal. The sign-in
    lasts a year: run this again before then (the workflow fails and GitHub emails you if it runs out).
 
 ### 4. Check it
