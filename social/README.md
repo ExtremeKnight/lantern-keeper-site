@@ -38,6 +38,7 @@ GitHub's encrypted secrets, and nobody else sees them, Claude included.
    node tools/autopost-auth.js meta
    ```
 
+
    Paste the token when it asks (it won't show). It finds the Page and the Instagram account, makes a Page token that
    doesn't expire, and saves it to GitHub.
 
