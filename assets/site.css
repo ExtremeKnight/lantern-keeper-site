@@ -942,3 +942,31 @@ a.adm-tile, .adm-tile { display: flex; flex-direction: column; align-items: flex
 /* 0.31: help centre search */
 .help-search { display: grid; gap: .35rem; margin: 0 0 1rem; } .help-search label { font-weight: 700; }
 .help-search input { min-height: 44px; padding: .55rem .8rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .2); background: rgba(8, 12, 30, .6); color: inherit; font: inherit; }
+
+/* 0.31.1: crews (crews.html, drawn by assets/hub.js) */
+.crew-mine, .crew-head { margin-bottom: 20px; }
+.crew-mine h2, .crew-head h2 { margin: 4px 0 8px; font: 400 2rem/1.1 var(--display); }
+.crew-mine h2 a { color: var(--text); text-decoration: none; }
+.crew-week { margin: 12px 0; }
+.crew-week p { margin: 4px 0; }
+.crew-bar { height: 12px; border-radius: 6px; background: var(--bg2); border: 1px solid var(--line); overflow: hidden; }
+.crew-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 6px; }
+.crew-tier { display: inline-block; padding: 0 10px; border-radius: 999px; font-size: .85rem; font-weight: 700; color: #1b1405; background: var(--gold); }
+.crew-tier-1 { background: var(--sky); } .crew-tier-2 { background: var(--gold); } .crew-tier-3 { background: var(--ember); }
+.crew-card { display: block; color: var(--text); text-decoration: none; }
+.crew-card:hover, .crew-card:focus-visible { border-color: var(--gold); }
+.crew-card p { margin: 6px 0 0; }
+.crew-tag { color: var(--gold); font-weight: 700; }
+.crew-board { margin: 0 0 12px; padding-left: 1.6em; display: grid; gap: 6px; }
+.crew-board a { color: var(--text); font-weight: 600; }
+.crew-find { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.crew-find input { flex: 1 1 220px; min-height: 44px; padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--line2); background: var(--bg2); color: var(--text); font: inherit; }
+.crew-make { display: grid; gap: 12px; max-width: 560px; }
+.crew-make label { display: grid; gap: 6px; }
+.crew-make input:not([type=checkbox]) { min-height: 44px; padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--line2); background: var(--bg2); color: var(--text); font: inherit; }
+.crew-people { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.crew-people li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); }
+.crew-act { margin-top: 12px; }
+.crew-row { margin: 4px 0; }
+.crew-board .crew-row, .crew-people .crew-row { display: inline; margin: 0; }
+.crew-row .kicker { display: inline; }

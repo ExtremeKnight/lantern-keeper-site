@@ -73,7 +73,7 @@ const sprite = () => `<svg width="0" height="0" style="position:absolute" aria-h
 
 // 0.30.1 (approved 8 October): four links always shown, the rest under More; on tablets and phones a side menu, in groups
 const NAV = [['community.html', 'Community', 'community', 'chat'], ['news.html', 'News', 'news', 'news'], ['store.html', 'Store', 'store', 'bag'], ['downloads.html', 'Downloads', 'downloads', 'download']];
-const MORE = [['index.html#features', 'Features', 'features', 'spark'], ['index.html#gallery', 'Gallery', 'gallery', 'image'], ['support.html', 'Support &amp; FAQ', 'support', 'help'], ['press.html', 'Press kit', 'press', 'box'], ['leaderboards.html', 'Leaderboards', 'leaderboards', 'star'], ['events.html', 'Events', 'events', 'bell']];
+const MORE = [['index.html#features', 'Features', 'features', 'spark'], ['index.html#gallery', 'Gallery', 'gallery', 'image'], ['support.html', 'Support &amp; FAQ', 'support', 'help'], ['press.html', 'Press kit', 'press', 'box'], ['leaderboards.html', 'Leaderboards', 'leaderboards', 'star'], ['crews.html', 'Crews', 'crews', 'chat'], ['events.html', 'Events', 'events', 'bell']];
 const DRAWER = [['Play', [['play/', 'Play free', 'play', 'play'], ['downloads.html', 'Downloads', 'downloads', 'download']]],
   ['Keepers', [NAV[0], NAV[1], NAV[2], ['account.html', 'Account', 'account', 'user']]], ['About the game', MORE]];
 
@@ -147,7 +147,7 @@ ${body.trim()}
         <p>An idle roguelite lighthouse defense game by Exenova. Free to play, no ads, nothing that changes how you play is ever sold.</p>
       </div>
       <div><h2>Play</h2><ul><li><a href="play/">In your browser</a></li><li><a href="downloads.html">Downloads</a></li><li><a href="index.html#platforms">Platforms</a></li></ul></div>
-      <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="press.html">Press kit</a></li><li><a href="pitch.html">Presentation</a></li></ul></div>
+      <div><h2>Game</h2><ul><li><a href="index.html#features">Features</a></li><li><a href="index.html#gallery">Gallery</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li><li><a href="crews.html">Crews</a></li><li><a href="press.html">Press kit</a></li><li><a href="pitch.html">Presentation</a></li></ul></div>
       <div><h2>Help</h2><ul><li><a href="support.html">Support &amp; FAQ</a></li><li><a href="support.html#status">Service status</a></li><li><a href="privacy-policy.html">Privacy Policy</a></li><li><a href="delete-data.html">Delete your data</a></li><li><a href="terms.html">Terms of Service</a></li><li><a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a></li></ul></div>
       <div><h2>Follow us</h2><ul><li><a href="https://www.tiktok.com/@l4nternkeeper" rel="me noopener" target="_blank">TikTok</a></li><li><a href="https://www.instagram.com/l4ntern.keeper/" rel="me noopener" target="_blank">Instagram</a></li></ul></div>
     </div>

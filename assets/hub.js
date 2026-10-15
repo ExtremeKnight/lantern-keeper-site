@@ -788,9 +788,85 @@
     setInterval(() => { loadMembers().then(() => { const p = root.querySelector('.lkc-people'); if (p) p.innerHTML = `<p class="lkc-grp"><span>Online now</span> · ${members.length}</p>${members.slice(0, 40).map(m => `<a class="lkc-person" href="#/k/${m.id}">${avatar(m.id, 28)}<span>${esc((names.get(m.id) || m).name)}</span></a>`).join('') || '<p class="muted small">Nobody right now.</p>'}`; }); }, 60000);
   }
 
+  // ---------- crews (0.31.1): browse and find crews, each crew's page, this week's brightest, your crew ----------
+  // Crews are for signed-in keepers (as in the game). Keepers who hide their profile show as "A keeper" to anyone
+  // outside their crew; the server decides that (crew_view), as it decides who may join, accept or send out.
+  const CREW_TIERS = [[3000, 'Steady'], [8000, 'Bright'], [20000, 'Beacon']], ROLE_NAME = { owner: 'Owner', officer: 'Officer', member: 'Member' };
+  const crewTier = n => CREW_TIERS.filter(([x]) => n >= x).length, n0 = n => Number(n || 0).toLocaleString();
+  const crewBar = light => { const t = crewTier(light), next = CREW_TIERS[t], goal = next ? next[0] : CREW_TIERS[2][0];
+    // (lines that mix numbers or names with words are split into pieces, so the site's translation can take each word piece:
+    //  assets/i18n.js translates a block whole, and a block holding a changing number would never match)
+    return `<div class="crew-week"><div class="crew-row"><b>Crew light this week</b>${t ? ` <span class="crew-tier crew-tier-${t}">${CREW_TIERS[t - 1][1]}</span>` : ''}</div>
+      <div class="crew-bar" role="progressbar" aria-label="Crew light this week" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(goal, light)}"><i style="width:${Math.min(100, light / goal * 100)}%"></i></div>
+      ${next ? `<div class="crew-row muted small"><span translate="no">${n0(light)} / ${n0(next[0])}</span> · <span>next: ${next[1]}</span></div>` : '<p class="muted small">Top tier reached: a Beacon this week.</p>'}</div>`; };
+  const crewCard = c => `<a class="card crew-card" href="#/c/${esc(c.id)}"><span class="crew-tag" translate="no">[${esc(c.tag)}]</span> <b translate="no">${esc(c.name)}</b>
+    <div class="crew-row muted small"><span translate="no">${c.members} / 30</span>${c.open ? '' : ' · <span>by request</span>'}${c.light != null ? ` · <span translate="no">${n0(c.light)}</span> <span>light</span>` : ''}</div>${c.about ? `<p class="muted small" translate="no">${esc(c.about)}</p>` : ''}</a>`;
+  async function rpc(fn, args) { const { data, error } = await sb.rpc(fn, args); if (error) throw new Error(error.message); return data; }
+  async function renderCrews() {
+    if (!me) return needSignIn(root, 'Crews are groups of keepers. Sign in with your Lantern Keeper account to find one, see its page, or run your own.', renderCrews);
+    const m = (location.hash.match(/^#\/c\/([0-9a-f-]{36})$/) || [])[1];
+    root.innerHTML = '<p class="muted">Loading crews...</p>';
+    try { if (m) await crewPage(m); else await crewHome(); }
+    catch (e) { root.innerHTML = `<p class="hub-msg">${esc(e.message)}</p><p><a href="crews.html">Back to crews</a></p>`; }
+  }
+  async function crewHome(q = '') {
+    const [mine, board, list] = await Promise.all([rpc('crew_me'), rpc('crew_board').catch(() => []), rpc('crew_list', { p_q: q })]);
+    const own = mine && mine.crew ? mine : null;
+    root.innerHTML = `
+      <div class="hub-bar"><div>Signed in as <b>${esc(myProfile && myProfile.display_name || me.email)}</b> · <a href="account.html">Your account</a></div></div>
+      ${own ? `<section class="card crew-mine"><span class="kicker">Your crew</span><h2><a href="#/c/${esc(own.crew.id)}"><span translate="no">[${esc(own.crew.tag)}] ${esc(own.crew.name)}</span></a></h2>
+        ${crewBar(own.week ? own.week.light : 0)}<div class="crew-row muted small"><span>Your light this week:</span> <span translate="no">${n0(own.week && own.week.mine)} / 2,000</span></div>
+        <a class="btn btn-primary btn-sm" href="#/c/${esc(own.crew.id)}">Open your crew</a></section>` : ''}
+      <h2 class="hub-h">This week's brightest crews</h2>
+      ${board.length ? `<ol class="crew-board">${board.map(b => `<li><div class="crew-row"><a href="#/c/${esc(b.id)}" translate="no">[${esc(b.tag)}] ${esc(b.name)}</a> <span class="muted small" translate="no">${n0(b.light)}</span> <span class="muted small">light</span>${b.tier ? ` · <span class="crew-tier crew-tier-${b.tier}">${CREW_TIERS[b.tier - 1][1]}</span>` : ''}</div></li>`).join('')}</ol>` : '<p class="muted">No crew has added light this week yet.</p>'}
+      <p class="muted small">Every night a crew's keepers play adds its season light to the crew (up to 2,000 a keeper each week). Steady at 3,000, Bright at 8,000, a Beacon at 20,000: everyone who helped earns the title in the game.</p>
+      <h2 class="hub-h">Find a crew</h2>
+      <form class="crew-find" role="search"><input name="q" maxlength="24" placeholder="Name or tag" aria-label="Find a crew by name or tag" value="${esc(q)}"><button class="btn btn-ghost btn-sm">Find</button></form>
+      <div class="cards hub-grid crew-list">${list.length ? list.map(crewCard).join('') : '<p class="muted">No crew by that name yet.</p>'}</div>
+      ${own ? '' : `<h2 class="hub-h">Make a crew</h2><form class="card crew-make">
+        <label>Crew name <input name="name" maxlength="24" required></label><label>Tag (2 to 4 letters or numbers) <input name="tag" maxlength="4" required pattern="[A-Za-z0-9]{2,4}" translate="no"></label>
+        <label>A line about your crew (optional) <input name="about" maxlength="200"></label><label class="hub-check"><input type="checkbox" name="open" checked> Open: anyone can join (off: they ask, you accept)</label>
+        <button class="btn btn-primary">Make the crew</button></form>`}`;
+    root.querySelector('.crew-find').onsubmit = e => { e.preventDefault(); crewHome(e.target.q.value.trim()).catch(err => say(root, err.message)); };
+    const make = root.querySelector('.crew-make');
+    if (make) make.onsubmit = async e => { e.preventDefault(); const f = e.target;
+      try { const id = await rpc('crew_create', { p_name: f.name.value, p_tag: f.tag.value.toUpperCase(), p_about: f.about.value, p_open: f.open.checked }); location.hash = '#/c/' + id; }
+      catch (err) { say(f, err.message); } };
+  }
+  async function crewPage(id) {
+    const [v, mine] = await Promise.all([rpc('crew_view', { p_crew: id }), rpc('crew_me')]);
+    if (!v) { root.innerHTML = '<p>This crew no longer exists.</p><p><a href="crews.html">Back to crews</a></p>'; return; }
+    const C = v.crew, isMine = v.me === 'member', M = isMine ? mine : null, lead = M && (M.role === 'owner' || M.role === 'officer');
+    const people = isMine ? M.members : v.members;
+    const act = v.me === 'none' ? (v.members.length >= 30 ? '<p class="muted">This crew is full.</p>' : `<button class="btn btn-primary" data-crew-join>${C.open ? 'Join the crew' : 'Ask to join'}</button>`)
+      : v.me === 'asked' ? '<p class="muted">You asked to join. An owner or officer will answer.</p>'
+      : v.me === 'other' ? '<p class="muted">You are in another crew. Leave it first to join this one.</p>'
+      : `<button class="btn btn-ghost btn-sm" data-crew-leave>Leave the crew</button>`;
+    root.innerHTML = `
+      <p><a href="crews.html">← All crews</a></p>
+      <section class="card crew-head"><div class="crew-row"><span class="kicker">${C.open ? 'Open crew' : 'By request'}</span> <span class="kicker" translate="no">· ${v.members.length} / 30</span></div>
+        <h2><span translate="no">[${esc(C.tag)}] ${esc(C.name)}</span></h2>${C.about ? `<p translate="no">${esc(C.about)}</p>` : ''}
+        ${crewBar(v.week.light)}<div class="crew-act">${act}</div></section>
+      ${lead && M.requests.length ? `<h2 class="hub-h">Asking to join</h2><ul class="crew-people">${M.requests.map(r => `<li><b translate="no">${esc(r.name)}</b>
+        <button class="btn btn-primary btn-sm" data-crew-do="accept" data-user="${esc(r.id)}">Accept</button> <button class="btn btn-ghost btn-sm" data-crew-do="decline" data-user="${esc(r.id)}">Turn down</button></li>`).join('')}</ul>` : ''}
+      <h2 class="hub-h">Keepers</h2>
+      <ul class="crew-people">${people.map(k => { const self = isMine && k.id === me.id, acts = [];
+        if (isMine && !self && lead && k.role !== 'owner' && !(M.role === 'officer' && k.role === 'officer')) acts.push(`<button class="btn btn-ghost btn-sm" data-crew-do="kick" data-user="${esc(k.id)}">Send out</button>`);
+        if (isMine && !self && M.role === 'owner' && k.role === 'member') acts.push(`<button class="btn btn-ghost btn-sm" data-crew-do="officer" data-user="${esc(k.id)}">Make officer</button>`);
+        if (isMine && !self && M.role === 'owner' && k.role === 'officer') acts.push(`<button class="btn btn-ghost btn-sm" data-crew-do="owner" data-user="${esc(k.id)}">Make owner</button>`);
+        return `<li><div class="crew-row"><b translate="no">${esc(k.name)}</b> <span class="muted small">${ROLE_NAME[k.role] || esc(k.role)}</span> <span class="muted small" translate="no">·</span> <span class="muted small">level</span> <span class="muted small" translate="no">${n0(k.level)}</span>${k.light ? ` <span class="muted small" translate="no">· ${n0(k.light)}</span> <span class="muted small">light this week</span>` : ''}</div> ${acts.join(' ')}</li>`; }).join('')}</ul>
+      ${isMine ? '<p class="muted small">Your crew\'s chat is in the game: Social &gt; Chat.</p>' : ''}`;
+    const go = async (fn, args, msg) => { try { await rpc(fn, args); if (msg) say(root.querySelector('.crew-head'), msg, true); await crewPage(id); } catch (e) { say(root.querySelector('.crew-head'), e.message); } };
+    const j = root.querySelector('[data-crew-join]'); if (j) j.onclick = () => go('crew_join', { p_crew: id });
+    const l = root.querySelector('[data-crew-leave]'); if (l) l.onclick = () => modal(`<h2>Leave the crew?</h2><p>${M && M.role === 'owner' && M.members.length > 1 ? 'You own it: it passes to its longest-serving officer (or keeper).' : 'You can join another crew afterwards.'}</p><p><button class="btn btn-primary" data-yes>Leave</button></p>`,
+      (dlg, close) => { dlg.querySelector('[data-yes]').onclick = () => { close(); go('crew_leave', {}); }; });
+    for (const b of root.querySelectorAll('[data-crew-do]')) b.onclick = () => go('crew_manage', { p_user: b.dataset.user, p_what: b.dataset.crewDo });
+  }
+
   // ---------- start ----------
   googleReturn().then(loadMe).then(() => new Promise(res => { if (me && myProfile && myProfile.consent_pending) consentPanel(res); else res(); })).then(() => {
-    if (PAGE === 'store') renderStore();
+    if (PAGE === 'crews') { renderCrews(); window.addEventListener('hashchange', renderCrews); }
+    else if (PAGE === 'store') renderStore();
     else if (PAGE === 'account') renderAccount();
     else if (PAGE === 'community') startCommunity();
     else if (PAGE === 'admin') { // 0.30.1: the dashboard (assets/admin.js) gets the sign-in and the helpers
