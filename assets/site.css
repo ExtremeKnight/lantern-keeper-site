@@ -970,3 +970,8 @@ a.adm-tile, .adm-tile { display: flex; flex-direction: column; align-items: flex
 .crew-row { margin: 4px 0; }
 .crew-board .crew-row, .crew-people .crew-row { display: inline; margin: 0; }
 .crew-row .kicker { display: inline; }
+/* 0.31.1: email previews at phone or computer width; the do-not-email list */
+.adm-mail { display: block; max-width: 100%; margin: 0 auto; transition: width .2s; }
+.adm-mail-big { height: 72vh; }
+.adm-widths { display: flex; gap: 8px; margin: 0 0 10px; }
+.adm-widths [aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }

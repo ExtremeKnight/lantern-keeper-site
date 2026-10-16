@@ -58,7 +58,7 @@ window.LKAdmin = function (root, A) {
     ['perms', 'Permissions', ['perms.manage'], permsPage], ['site', 'Website', ['site.edit', 'site.settings'], sitePage],
     ['posts', 'News, devlogs, events', ['posts.publish', 'events.post'], posts], ['announce', 'In-game announcements', ['announce.ingame'], announce], ['switches', 'Game switches', ['game.switches'], switchesPage], ['gevents', 'Game events', ['events.game'], gameEvents],
     ['faq', 'FAQ and chatbot', ['faq.edit'], faq], ['store', 'Products and prices', ['prices.edit', 'payments.settings'], store], ['emails', 'Email templates', ['emails.templates', 'emails.approve'], emails],
-    ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
+    ['campaigns', 'Email campaigns', ['emails.send'], campaigns], ['suppress', 'Do-not-email list', ['emails.send'], suppressPage], ['translations', 'Translations', ['translations.edit'], translations], ['rewards', 'Rewards and gifts', ['rewards.give'], rewards],
   ].filter(s => can(...s[2]));
   root.innerHTML = `<div class="adm"><nav class="adm-nav" aria-label="Dashboard sections"><p class="adm-who">${esc((A.myProfile && A.myProfile.display_name) || A.me.email)} ${A.roleChips(A.myRoles)}</p>
     <label class="adm-pick"><span class="sr-only">Section</span><select data-pick>${SECTIONS.map(([id, label]) => `<option value="${id}" data-label="${esc(label)}">${label}</option>`).join('')}</select></label>
@@ -603,6 +603,12 @@ window.LKAdmin = function (root, A) {
 
   // ---------- email templates: edit, preview, approve (owners) ----------
   let mailMod = null; const mail = async () => mailMod || (mailMod = await Promise.all([import('./email/js/email-render.js'), import('./email/js/email-templates.js')]));
+  // 0.31.1: an email at phone width (most players read on a phone) or computer width
+  const WIDTHS = [['Phone', 375], ['Computer', 680]];
+  const widthBar = () => `<div class="adm-widths" role="group" aria-label="Preview width">${WIDTHS.map(([n, w], i) => `<button type="button" class="btn btn-ghost btn-sm" data-w="${w}" aria-pressed="${i === 0}">${n}</button>`).join('')}</div>`;
+  const widths = (scope, frame) => { const set = w => { frame.style.width = w + 'px'; for (const b of scope.querySelectorAll('[data-w]')) b.setAttribute('aria-pressed', String(+b.dataset.w === w)); };
+    for (const b of scope.querySelectorAll('[data-w]')) b.onclick = () => set(+b.dataset.w); set(WIDTHS[0][1]); };
+  const mailPreview = (subject, html) => modal(`<h2>${esc(subject)}</h2>${widthBar()}<iframe class="adm-mail adm-mail-big" title="Email preview"></iframe>`, d => { d.style.width = 'min(760px, 94vw)'; d.style.maxWidth = 'none'; const fr = d.querySelector('iframe'); fr.srcdoc = html; widths(d, fr); });
   async function emails(el, [key]) {
     const { data, error } = await sb.from('email_templates').select('*').order('grp').order('key'); if (error) throw error;
     if (key) return emailEdit(el, data.find(t => t.key === key));
@@ -621,10 +627,10 @@ window.LKAdmin = function (root, A) {
         <div class="hub-row"><label>Button text<input name="button_label" maxlength="40" value="${esc(t.button_label || '')}"></label><label>Button link<input name="button_link" maxlength="300" value="${esc(t.button_link || '')}"></label></div>
         <label>Colour<select name="tone">${['info', 'success', 'warning', 'danger'].map(x => `<option ${t.tone === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
         <div class="hub-actions"><button class="btn btn-primary" type="submit">Save</button>${can('emails.approve') && !t.approved ? '<button class="btn btn-ghost" type="button" data-approve>Approve: start sending</button>' : ''}${can('emails.approve') && t.approved ? '<button class="btn btn-ghost" type="button" data-unapprove>Stop sending</button>' : ''}</div></form>
-        <div><p class="muted small">Preview with sample values</p><iframe class="adm-mail" title="Email preview"></iframe></div></div>`;
+        <div><p class="muted small">Preview with sample values</p>${widthBar()}<iframe class="adm-mail" title="Email preview"></iframe></div></div>`;
     const f = el.querySelector('[data-tpl]'), frame = el.querySelector('iframe');
     const draw = () => { const v = Object.fromEntries(new FormData(f)), r = renderEmail(Object.assign({}, t, v), EMAIL_SAMPLES, { unsubLink: '#' }); frame.srcdoc = r.html; };
-    f.addEventListener('input', draw); draw();
+    f.addEventListener('input', draw); draw(); widths(el, frame);
     f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); const { error } = await sb.from('email_templates').update({ subject: v.subject, preheader: v.preheader, heading: v.heading, body: v.body, button_label: v.button_label || null, button_link: v.button_link || null, tone: v.tone }).eq('key', t.key); if (error) say(f, error.message); else { say(f, t.approved ? 'Saved. It needs approving again before it is sent.' : 'Saved.', true); setTimeout(route, 900); } };
     const ap = el.querySelector('[data-approve]'); if (ap) ap.onclick = () => confirmBox('Approve this email?', `<p>"${esc(t.name)}" is sent from now on, whenever what it is for happens.</p>`, async () => { const { error } = await sb.from('email_templates').update({ approved: true }).eq('key', t.key); if (error) throw error; route(); }, 'Approve');
     const un = el.querySelector('[data-unapprove]'); if (un) un.onclick = async () => { const { error } = await sb.from('email_templates').update({ approved: false }).eq('key', t.key); if (error) err(error); else route(); };
@@ -633,9 +639,11 @@ window.LKAdmin = function (root, A) {
   // ---------- email campaigns (updates, events, offers: only to players who chose them) ----------
   async function campaigns(el) {
     const { data, error } = await sb.from('email_campaigns').select('*').order('created_at', { ascending: false }).limit(50); if (error) throw error;
+    // 0.31.1: clicks on the website links in each campaign (counted by email-click: no reader is recorded)
+    const { data: cl } = await sb.from('email_clicks').select('campaign_id, n'); const clicks = {}; for (const r of cl || []) clicks[r.campaign_id] = (clicks[r.campaign_id] || 0) + r.n;
     el.innerHTML = head('Email campaigns', 'Sent only to players who turned that kind of email on, with a one-click unsubscribe. Send yourself a test first.', '<button class="btn btn-primary btn-sm" data-new>New campaign</button>')
-      + `<div class="adm-table">${(data || []).map(c => `<div class="adm-row"><span><b>${esc(c.subject)}</b><br><small>${esc(c.kind)} · ${day(c.created_at)}</small></span><span class="adm-state st-${c.status === 'sent' ? 'paid' : c.status === 'cancelled' ? 'cancelled' : 'review'}">${esc(c.status)}${c.status === 'scheduled' ? ' ' + when(c.send_at) : ''}</span><span><small>${c.sent}/${c.audience} sent${c.failed ? ', ' + c.failed + ' failed' : ''}</small></span>
-        <span class="adm-acts">${c.status === 'draft' ? `<button class="btn btn-ghost btn-sm" data-ed="${c.id}">Edit</button><button class="btn btn-ghost btn-sm" data-test="${c.id}">Send me a test</button><button class="btn btn-primary btn-sm" data-send="${c.id}">Send or schedule</button>` : ''}${['scheduled', 'sending'].includes(c.status) ? `<button class="btn btn-ghost btn-sm" data-stop="${c.id}">Cancel</button>` : ''}</span></div>`).join('') || '<p class="muted">No campaigns yet.</p>'}</div>`;
+      + `<div class="adm-table">${(data || []).map(c => `<div class="adm-row"><span><b>${esc(c.subject)}</b><br><small>${esc(c.kind)} · ${day(c.created_at)}</small></span><span class="adm-state st-${c.status === 'sent' ? 'paid' : c.status === 'cancelled' ? 'cancelled' : 'review'}">${esc(c.status)}${c.status === 'scheduled' ? ' ' + when(c.send_at) : ''}</span><span><small>${c.sent}/${c.audience} sent${c.failed ? ', ' + c.failed + ' failed' : ''}${c.sent ? ` · ${clicks[c.id] || 0} click${clicks[c.id] === 1 ? '' : 's'}${c.sent ? ` (${Math.round((clicks[c.id] || 0) / c.sent * 100)}%)` : ''}` : ''}</small></span>
+        <span class="adm-acts"><button class="btn btn-ghost btn-sm" data-pv="${c.id}">Preview</button>${c.status === 'draft' ? `<button class="btn btn-ghost btn-sm" data-ed="${c.id}">Edit</button><button class="btn btn-ghost btn-sm" data-test="${c.id}">Send me a test</button><button class="btn btn-primary btn-sm" data-send="${c.id}">Send or schedule</button>` : ''}${['scheduled', 'sending'].includes(c.status) ? `<button class="btn btn-ghost btn-sm" data-stop="${c.id}">Cancel</button>` : ''}</span></div>`).join('') || '<p class="muted">No campaigns yet.</p>'}</div>`;
     const edit = c => modal(`<h2>${c ? 'Edit' : 'New'} campaign</h2><form class="hub-form"><label>Kind<select name="kind">${[['updates', 'Updates and patch notes'], ['events', 'Events'], ['promos', 'Offers']].map(([k, l]) => `<option value="${k}" ${c && c.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label>Subject<input name="subject" maxlength="120" required value="${esc(c ? c.subject : '')}"></label><label>Preview line<input name="preheader" maxlength="140" value="${esc(c ? c.preheader : '')}"></label><label>Headline<input name="headline" maxlength="120" value="${esc(c ? c.headline : '')}"></label>
       <label>Text <small>(a blank line starts a paragraph)</small><textarea name="body" rows="8" maxlength="6000">${esc(c ? c.body : '')}</textarea></label><div class="hub-row"><label>Button text<input name="button_label" maxlength="40" value="${esc(c && c.button_label || '')}"></label><label>Button link <small>(https://)</small><input name="button_link" maxlength="300" value="${esc(c && c.button_link || '')}"></label></div><button class="btn btn-primary" type="submit">Save the draft</button></form>`, (d, close) => {
@@ -643,12 +651,30 @@ window.LKAdmin = function (root, A) {
         const { error: e2 } = c ? await sb.from('email_campaigns').update(row).eq('id', c.id) : await sb.from('email_campaigns').insert(row); if (e2) say(f, e2.message); else { close(); route(); } }; });
     el.querySelector('[data-new]').onclick = () => edit(null);
     for (const b of el.querySelectorAll('[data-ed]')) b.onclick = () => edit(data.find(c => c.id === +b.dataset.ed));
+    for (const b of el.querySelectorAll('[data-pv]')) b.onclick = () => call('send-emails', { action: 'preview', id: +b.dataset.pv }).then(r => mailPreview(r.subject, r.html), err);
     for (const b of el.querySelectorAll('[data-test]')) b.onclick = () => call('send-emails', { action: 'test', id: +b.dataset.test }).then(r => modal(`<h2>Test sent</h2><p>Sent to ${esc(r.to)}.</p>`), err);
     for (const b of el.querySelectorAll('[data-stop]')) b.onclick = () => call('send-emails', { action: 'cancel', id: +b.dataset.stop }).then(route, err);
     for (const b of el.querySelectorAll('[data-send]')) b.onclick = () => { const c = data.find(x => x.id === +b.dataset.send);
       modal(`<h2>Send "${esc(c.subject)}"</h2><form class="hub-form"><label>When<input type="datetime-local" name="at"> <small>(empty: now)</small></label><label>Type SEND to confirm<input name="confirm" autocomplete="off" required></label><button class="btn btn-primary" type="submit">Send</button></form><p class="muted small">It goes to every player who chose ${esc(c.kind)} emails. This can't be undone once sent.</p>`, (d, close) => {
         const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f));
           try { if (v.at) { const { error: e2 } = await sb.from('email_campaigns').update({ send_at: iso(v.at) }).eq('id', c.id); if (e2) throw e2; } const r = await call('send-emails', { action: 'start', id: c.id, confirm: v.confirm }); close(); modal(`<h2>${r.scheduled ? 'Scheduled' : 'Sending'}</h2><p>${r.audience} player${r.audience === 1 ? '' : 's'}.</p>`); route(); } catch (x) { say(f, x.message); } }; }); };
+  }
+
+  // ---------- the do-not-email list (0.31.1): addresses our optional emails never go to ----------
+  // Brevo adds hard bounces, invalid or blocked addresses and spam complaints by itself (brevo-events); the team can add one
+  // by hand (someone asked by email) or remove one (an address that works again). Account codes are not affected.
+  async function suppressPage(el) {
+    const q = sessionStorage.getItem('adm-sup') || '';
+    let req = sb.from('email_suppress').select('*').order('created_at', { ascending: false }).limit(200); if (q) req = req.ilike('email', '%' + q.replace(/[%_]/g, '') + '%');
+    const { data, error } = await req; if (error) throw error;
+    const WHY = { bounce: 'Bounced (Brevo)', complaint: 'Marked as spam (Brevo)', manual: 'Added by the team' };
+    el.innerHTML = head('Do-not-email list', 'Optional emails (updates, events, offers, from friends) never go to these addresses. Bounces and spam complaints are added by Brevo; sign-in codes still reach everyone.',
+      `<form class="adm-filters" data-find><input name="q" value="${esc(q)}" placeholder="Find an address" aria-label="Find an address"><button class="btn btn-ghost btn-sm">Find</button><button class="btn btn-primary btn-sm" type="button" data-add>Add an address</button></form>`)
+      + `<p class="muted small">${(data || []).length}${(data || []).length === 200 ? '+' : ''} address${(data || []).length === 1 ? '' : 'es'}${q ? ' found' : ''}.</p><div class="adm-table">${(data || []).map(r => `<div class="adm-row"><span><b>${esc(r.email)}</b></span><span><small>${WHY[r.reason] || esc(r.reason)}</small></span><span><small>${day(r.created_at)}</small></span><span class="adm-acts"><button class="btn btn-ghost btn-sm" data-rm="${esc(r.email)}">Remove</button></span></div>`).join('') || '<p class="muted">Nobody is on the list.</p>'}</div>`;
+    el.querySelector('[data-find]').onsubmit = e => { e.preventDefault(); sessionStorage.setItem('adm-sup', e.target.q.value.trim()); route(); };
+    el.querySelector('[data-add]').onclick = () => modal('<h2>Add an address</h2><form class="hub-form"><label>Email address<input name="email" type="email" required maxlength="254"></label><button class="btn btn-primary">Add</button></form><p class="muted small">Our optional emails stop going to it at once.</p>', (d, close) => {
+      const f = d.querySelector('form'); f.onsubmit = async e => { e.preventDefault(); const { error: e2 } = await sb.from('email_suppress').insert({ email: f.email.value.trim().toLowerCase(), reason: 'manual' }); if (e2) say(f, /duplicate/.test(e2.message) ? 'That address is already on the list.' : e2.message); else { close(); route(); } }; });
+    for (const b of el.querySelectorAll('[data-rm]')) b.onclick = () => confirmBox('Remove from the list?', `<p>${esc(b.dataset.rm)} can get the optional emails it chose again.</p>`, async () => { const { error: e2 } = await sb.from('email_suppress').delete().eq('email', b.dataset.rm); if (e2) throw e2; route(); }, 'Remove');
   }
 
   // ---------- translations (website and game; override the shipped language files) ----------
