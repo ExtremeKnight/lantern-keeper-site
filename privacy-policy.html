@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="64x64" href="assets/img/icon-64.png">
 <link rel="apple-touch-icon" href="assets/img/icon-192.png">
 <link rel="preload" href="assets/fonts/Jersey10.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=069cedb1fb">
+<link rel="stylesheet" href="assets/site.css?v=b82fb3c0d2">
 <link rel="alternate" type="application/rss+xml" title="Lantern Keeper news (RSS)" href="feed.xml">
 <link rel="alternate" type="application/atom+xml" title="Lantern Keeper news (Atom)" href="atom.xml">
 <meta property="og:type" content="website">
@@ -50,7 +50,7 @@
   <div class="wrap">
     <span class="kicker">Legal</span>
     <h1>Privacy Policy</h1>
-    <p>Version 3.1 · Effective 14 October 2026 · Applies to Lantern Keeper for Android, the desktop app and the web version, from game version 0.31.</p>
+    <p>Version 3.2 · Effective 16 October 2026 · Applies to Lantern Keeper for Android, the desktop app and the web version, from game version 0.31.</p>
   </div>
 </div>
 <div class="page">
@@ -117,9 +117,9 @@
     <tr><td data-label="What"><strong>Family settings</strong> (from game version 0.31, only if a parent or guardian sets them): which of four things the account may do (chat, messages and friend requests; playing online with others; spending Lumens and buying; a daily playtime reminder, with its minutes), and the family PIN, kept only as a secure hash. A wrong PIN is noted, so that five wrong PINs in an hour make the next try wait</td>
         <td data-label="Why">To keep the rules a parent or guardian chose, on every device and on our server</td>
         <td data-label="How long">Until they are turned off or the account is deleted</td></tr>
-    <tr><td data-label="What"><strong>Crews</strong> (from game version 0.31): the crew you founded or joined (its name, tag, a line about it, whether it is open), your role in it (owner, officer or member) and when you joined, and requests to join</td>
-        <td data-label="Why">To run crews: the crew's name and tag are shown next to its members' names, and its members share a crew chat</td>
-        <td data-label="How long">Until you leave the crew or delete the account. A request: until it is answered or withdrawn. Crew chat is kept like party chat (30 days)</td></tr>
+    <tr><td data-label="What"><strong>Crews</strong> (from game version 0.31): the crew you founded or joined (its name, tag, a line about it, whether it is open), your role in it (owner, officer or member) and when you joined, and requests to join. From game version 0.31.1, the crew's light for each week, and how much light each keeper added that week (from the season light of the nights they played)</td>
+        <td data-label="Why">To run crews: the crew's name and tag are shown next to its members' names, and its members share a crew chat. The crew's weekly light and tier are shown to signed-in players (on the website's Crews page and the week's board); each keeper's share is shown only to their own crew</td>
+        <td data-label="How long">Until you leave the crew or delete the account. A request: until it is answered or withdrawn. Crew chat is kept like party chat (30 days). Weekly light: until the crew or the account is deleted</td></tr>
     <tr><td data-label="What"><strong>Seed challenges</strong> (from game version 0.31): your best night for each seed you played (the wave, creatures defeated, time and the week's tide)</td>
         <td data-label="Why">To show you and your accepted friends how you did on the same seed (never shown to strangers)</td>
         <td data-label="How long">Until you delete the account</td></tr>
@@ -267,7 +267,10 @@
     <strong>Brevo</strong> sends the optional emails you chose (patch notes and updates, events, messages from friends you
     missed, and promotions for adults). Each receives your email address, your keeper name and the message, under its own
     privacy policy. We keep a record of each optional email sent or failed (the kind, when, and to which account; not the
-    message) for one year, and a list of addresses that must not be written to again (for example after a bounce).</li>
+    message) for one year, and a list of addresses that must not be written to again (for example after a bounce). From game
+    version 0.31.1, Brevo tells us when an email bounced or was marked as spam, and the address joins that list. Links to our
+    website in these emails pass through our server first, which counts clicks for each kind of email and campaign per day;
+    it does not record who clicked, and we never track whether an email was opened.</li>
     <li><strong>Sign-in services</strong> (only if you use one): Google, Discord, Twitch, X (Twitter) or Facebook (Meta) confirm who you are and send us the details in section 2, under their own privacy policies. The sign-in page is theirs; we never receive your password for them. Facebook sign-in is offered only while we have it turned on.</li>
     <li><strong>Browser push services</strong> (web push, only if you turn it on): your browser's maker (for example Google for Chrome, Mozilla for Firefox, Apple for Safari, Microsoft for Edge) delivers our notices to your browser. It receives the notice, encrypted for your browser, and your browser's subscription address.</li>
     <li>The website's address (lk.exenova.is-local.host) is a free name from <strong>is-local.host</strong> that points to GitHub's
@@ -374,7 +377,9 @@
   address; version 3.1 (game version 0.31) adds signing in with Google, Discord, Twitch, X and Facebook (and that we never
   use the name or picture they send), accounts waiting for the sign-up answers, web push and browser push services, Family
   settings, crews, seed challenges, Quick Join, ranked seasons, gifts, photo mode, Streamer mode, two-step sign-in for our
-  team, and downloading your data, your devices and signing out everywhere on our website.</p>
+  team, and downloading your data, your devices and signing out everywhere on our website; version 3.2 (game version 0.31.1)
+  adds crew goals (each crew's weekly light, and each keeper's share shown to their crew), Brevo's bounce and spam reports, and
+  counting clicks on the links in our emails (never who clicked).</p>
   <p>Questions or requests: <strong>Exenova</strong>, <a href="mailto:l4nternkeeper@gmail.com">l4nternkeeper@gmail.com</a>.</p>
   <p class="muted">See also the <a href="terms.html">Terms of Service</a>.</p>
   </div>
