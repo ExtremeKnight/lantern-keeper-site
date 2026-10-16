@@ -2,7 +2,7 @@
 (() => {
 'use strict';
 const LK_TEST_HOOKS = false;
-const LK_VERSION = "0.31.0";
+const LK_VERSION = "0.31.1";
 const LK_PUSH = true;
 const LK_BUILD = "public";
 const LK_CLOUD = {"url":"https://odnjaegbkudwsfrwnjiy.supabase.co","key":"sb_publishable_IUdpT3MRtokyJD3SsNNF0Q_eZAovpor","privacyUrl":"https://lk.exenova.is-local.host/privacy-policy.html","termsUrl":"https://lk.exenova.is-local.host/terms.html","captcha":"40488912-dbd0-40ca-9726-be9e3f983e42","coop":""};
@@ -6676,7 +6676,8 @@ function recordRun(win, extra) { // called once when any night ends (not for rep
   gainXp(run.wave * 10 + run.kills / 5 + run.bosses * 40 + (win ? 250 : 0) + (mode9 === 'daily' ? 100 : 0), true);
   featsRun(h); // 0.14: challenges and secrets
   if (!(mode9 === 'endless' && run.seeded)) Boards.afterNight(h); // 0.31: the leaderboards (a chosen seed doesn't count for Endless)
-  seasonLight(h); // 0.31: the season's track
+  const sl = seasonLight(h); // 0.31: the season's track
+  if (typeof Crew !== 'undefined') Crew.afterNight(sl); // 0.31.1: and the crew's light for the week
   SeedBoard.after(h); // 0.31: seed challenges with friends
 }
 const Library = {
@@ -12600,6 +12601,9 @@ $('#bFull').onclick = () => Platform.toggleFullscreen();
 for (const s of document.querySelectorAll('[data-sel]')) s.onchange = () => { const k = s.dataset.sel, raw = s.value; setDraft.set(v => { v[k] = /^-?\d+(\.\d+)?$/.test(raw) ? +raw : raw; }); };
 for (const i of document.querySelectorAll('[data-rng]')) { i.oninput = () => { const k = i.dataset.rng, x = +i.value; i.nextElementSibling.textContent = k === 'overscan' ? (x ? x + '%' : 'None') : x + '%'; }; i.onchange = () => setDraft.set(v => { v[i.dataset.rng] = +i.value; }); }
 $('#bCompat').onclick = () => guardedLeave(() => openCompat());
+// 0.31.1: Settings > Other > Follow Lantern Keeper: the official accounts, opened in the browser or their app
+const FOLLOW = { tiktok: 'https://www.tiktok.com/@l4nternkeeper', instagram: 'https://www.instagram.com/l4ntern.keeper/', facebook: 'https://www.facebook.com/profile.php?id=61595178970114' };
+for (const b of document.querySelectorAll('[data-follow]')) b.onclick = () => Platform.openExternal(FOLLOW[b.dataset.follow]);
 $('#bFeedback').onclick = () => Insights.feedback('settings'); // 0.30
 for (const b of document.querySelectorAll('[data-rate]')) b.onclick = () => { Insights.add('feedback', { rate: b.dataset.rate, where: 'night', wave: run ? run.wave : 0, mode: (meta.history[0] || {}).mode || '' }); $('#nightRate').hidden = true; toastQ.push(['Thanks', 'Noted for the next balance pass.', 2]); }; // 0.30: how that night felt
 for (const b of document.querySelectorAll('[data-set]')) b.onclick = () => { const k = b.dataset.set; setDraft.set(v => { v[k] = !v[k]; }); if (k === 'haptics' && setDraft.cur.haptics) Platform.vibrate(20); };
@@ -13785,10 +13789,10 @@ const v = id => ($('#' + id) ? $('#' + id).value.trim() : '');
 // 0.26: consent at sign-up. The age question asks for the month and year of birth, works out the age here and sends
 // only the answer (13 or over; 13 to 15), never the date. The server checks the same answers (supabase migration
 // 20261004000000_consent.sql), so an account can't be made without them.
-const TERMS_VERSION = '1.7', PRIVACY_VERSION = '3.1', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
+const TERMS_VERSION = '1.7', PRIVACY_VERSION = '3.2', ACCOUNT_MIN_AGE = 13, PARENT_UNDER = 16;
 const POLICY_KEY = 'lantern-keeper-policy', policyKey = () => 'p' + PRIVACY_VERSION + '/t' + TERMS_VERSION; // the versions this device has shown
 // When the policies change, account holders are told once, in the game, with what changed (Terms, section 10)
-const POLICY_NEWS = 'Privacy Policy 3.1 and Terms 1.7. New: signing in with Google, Discord, Twitch, X or Facebook (we keep the email they send and never use the name or picture); Family settings, where a parent or guardian can limit chat, online play and spending with a PIN; crews, whose name and tag show next to members’ names; seed results shared with your friends; Quick Join rooms; ranked seasons; gifts and region bundles in our web store; web push for the web version; and on our website, downloading your data, your devices and signing out everywhere.';
+const POLICY_NEWS = 'Privacy Policy 3.2 and Terms 1.7. New in 3.2: crew goals (your crew’s weekly light, and each keeper’s share shown to their crew), bounce reports from our email service, and counting clicks on the links in our emails (never who clicked). Since 3.1: signing in with Google, Discord, Twitch, X or Facebook (we keep the email they send and never use the name or picture); Family settings, where a parent or guardian can limit chat, online play and spending with a PIN; crews, whose name and tag show next to members’ names; seed results shared with your friends; Quick Join rooms; ranked seasons; gifts and region bundles in our web store; web push for the web version; and on our website, downloading your data, your devices and signing out everywhere.';
 function policyNotice() {
   if (Platform.load(POLICY_KEY) === policyKey() || !Cloud.signedIn() || mode !== 'home' || !$('#syncChoice').hidden) return; // told once on each device (never over the sync choice)
   const done = () => Platform.save(POLICY_KEY, policyKey());
@@ -15419,10 +15423,24 @@ setInterval(() => {
    0.31: CREWS (Social > Crew): keepers' own groups (public.crews: one crew per keeper, up to 30). Make one with a name,
    a 2 to 4 letter tag and a line about it, open or by request; find one by name or tag; your crew's keepers, their
    roles and levels; requests to accept; and the crew's own chat channel (crew:<id>), in Social > Chat.
+   0.31.1: crew goals. Each night adds its season light to the crew's week (the server caps a keeper at 200 a night and
+   2,000 a week); Steady at 3,000, Bright at 8,000, a Beacon at 20,000, and everyone who helped earns the title.
    ===================================================================== */
+const CREW_TIERS = [[3000, 'Steady'], [8000, 'Bright'], [20000, 'Beacon']], CREW_WEEK_MAX = 2000;
+const crewTier = light => CREW_TIERS.filter(([n]) => light >= n).length;
 const Crew = {
-  me: null, list: null, q: '',
-  async load() { if (!Cloud.signedIn()) { this.me = null; return; } try { const { data } = await Cloud.sb.rpc('crew_me'); this.me = data || null; } catch (e) { /* offline */ } },
+  me: null, list: null, q: '', board: null,
+  async load() { if (!Cloud.signedIn()) { this.me = null; return; } try { const [{ data }, { data: best }] = await Promise.all([Cloud.sb.rpc('crew_me'), Cloud.sb.rpc('crew_my_best')]); this.me = data && data.crew ? data : null; this.best(best || (data && data.best)); } catch (e) { /* offline */ } },
+  best(n) { if ((n || 0) > (meta.crewBest || 0)) { meta.crewBest = n; save(); } }, // (the titles: the best tier this keeper helped a crew reach)
+  // after a night: its season light goes to the crew (the server decides how much counts)
+  async afterNight(pts) {
+    if (!pts || !this.me || !Cloud.signedIn() || Cloud.off) return;
+    try { const { data } = await Cloud.sb.rpc('crew_light', { p_light: Math.round(pts) }); if (!data || !this.me) return;
+      const before = crewTier((this.me.week && this.me.week.light) || 0); this.me.week = { week: data.week, light: data.light, mine: data.mine };
+      if (data.added > 0 && data.tier > before) { toastQ.push([I18n.t('Your crew is {a} this week!').replace('{a}', I18n.t(CREW_TIERS[data.tier - 1][1])), I18n.t('Everyone who added light earns the title.')]); this.best(data.tier); }
+    } catch (e) { /* offline: the night still counts for you */ }
+  },
+  async loadBoard() { const { data, error } = await Cloud.sb.rpc('crew_board'); if (error) throw new Error(acErrText(error)); this.board = data || []; },
   async find(q) { this.q = q || ''; const { data, error } = await Cloud.sb.rpc('crew_list', { p_q: this.q }); if (error) throw new Error(acErrText(error)); this.list = data || []; },
   channel() { return this.me && this.me.crew ? 'crew:' + this.me.crew.id : null; },
 };
@@ -15446,10 +15464,21 @@ function renderCrew(add) {
       sBtn(I18n.t('Make the crew'), () => crewDo('crew_create', { p_name: nm.value, p_tag: tg.value, p_about: ab.value, p_open: open.checked }, I18n.t('Your crew is ready. Its chat is in Chat.')), 'btn primary'));
     return;
   }
-  const C = M.crew, lead = M.role === 'owner' || M.role === 'officer';
+  const C = M.crew, lead = M.role === 'owner' || M.role === 'officer', W = M.week || { light: 0, mine: 0 }, t = crewTier(W.light), next = CREW_TIERS[t];
   add(sEl('p', { className: 'acLead', textContent: `[${C.tag}] ${C.name}` }), C.about ? sEl('p', { className: 'muted', textContent: C.about }) : '',
     sEl('p', { className: 'sub', textContent: `${M.members.length} / 30 · ` + (C.open ? I18n.t('open') : I18n.t('by request')) + ' · ' + I18n.t('you are {a}').replace('{a}', I18n.t(M.role)) }),
     sBtn(I18n.t('Crew chat'), async () => { socTab = 'chat'; Social.channel = Crew.channel(); await Social.loadChannel(Social.channel); renderSocial(); }, 'btn primary'));
+  // 0.31.1: this week's crew light
+  const goal = next ? next[0] : CREW_TIERS[2][0], bar = sEl('div', { className: 'bar' }, [sEl('i', { style: `width:${Math.min(100, W.light / goal * 100)}%` })]);
+  bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-label', I18n.t('Crew light this week')); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(goal)); bar.setAttribute('aria-valuenow', String(Math.min(goal, W.light)));
+  add(sEl('div', { className: 'loCard seasonCard crewWeek' }, [sEl('p', {}, [sEl('b', { textContent: I18n.t('Crew light this week') }), sEl('span', { className: 'muted', textContent: t ? ' · ' + I18n.t(CREW_TIERS[t - 1][1]) : '' })]),
+    sEl('p', { textContent: next ? I18n.t('{a} of {b} light · next: {c}').replace('{a}', fmt(W.light)).replace('{b}', fmt(next[0])).replace('{c}', I18n.t(next[1])) : I18n.t('Top tier reached: a Beacon this week.') }), bar,
+    sEl('p', { className: 'muted', textContent: I18n.t('Your light this week: {a} of {b}').replace('{a}', fmt(W.mine || 0)).replace('{b}', fmt(CREW_WEEK_MAX)) }),
+    sEl('p', { className: 'muted', textContent: I18n.t('Every night you play adds its season light to your crew. Steady at 3,000, Bright at 8,000, a Beacon at 20,000: everyone who helped earns the title.') }),
+    sBtn(I18n.t("This week's brightest crews"), async () => { await Crew.loadBoard(); renderSocial(); }, 'btn small')]));
+  if (Crew.board) { add(sEl('h3', { className: 'sec', textContent: I18n.t("This week's brightest crews") }));
+    if (!Crew.board.length) add(sEl('p', { className: 'muted', textContent: I18n.t('No crew has added light this week yet.') }));
+    Crew.board.forEach((b, i) => add(sEl('div', { className: 'peer' }, [sEl('b', { textContent: `${i + 1}. [${b.tag}] ${b.name}` }), sEl('span', { className: 'muted', textContent: ' ' + I18n.t('{a} light').replace('{a}', fmt(b.light)) + (b.tier ? ' · ' + I18n.t(CREW_TIERS[b.tier - 1][1]) : '') })]))); }
   if (lead && M.requests.length) { add(sEl('h3', { className: 'sec', textContent: I18n.t('Asking to join') }));
     for (const r of M.requests) add(sEl('div', { className: 'peer' }, [sEl('b', { textContent: r.name }), sBtn(I18n.t('Accept'), () => crewDo('crew_manage', { p_user: r.id, p_what: 'accept' }, I18n.t('They are in the crew.'))), sBtn(I18n.t('Turn down'), () => crewDo('crew_manage', { p_user: r.id, p_what: 'decline' }, ''), 'btn small ghost')])); }
   add(sEl('h3', { className: 'sec', textContent: I18n.t('Keepers') }));
@@ -15458,9 +15487,14 @@ function renderCrew(add) {
     if (!me && lead && k.role !== 'owner' && !(M.role === 'officer' && k.role === 'officer')) acts.push(sBtn(I18n.t('Send out'), () => crewDo('crew_manage', { p_user: k.id, p_what: 'kick' }, ''), 'btn small ghost'));
     if (!me && M.role === 'owner' && k.role === 'member') acts.push(sBtn(I18n.t('Make officer'), () => crewDo('crew_manage', { p_user: k.id, p_what: 'officer' }, '')));
     if (!me && M.role === 'owner' && k.role === 'officer') acts.push(sBtn(I18n.t('Make owner'), () => crewDo('crew_manage', { p_user: k.id, p_what: 'owner' }, I18n.t('They own the crew now.'))));
-    add(sEl('div', { className: 'peer crewMember' }, [sEl('b', { textContent: streamerName(k.name, M.members.indexOf(k)) }), sEl('span', { className: 'muted', textContent: ` ${I18n.t(k.role)} · ${I18n.t('level {a}').replace('{a}', k.level)}` }), ...acts]));
+    add(sEl('div', { className: 'peer crewMember' }, [sEl('b', { textContent: streamerName(k.name, M.members.indexOf(k)) }), sEl('span', { className: 'muted', textContent: ` ${I18n.t(k.role)} · ${I18n.t('level {a}').replace('{a}', k.level)}` + (k.light ? ' · ' + I18n.t('{a} light').replace('{a}', fmt(k.light)) : '') }), ...acts]));
   }
   add(sBtn(I18n.t('Leave the crew'), () => crewDo('crew_leave', {}, M.role === 'owner' && M.members.length > 1 ? I18n.t('You left. The crew passed to its longest-serving officer.') : I18n.t('You left the crew.')), 'btn small ghost'));
+}
+
+// 0.31.1: titles for crew goals (the best tier a keeper helped their crew reach in a week)
+for (const [n, name, tier] of [[1, 'Steady Crewmate', 'Steady'], [2, 'Bright Crewmate', 'Bright'], [3, 'Crew Beacon', 'a Beacon']]) {
+  const t = { id: 'crew' + n, name, how: `Help your crew be ${tier} for a week`, ok: () => (meta.crewBest || 0) >= n }; TITLES.push(t); TTK[t.id] = t;
 }
 
 /* ---- src\js\15-pvp.js ---- */
