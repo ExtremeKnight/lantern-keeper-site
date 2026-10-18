@@ -11,14 +11,14 @@
  },
  "update-031-carousel": {
   "facebook": {
-   "tries": 1,
+   "tries": 2,
    "error": "Graph /1342046122332728/photos: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-18T04:18:49.178Z"
+   "at": "2026-10-18T09:01:36.097Z"
   },
   "instagram": {
-   "tries": 1,
+   "tries": 2,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-18T04:18:49.674Z"
+   "at": "2026-10-18T09:01:36.593Z"
   }
  }
 }
