@@ -35,14 +35,14 @@
  },
  "pick-one": {
   "facebook": {
-   "tries": 2,
+   "tries": 3,
    "error": "Graph /1342046122332728/video_reels: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-19T17:43:50.115Z"
+   "at": "2026-10-19T22:16:54.829Z"
   },
   "instagram": {
-   "tries": 2,
+   "tries": 3,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-19T17:43:50.253Z"
+   "at": "2026-10-19T22:16:55.310Z"
   }
  }
 }
