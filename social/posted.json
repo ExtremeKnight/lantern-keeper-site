@@ -32,5 +32,17 @@
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
    "at": "2026-10-18T19:23:10.636Z"
   }
+ },
+ "pick-one": {
+  "facebook": {
+   "tries": 1,
+   "error": "Graph /1342046122332728/video_reels: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-19T11:10:57.478Z"
+  },
+  "instagram": {
+   "tries": 1,
+   "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-19T11:10:57.568Z"
+  }
  }
 }
