@@ -7,6 +7,10 @@
   "instagram": {
    "id": "17907006507573699",
    "at": "2026-10-17T13:09:37.419Z"
+  },
+  "tiktok": {
+   "missed": true,
+   "at": "2026-10-20T12:01:45.130Z"
   }
  },
  "update-031-carousel": {
@@ -47,14 +51,21 @@
  },
  "crews": {
   "facebook": {
-   "tries": 1,
+   "tries": 2,
    "error": "Graph /1342046122332728/photos: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-20T06:31:17.824Z"
+   "at": "2026-10-20T12:01:45.621Z"
   },
+  "instagram": {
+   "tries": 2,
+   "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-20T12:01:45.701Z"
+  }
+ },
+ "crews-story": {
   "instagram": {
    "tries": 1,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-20T06:31:17.908Z"
+   "at": "2026-10-20T12:01:45.978Z"
   }
  }
 }
