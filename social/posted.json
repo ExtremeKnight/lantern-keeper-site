@@ -63,9 +63,9 @@
  },
  "crews-story": {
   "instagram": {
-   "tries": 2,
+   "tries": 3,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-20T16:50:03.364Z"
+   "at": "2026-10-20T20:28:12.361Z"
   }
  }
 }
