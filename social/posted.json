@@ -35,6 +35,10 @@
    "tries": 3,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
    "at": "2026-10-18T19:23:10.636Z"
+  },
+  "tiktok": {
+   "missed": true,
+   "at": "2026-10-21T13:10:04.364Z"
   }
  },
  "pick-one": {
@@ -66,6 +70,18 @@
    "tries": 3,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
    "at": "2026-10-20T20:28:12.361Z"
+  }
+ },
+ "boss-in-3": {
+  "facebook": {
+   "tries": 1,
+   "error": "Graph /1342046122332728/video_reels: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-21T13:10:05.386Z"
+  },
+  "instagram": {
+   "tries": 1,
+   "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-21T13:10:05.510Z"
   }
  }
 }
