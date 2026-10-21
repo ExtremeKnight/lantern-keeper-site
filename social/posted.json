@@ -74,14 +74,14 @@
  },
  "boss-in-3": {
   "facebook": {
-   "tries": 1,
+   "tries": 2,
    "error": "Graph /1342046122332728/video_reels: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-21T13:10:05.386Z"
+   "at": "2026-10-21T18:14:02.824Z"
   },
   "instagram": {
-   "tries": 1,
+   "tries": 2,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-21T13:10:05.510Z"
+   "at": "2026-10-21T18:14:02.941Z"
   }
  }
 }
