@@ -83,5 +83,17 @@
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
    "at": "2026-10-21T21:56:43.490Z"
   }
+ },
+ "seed": {
+  "facebook": {
+   "tries": 1,
+   "error": "Graph /1342046122332728/photos: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-22T05:19:41.613Z"
+  },
+  "instagram": {
+   "tries": 1,
+   "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
+   "at": "2026-10-22T05:19:41.706Z"
+  }
  }
 }
