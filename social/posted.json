@@ -102,14 +102,14 @@
  },
  "makes-sense": {
   "facebook": {
-   "tries": 2,
+   "tries": 3,
    "error": "Graph /1342046122332728/video_reels: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-22T19:27:25.954Z"
+   "at": "2026-10-22T22:41:58.123Z"
   },
   "instagram": {
-   "tries": 2,
+   "tries": 3,
    "error": "Graph /17841423605555842/media: Cannot call API for app 1181557487716928 on behalf of user 122107283229502549",
-   "at": "2026-10-22T19:27:26.126Z"
+   "at": "2026-10-22T22:41:58.248Z"
   }
  }
 }
