@@ -23,7 +23,11 @@ const save = () => fs.writeFileSync(STATE, JSON.stringify(state, null, 1) + '\n'
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const caption = (p, plat) => (p.caption && (p.caption[plat] || p.caption.default)) || '';
 const url = f => SITE.replace(/\/$/, '') + '/' + f.replace(/^\//, '').split('/').map(encodeURIComponent).join('/');
-const MAX_TRIES = 3, LATE_MS = 3 * 864e5; // (a post more than three days overdue is not sent: it is marked missed instead)
+const MAX_TRIES = 3, LATE_MS = 864e5; // (a post more than a day overdue is not sent: it is marked missed instead, so a fixed sign-in never floods the feed)
+// a sign-in the platform no longer accepts (expired, the app's secret reset, the app removed from the account): every post
+// there would fail the same way, so the run stops trying that platform, keeps the posts' tries, and says what to do
+const AUTH = /Cannot call API for app|Error validating access token|Session has expired|has not authorized application|invalid OAuth|OAuthException|access token.*(expired|invalid)|TikTok sign-in/i;
+const FIX = { facebook: 'node tools/autopost-auth.js meta', instagram: 'node tools/autopost-auth.js meta', tiktok: 'node tools/autopost-auth.js tiktok' };
 
 // ---- the schedule's own checks (also run by --dry, so a broken schedule fails before anything is posted) ----
 const PLATS = ['facebook', 'instagram', 'tiktok'], KINDS = ['image', 'carousel', 'video', 'story'], problems = [];
@@ -124,12 +128,13 @@ async function tiktok(p) {
 (async () => {
   const ready = { facebook: !!(META.page && META.token), instagram: !!(META.ig && META.token), tiktok: !!(env('TIKTOK_CLIENT_KEY') && env('TIKTOK_CLIENT_SECRET') && env('TIKTOK_REFRESH_TOKEN')) };
   const due = sched.posts.filter(p => Date.parse(p.at) <= now).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
-  let posted = 0, failed = 0;
+  let posted = 0, failed = 0; const done = new Set(), down = new Set(); // (one post a platform a run: a backlog goes out half an hour apart)
   for (const p of due) {
     const st = state[p.id] = state[p.id] || {};
     for (const plat of p.to) {
       const s = st[plat]; if (s && (s.id || s.skipped || s.missed || (s.tries || 0) >= MAX_TRIES)) continue;
-      if (now - Date.parse(p.at) > LATE_MS) { st[plat] = { missed: true, at: new Date().toISOString() }; console.log(`missed: ${p.id} on ${plat} (over three days late)`); continue; }
+      if (now - Date.parse(p.at) > LATE_MS) { st[plat] = { missed: true, at: new Date().toISOString() }; console.log(`missed: ${p.id} on ${plat} (over a day late)`); continue; }
+      if (down.has(plat) || done.has(plat)) continue;
       if (!ready[plat]) { if (!DRY) console.log(`not set up: ${plat} (skipping ${p.id} there for now)`); else console.log(`would post ${p.id} (${p.kind}) to ${plat}, but ${plat} is not set up`); continue; }
       if (DRY) { console.log(`would post ${p.id} (${p.kind}) to ${plat}: ${caption(p, plat).slice(0, 60).replace(/\n/g, ' ')}...`); continue; }
       try {
@@ -138,10 +143,18 @@ async function tiktok(p) {
         }
         const r = plat === 'facebook' ? await facebook(p) : plat === 'instagram' ? await instagram(p) : await tiktok(p);
         st[plat] = typeof r === 'object' ? { ...r, at: new Date().toISOString() } : { id: r, at: new Date().toISOString() };
-        console.log(`${st[plat].skipped ? 'skipped' : 'posted'}: ${p.id} on ${plat}${st[plat].note ? ' (' + st[plat].note + ')' : ''}`); posted++;
+        console.log(`${st[plat].skipped ? 'skipped' : 'posted'}: ${p.id} on ${plat}${st[plat].note ? ' (' + st[plat].note + ')' : ''}`); posted++; if (!st[plat].skipped) done.add(plat);
         // TikTok's inbox upload carries no caption: put it on the run's summary page, to copy from the phone
         if (plat === 'tiktok' && !st[plat].skipped && process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### TikTok inbox: ${p.id}\nOpen TikTok, tap the notification, paste this caption, post:\n\n\`\`\`\n${caption(p, 'tiktok')}\n\`\`\`\n\n`);
       } catch (e) {
+        const msg = String(e.message || e).slice(0, 300);
+        if (AUTH.test(msg)) { // (Facebook and Instagram share one sign-in)
+          for (const x of plat === 'tiktok' ? ['tiktok'] : ['facebook', 'instagram']) down.add(x);
+          st[plat] = { tries: (s && s.tries) || 0, error: msg, at: new Date().toISOString() }; failed++;
+          console.error(`SIGN-IN NEEDED for ${plat}: ${msg}\n  Fix: on the owner's computer, in lantern-keeper-site, run: ${FIX[plat]}\n  (posts wait and go out once it works; ones more than a day late are skipped)`);
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Sign-in needed: ${plat}\n${msg}\n\nOn your computer, in lantern-keeper-site: \`${FIX[plat]}\`\n\n`);
+          save(); continue;
+        }
         st[plat] = { tries: ((s && s.tries) || 0) + 1, error: String(e.message || e).slice(0, 300), at: new Date().toISOString() }; failed++;
         console.error(`failed (try ${st[plat].tries} of ${MAX_TRIES}): ${p.id} on ${plat}: ${st[plat].error}`);
       }
